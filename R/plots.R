@@ -1,0 +1,68 @@
+#' Plot the cross-validation curve produced by cv.shim
+#'
+#' @description Plots the cross-validation curve, and upper and lower standard
+#'   deviation curves, as a function of the \eqn{\lambda_\beta} and
+#'   \eqn{\lambda_\gamma} values used. Using \code{ggplot2} facet plots, each
+#'   facet represents a unique value for \eqn{\lambda_\gamma}, and the x-axis is
+#'   the sequence of corresponding \eqn{\lambda_\beta}
+#' @param x fitted \code{cv.shim} object
+#' @details A plot is produced, and nothing is returned. A colored vertical line
+#'   is drawn at the pair of tuning parameters that leads to the minimum CV
+#'   error and another is drawn at the 1 standard error rule pair of tuning
+#'   parameters
+#' @seealso \code{\link{shim}} and \code{\link{cv.shim}}
+#' @author
+#' Sahir Bhatnagar
+#'
+#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#' @export
+
+plot.cv.shim <- function(x) {
+
+  cvobj <- x
+
+  d <- cvobj$df %>%
+    as.data.table %>%
+    mutate(lambda.min.beta = cvobj$lambda.min.beta,
+           lambda.min.gamma = cvobj$lambda.min.gamma,
+           lambda.1se.beta = cvobj$lambda.1se.beta,
+           lambda.1se.gamma = cvobj$lambda.1se.gamma)
+
+  # needed to get colored lines
+  d2 <- d[(lambda.beta == lambda.min.beta & lambda.gamma == lambda.min.gamma) |
+            (lambda.beta == lambda.1se.beta & lambda.gamma == lambda.1se.gamma)] %>%
+    melt(measure.vars = c("lambda.min.beta","lambda.1se.beta"))
+
+  d2[,variable := gsub(".beta", "",variable)]
+
+  appender <- function(string) TeX(paste("$\\log(\\lambda_{\\gamma}) = $",string))
+
+  p <- ggplot(d,
+              aes(log(lambda.beta),
+                  ymin = lower,
+                  ymax = upper))
+
+  l <- ggplot_build(p)
+  p +
+    geom_errorbar(color = "grey", width = 0.5) +
+    geom_point(aes(x = log(lambda.beta), y = mse), colour = "red") +
+    theme_bw() +
+    ylim(c(min(d$lower) - 10 , max(d$upper) + 500)) +
+    facet_wrap(~log.gamma, scales = "fixed",
+               #switch = "x",
+               labeller = as_labeller(appender, default = label_parsed)) +
+    theme(strip.background = element_blank(),
+          strip.text.x = element_text(size = rel(1.3)),
+          legend.position = "bottom") +
+    xlab(TeX("$\\log(\\lambda_{\\beta})$")) +
+    geom_vline(data = d2[lambda.gamma == lambda.1se.gamma & variable == "lambda.1se"],
+               aes(xintercept = log(value), colour = variable), size = 0.7, linetype = 1) +
+    geom_vline(data = d2[lambda.gamma == lambda.min.gamma & variable == "lambda.min"],
+               aes(xintercept = log(value), colour = variable),size = 0.7, linetype = 1) +
+    scale_color_discrete(name="") +
+    geom_text(aes(label = nz.main, x = log(lambda.beta), y = Inf, vjust = 1)) +
+    geom_text(aes(label = nz.interaction, x = log(lambda.beta), y = Inf,
+                  vjust = 2)) +
+    ylab(c("10 fold CV MSE")) +
+    coord_cartesian(ylim = c(l$panel$ranges[[1]]$y.range[1], l$panel$ranges[[1]]$y.range[2]*1.1))
+}
