@@ -71,9 +71,9 @@ res <- shim(x = data_std$x, y = data_std$y,
      main.effect.names = main_effect_names,
      interaction.names = interaction_names)
 
-
-res$alpha
-
+knitr::kable(as.matrix(res$beta))
+DT::datatable(round(res$tuning.parameters,5))
+names(res)
 
 res$tuning.parameters %>% str
 res$dfbeta
@@ -87,7 +87,11 @@ system.time(cv.res <- cv.shim(x = data_std$x, y = data_std$y,
             interaction.names = interaction_names))
 
 cv.res %>% names
+plot(cv.res)
 
+cv.res$lambda.min.name
+cv.res$lambda.1se.name
+cv.res$lambda.
 
 library(dplyr)
 coef(cv.res)

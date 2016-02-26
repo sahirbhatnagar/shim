@@ -592,7 +592,8 @@ cv.shim <- function(x, y, main.effect.names, interaction.names,
                       threshold = threshold, max.iter = max.iter,
                       initialization.type = initialization.type,
                       nlambda.gamma = nlambda.gamma,
-                      nlambda.beta = nlambda.beta, cores = 1)
+                      nlambda.beta = nlambda.beta, cores = 1,
+                      verbose = verbose)
 
   nz.main = sapply(predict(shim.object, type = "nonzero")[["main"]], length)
   nz.interaction = sapply(predict(shim.object, type = "nonzero")[["interaction"]], length)
@@ -618,7 +619,7 @@ cv.shim <- function(x, y, main.effect.names, interaction.names,
            max.iter = max.iter ,
            initialization.type = initialization.type,
            nlambda.gamma = nlambda.gamma,
-           nlambda.beta = nlambda.beta, cores = 1)
+           nlambda.beta = nlambda.beta, cores = 1, verbose = verbose)
     }
   } else {
     for (i in seq(nfolds)) {
@@ -638,7 +639,8 @@ cv.shim <- function(x, y, main.effect.names, interaction.names,
                           max.iter = max.iter ,
                           initialization.type = initialization.type,
                           nlambda.gamma = nlambda.gamma,
-                          nlambda.beta = nlambda.beta, cores = 1)
+                          nlambda.beta = nlambda.beta, cores = 1,
+                          verbose = verbose)
     }
   }
 
@@ -667,30 +669,32 @@ cv.shim <- function(x, y, main.effect.names, interaction.names,
     nz.main = nz.main[!nas]
     nz.interaction = nz.interaction[!nas]
   }
-  cvname = cvstuff$name
+  cvname <- cvstuff$name
 
   df <- as.data.frame(cbind(lambda.beta = lambda.beta,
                             lambda.gamma = lambda.gamma,
                             mse = cvm,
-                            upper = cvm+cvsd,
-                            lower = cvm-cvsd,
+                            upper = cvm + cvsd,
+                            lower = cvm - cvsd,
                             nz.main = nz.main,
                             nz.interaction = nz.interaction,
                             log.gamma = round(log(lambda.gamma),2)))
 
-  out = list(lambda.beta = lambda.beta, lambda.gamma = lambda.gamma,
+  rownames(df) <- gsub("\\.(.*)", "",rownames(df))
+
+  out <- list(lambda.beta = lambda.beta, lambda.gamma = lambda.gamma,
              cvm = cvm, cvsd = cvsd, cvup = cvm + cvsd,
              cvlo = cvm - cvsd, nz.main = nz.main, name = cvname,
              nz.interaction = nz.interaction,
-             shim.fit = shim.object, converged = cvstuff$converged, cvm.mat.all = cvstuff$cvm.mat.all,
+             shim.fit = shim.object, converged = cvstuff$converged,
+             cvm.mat.all = cvstuff$cvm.mat.all,
              df = df)
 
   lamin.beta = if (cvname == "AUC")
     getmin_type(lambda.beta, -cvm, cvsd, type = "beta") else getmin_type(lambda.beta, cvm, cvsd, type = "beta")
-  lamin.gamma = if (cvname == "AUC")
-    getmin_type(lambda.gamma, -cvm, cvsd, type = "gamma") else getmin_type(lambda.gamma, cvm, cvsd, type = "gamma")
-  obj = c(out, as.list(lamin.beta), as.list(lamin.gamma))
-  class(obj) = "cv.shim"
+
+  obj <- c(out, as.list(lamin.beta))
+  class(obj) <- "cv.shim"
   obj
 }
 

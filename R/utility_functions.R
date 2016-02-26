@@ -1039,18 +1039,19 @@ cvcompute <- function(mat, foldid, nlams) {
 #'   standard error of the minimum
 #' @param type should be one of "beta" or "gamma"
 getmin_type <- function(lambda, cvm, cvsd, type) {
-  cvmin = min(cvm, na.rm = TRUE)
-  idmin = cvm <= cvmin
-  lambda.min = max(lambda[idmin], na.rm = TRUE)
-  idmin = match(lambda.min, lambda)
-  semin = (cvm + cvsd)[idmin]
-  idmin = cvm <= semin
-  lambda.1se = max(lambda[idmin], na.rm = TRUE)
+
+  cvmin <- min(cvm, na.rm = TRUE)
+  idmin <- cvm <= cvmin
+  lambda.min <- lambda[idmin][which.max(lambda[idmin])]
+  idmin <- match(lambda.min, lambda)
+  semin <- (cvm + cvsd)[idmin]
+  idmin <- cvm <= semin
+  lambda.1se <- lambda[idmin][which.max(lambda[idmin])]
 
   # this is to get the index of the tuning parameter pair which is labelled by "s"
   # e.g. "s25" corresponds to the 25th pair of tuning parameters
-  lambda.min.name = gsub(".beta","",names(lambda.min))
-  lambda.1se.name = gsub(".beta","",names(lambda.1se))
+  lambda.min.name <- gsub("\\.(.*)", "",names(lambda.min))
+  lambda.1se.name <- gsub("\\.(.*)", "",names(lambda.1se))
   res <- list(lambda.min = lambda.min, lambda.min.name,
               lambda.1se = lambda.1se, lambda.1se.name )
   names(res) <- c(paste0("lambda.min.",type),"lambda.min.name",

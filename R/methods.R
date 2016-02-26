@@ -29,7 +29,8 @@ predict.shim <- function(object, newx, s = NULL,
   rownames(a0) = "(Intercept)"
   # this includes tuning parameters pairs that didnt converge
   nbeta = rbind(a0, object$beta, object$alpha)
-  nbeta@Dimnames <- list(X = c("(Intercept)",object$main.effect.names, object$interaction.names),
+  nbeta@Dimnames <- list(X = c("(Intercept)", object$main.effect.names,
+                               object$interaction.names),
                          Y = paste0("s",seq_len(object$nlambda)))
 
   # this is the default returned by coef.shim i.e. any object of class shim
@@ -75,14 +76,17 @@ coef.shim <- function(object, s = NULL) {
 #' @param s Value(s) of the penalty parameter lambda at which predictions are
 #'   required. Default is the value \code{s="lambda.1se"} stored on the cv.shim
 #'   object. Alternatively \code{s="lambda.min"} can be used.
+
 coef.cv.shim <- function(object, s = c("lambda.1se", "lambda.min"), ...) {
 
   if (is.numeric(s) || s %ni% c("lambda.1se", "lambda.min")) stop("s must be in lambda.1se or lambda.min")
 
   s <- match.arg(s)
 
-  lambda <- names(which(object$shim.fit$tuning.parameters["lambda.beta",] == object[[paste0(s,".beta")]] &
-                         object$shim.fit$tuning.parameters["lambda.gamma",] == object[[paste0(s,".gamma")]]))
+  lambda <- switch(s,
+                   lambda.min = object$lambda.min.name,
+                   lambda.1se = object$lambda.1se.name
+  )
 
   coef(object$shim.fit, s = lambda, ...)
 }

@@ -9,7 +9,7 @@ output:
     keep_md: yes
     toc: yes
     toc_depth: 4
-    toc_float: yes
+    toc_float: no
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
   %\VignetteEncoding{UTF-8}
@@ -185,9 +185,8 @@ plot(cv.res)
 ### Coefficient Estimates
 
 ```{r}
-coef.cv.shim(cv.res, s = "lambda.1se")
-coef.cv.shim(cv.res, s = "lambda.min")
-coef.cv.shim(cv.res, s = "s56")
+coef(cv.res, s = "lambda.1se")
+coef(cv.res, s = "lambda.min")
 ```
 
 
