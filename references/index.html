@@ -7,14 +7,14 @@
         
         
         
-        <link rel="shortcut icon" href="./img/favicon.ico">
+        <link rel="shortcut icon" href="../img/favicon.ico">
 
-	<title>Eclust</title>
+	<title>References - Eclust</title>
 
-        <link href="./css/bootstrap-custom.min.css" rel="stylesheet">
-        <link href="./css/font-awesome-4.0.3.css" rel="stylesheet">
-        <link href="./css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="./css/highlight.css">
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
 
         <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!--[if lt IE 9]>
@@ -25,7 +25,7 @@
         
     </head>
 
-    <body class="homepage">
+    <body>
 
         <div class="navbar navbar-default navbar-fixed-top" role="navigation">
     <div class="container">
@@ -43,7 +43,7 @@
             
 
             <!-- Main title -->
-            <a class="navbar-brand" href=".">Eclust</a>
+            <a class="navbar-brand" href="..">Eclust</a>
         </div>
 
         <!-- Expanded navigation -->
@@ -53,20 +53,20 @@
                 <ul class="nav navbar-nav">
                 
                 
+                    <li >
+                        <a href="..">Home</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../vignette/">Vignette</a>
+                    </li>
+                
+                
+                
                     <li class="active">
-                        <a href=".">Home</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="vignette/">Vignette</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="references/">References</a>
+                        <a href="./">References</a>
                     </li>
                 
                 
@@ -80,13 +80,13 @@
                     </a>
                 </li>
                 
-                    <li class="disabled">
-                        <a rel="next" >
+                    <li >
+                        <a rel="next" href="../vignette/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
-                    <li >
-                        <a rel="prev" href="vignette/">
+                    <li class="disabled">
+                        <a rel="prev" >
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -102,23 +102,22 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#eclust-a-statistical-software-tool-for-the-analysis-of-high-dimensional-interactions">Eclust: A Statistical Software Tool for the Analysis of High-Dimensional Interactions</a></li>
-        
-            <li><a href="#installation">Installation</a></li>
+        <li class="main active"><a href="#references">References</a></li>
         
     
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="eclust-a-statistical-software-tool-for-the-analysis-of-high-dimensional-interactions">Eclust: A Statistical Software Tool for the Analysis of High-Dimensional Interactions</h1>
-<p>This software is written in the open source software environment <a href="https://cran.r-project.org/">R</a>. It's main functionality is to fit statistical models for analyzing interactions between a high dimensional dataset (e.g. genomics, brain imaging), the environment and a response.</p>
-<p>The software is still in development mode.</p>
-<h2 id="installation">Installation</h2>
-<p>The software package is available on <a href="https://github.com/sahirbhatnagar/eclust">Github</a> and can be installed directly from within <code>R</code> using the following commands (note: you will need the <a href="https://cran.r-project.org/web/packages/devtools/index.html"><code>devtools</code></a> package prior to installing the <code>eclust</code> package)</p>
-<pre><code class="r">library(devtools)
-install_github('sahirbhatnagar/eclust')
-</code></pre></div>
+<h1 id="references">References</h1>
+<ol>
+<li>
+<p>Choi, Nam Hee, William Li, and Ji Zhu. "Variable selection with the strong heredity constraint and its oracle property." Journal of the American Statistical Association 105.489 (2010): 354-364.</p>
+</li>
+<li>
+<p>Chipman, Hugh. "Bayesian variable selection with related predictors." Canadian Journal of Statistics 24.1 (1996): 17-36.</p>
+</li>
+</ol></div>
             
         </div>
 
@@ -128,12 +127,12 @@ install_github('sahirbhatnagar/eclust')
             <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
 
-        <script src="./js/jquery-1.10.2.min.js"></script>
-        <script src="./js/bootstrap-3.0.3.min.js"></script>
-        <script src="./js/highlight.pack.js"></script>
-        <script>var base_url = '.';</script>
-        <script data-main="./mkdocs/js/search.js" src="./mkdocs/js/require.js"></script>
-        <script src="./js/base.js"></script>
+        <script src="../js/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/highlight.pack.js"></script>
+        <script>var base_url = '..';</script>
+        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+        <script src="../js/base.js"></script>
         <script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
@@ -163,8 +162,3 @@ install_github('sahirbhatnagar/eclust')
 
     </body>
 </html>
-
-<!--
-MkDocs version : 0.14.0
-Build Date UTC : 2016-02-26 06:08:06.627864
--->
