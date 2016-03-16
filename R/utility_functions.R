@@ -30,7 +30,7 @@
 #' @author
 #' Sahir Bhatnagar
 #'
-#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@@mail.mcgill.ca}
 #'
 #' @seealso \code{\link{shim}}, \code{\link[glmnet]{cv.glmnet}}
 #'
@@ -141,7 +141,7 @@ uni_fun <- function(x, y, type = c("ridge", "univariate"),
 #' @author
 #' Sahir Bhatnagar
 #'
-#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@@mail.mcgill.ca}
 #'
 #' @references Friedman, J., Hastie, T. and Tibshirani, R. (2008)
 #'   \emph{Regularization Paths for Generalized Linear Models via Coordinate
@@ -260,7 +260,7 @@ lambda_sequence <- function(x, y, weights = NULL,
 #'
 #' @author Sahir Bhatnagar
 #'
-#'   Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#'   Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@@mail.mcgill.ca}
 #'
 #' @references Friedman, J., Hastie, T. and Tibshirani, R. (2008)
 #'   \emph{Regularization Paths for Generalized Linear Models via Coordinate
@@ -325,7 +325,7 @@ ridge_weights <- function(x, y, main.effect.names, interaction.names,
 #' @author
 #' Sahir Bhatnagar
 #'
-#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@@mail.mcgill.ca}
 #' @export
 
 soft <- function(x, y, beta, lambda, weight) {
@@ -402,7 +402,7 @@ soft <- function(x, y, beta, lambda, weight) {
 #' @author
 #' Sahir Bhatnagar
 #'
-#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@@mail.mcgill.ca}
 #' @export
 
 shim_once <- function(x, y, main.effect.names, interaction.names,
@@ -818,7 +818,7 @@ Q_theta <- function(x, y, beta, gamma, weights,
 #'
 #' @author Sahir Bhatnagar
 #'
-#'   Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#'   Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@@mail.mcgill.ca}
 #'
 #' @name eclust-internal
 NULL
@@ -928,16 +928,16 @@ nonzero <- function(beta, bystep = FALSE) {
 #' @author
 #' Sahir Bhatnagar
 #'
-#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@@mail.mcgill.ca}
 #' @export
 
-standardize <- function(x, y, intercept = TRUE, normalize = TRUE) {
+standardize <- function(x, y, center = TRUE, normalize = TRUE) {
   x <- as.matrix(x)
   y <- as.numeric(y)
   n <- nrow(x)
   p <- ncol(x)
 
-  if (intercept) {
+  if (center) {
     bx <- colMeans(x)
     by <- mean(y)
     x <- scale(x,bx,FALSE)

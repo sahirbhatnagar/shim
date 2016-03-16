@@ -14,7 +14,7 @@
 #' @author
 #' Sahir Bhatnagar
 #'
-#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@mail.mcgill.ca}
+#' Maintainer: Sahir Bhatnagar \email{sahir.bhatnagar@@mail.mcgill.ca}
 #' @import data.table
 #' @export
 

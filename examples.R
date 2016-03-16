@@ -36,10 +36,11 @@ shim_once(x = data_std$x, y = data_std$y,
           main.effect.names = main_effect_names,
           interaction.names = interaction_names)
 
+rm(list = ls())
 
 library(magrittr)
 # number of observations
-n <- 100
+n <- 1000
 
 # number of predictors
 p <- 5
@@ -55,21 +56,93 @@ dimnames(x)[[2]] <- c("x1","x2","x3","x4","x5","e")
 
 # design matrix without intercept (can be user defined interactions)
 X <- model.matrix(~(x1+x2+x3)*e+x1*x4+x3*x5-1, data = as.data.frame(x))
-
+head(X)
 # names must appear in the same order as X matrix
 interaction_names <- grep(":", colnames(X), value = T)
 main_effect_names <- setdiff(colnames(X), interaction_names)
 
 # response
-Y <- X %*% rbinom(ncol(X), 1, 0.6) + 3*rnorm(n)
-
-# standardize data
-data_std <- standardize(X,Y)
+(trueBeta <- c(0,0,2,1.5,0,0,0,0,4,0,0))
+Y <- X %*% trueBeta + 3*rnorm(n)
 
 
-res <- shim(x = data_std$x, y = data_std$y,
+res <- shim(x = X, y = Y,
      main.effect.names = main_effect_names,
-     interaction.names = interaction_names)
+     interaction.names = interaction_names,
+     initialization.type = "univariate")
+
+library(doMC)
+registerDoMC(cores = 3)
+cvres <- cv.shim(x = X, y = Y,
+            main.effect.names = main_effect_names,
+            interaction.names = interaction_names,
+            initialization.type = "ridge",
+            nlambda.gamma = 5, nlambda.beta = 5, nlambda = 25,
+            max.iter = 50, threshold = 1e-3)
+
+names(cvres)
+class(cvres)
+library(ggplot2)
+library(latex2exp)
+plot(cvres)
+coef(cvres, s="lambda.min")
+coef(cvres, s="lambda.1se")
+names(cvres)
+cvres$lambda.1se.beta
+cvres$shim.fit$call
+class(cvres$shim.fit)
+coef(cvres$shim.fit)
+names(cvres$shim.fit)
+
+res$tuning.parameters[,c("s3","s4"),drop=F]
+res$beta[,c("s3","s4"),drop=F]
+res$alpha[,c("s3","s4"),drop=F]
+
+plot(log(res$tuning.parameters["lambda.gamma",]),
+          log(res$lambda.gamma))
+
+options(digits = 4, scipen = 999)
+resSingle <- shim(x = X, y = Y,
+            main.effect.names = main_effect_names,
+            interaction.names = interaction_names,
+            lambda.beta = res$lambda.beta[1:10],
+            lambda.gamma = res$lambda.gamma[1:10],
+            nlambda = 10, nlambda.gamma = 100, nlambda.beta = 100,
+            verbose = T, initialization.type = "univariate")
+
+res$tuning.parameters[,1:10]
+res$beta[,1:5]
+resSingle$beta[,1:5]
+res$alpha[,1:5]
+resSingle$alpha[,1:5]
+
+res$beta[,1:15]
+resSingle$beta
+res$gamma[,"s"]
+
+resSingle$beta[,"s3"]
+resSingle$gamma[,"s3"]
+
+resSingle$beta
+resSingle$alpha
+
+resSingle$beta
+resSingle$alpha
+
+
+
+
+args(shim)
+
+(nd <- dim(res$tuning.parameters[, c("s1","s2")]))
+(nd <- dim(res$tuning.parameters[, c("s1")]))
+(nd <- dim(res$tuning.parameters["lambda.beta","s2"]))
+if(FALSE | nd[2]>1) 1
+res$tuning.parameters["lambda.beta","s2", drop=F] %>% length
+res$tuning.parameters["lambda.gamma","s2", drop=F] %>% length
+
+res$call
+shim
 
 knitr::kable(as.matrix(res$beta))
 DT::datatable(round(res$tuning.parameters,5))
