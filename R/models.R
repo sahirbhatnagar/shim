@@ -233,20 +233,20 @@ shim <- function(x, y, main.effect.names, interaction.names,
     # nlam = as.integer(length(lambda))
   }
 
-  if (!is.null(lambda.beta) & nlambda.beta!=length(lambda.beta)) {
-    warning("length of lambda.beta is not equal to nlambda.beta; setting
-            nlambda.beta to length of lambda.beta")
-    nlambda.beta <- length(lambda.beta)
-  }
-
-  if (!is.null(lambda.gamma) & nlambda.gamma!=length(lambda.gamma)) {
-    warning("length of lambda.gamma is not equal to nlambda.beta; setting
-            nlambda.gamma to length of lambda.gamma")
-    nlambda.gamma <- length(lambda.gamma)
-  }
+  # if (!is.null(lambda.beta) & nlambda.beta!=length(lambda.beta)) {
+  #   warning("length of lambda.beta is not equal to nlambda.beta; setting
+  #           nlambda.beta to length of lambda.beta")
+  #   nlambda.beta <- length(lambda.beta)
+  # }
+  #
+  # if (!is.null(lambda.gamma) & nlambda.gamma!=length(lambda.gamma)) {
+  #   warning("length of lambda.gamma is not equal to nlambda.beta; setting
+  #           nlambda.gamma to length of lambda.gamma")
+  #   nlambda.gamma <- length(lambda.gamma)
+  # }
 
   fit <- switch(family,
-                gaussian = lspath(x = x, y = y, main.effect.names = main.effect.names,
+                gaussian = lspathWarmStarts(x = x, y = y, main.effect.names = main.effect.names,
                               interaction.names = interaction.names,
                               lambda.beta = lambda.beta, lambda.gamma = lambda.gamma,
                               lambda.factor = lambda.factor,

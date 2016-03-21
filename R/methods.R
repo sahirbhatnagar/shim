@@ -92,5 +92,34 @@ coef.cv.shim <- function(object, s = c("lambda.1se", "lambda.min"), ...) {
 }
 
 
+#' Print Method for shim function
+#'
+#' @description print method for shim function
+#' @export
+
+print.shim <- function (x, digits = max(3, getOption("digits") - 3), ...) {
+  cat("\nCall: ", deparse(x$call), "\n\n")
+  print(cbind(DfBeta = x$dfbeta, DfAlpha = x$dfalpha,
+              `%Dev` = signif(x$dev.ratio, digits),
+              LambdaBeta = signif(x$lambda.beta, digits),
+              LambdaGamma = signif(x$lambda.gamma, digits)))
+}
+
+
+# Plot Method for shim function
+#'
+#' @description plot method for shim function
+#' @export
+
+plot.shim <- function(x, xvar = c("norm", "lambda", "dev"), label = T,
+                      ...) {
+  xvar = match.arg(xvar)
+  plotCoefShim(x$beta,
+           lambda = x$lambda.beta,
+           df = x$dfbeta,
+           dev = x$dev.ratio,
+           label = label,
+           xvar = xvar, ...)
+}
 
 

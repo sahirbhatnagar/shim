@@ -1,44 +1,50 @@
-# number of observations
-n <- 100
+# # number of observations
+# n <- 100
+#
+# # number of predictors
+# p <- 5
+#
+# # environment variable
+# e <- sample(c(0,1), n, replace = T)
+#
+# # main effects
+# x <- cbind(matrix(rnorm(n*p), ncol = p), e)
+#
+# # need to label columns
+# dimnames(x)[[2]] <- c("cg12456","cg45","cg88","cg7888","cg87979","environ")
+#
+# # design matrix without intercept
+# X <- model.matrix(~e*(x1+x2+x3+x4+x5)-1, data = as.data.frame(x))
+# X <- model.matrix(~environ*(cg12456+cg45+cg88)+cg7888*cg45+cg87979*cg7888-1, data = as.data.frame(x))
+# head(X)
+#
+# interaction_names <- grep(":", colnames(X), value = T)
+# main_effect_names <- setdiff(colnames(X), interaction_names)
+#
+#
+# # response
+# Y <- X %*% rbinom(ncol(X), 1, 0.6) + 3*rnorm(n)
+#
+# # standardize data
+# data_std <- standardize(X,Y)
+# head(data_std$x);head(data_std$y)
+# ridge_weights(x = data_std$x, y = data_std$y,
+#               main.effect.names = main_effect_names,
+#               interaction.names = interaction_names)
+#
+# shim_once(x = data_std$x, y = data_std$y,
+#           main.effect.names = main_effect_names,
+#           interaction.names = interaction_names)
+#
+# rm(list = ls())
 
-# number of predictors
-p <- 5
 
-# environment variable
-e <- sample(c(0,1), n, replace = T)
-
-# main effects
-x <- cbind(matrix(rnorm(n*p), ncol = p), e)
-
-# need to label columns
-dimnames(x)[[2]] <- c("cg12456","cg45","cg88","cg7888","cg87979","environ")
-
-# design matrix without intercept
-X <- model.matrix(~e*(x1+x2+x3+x4+x5)-1, data = as.data.frame(x))
-X <- model.matrix(~environ*(cg12456+cg45+cg88)+cg7888*cg45+cg87979*cg7888-1, data = as.data.frame(x))
-head(X)
-
-interaction_names <- grep(":", colnames(X), value = T)
-main_effect_names <- setdiff(colnames(X), interaction_names)
-
-
-# response
-Y <- X %*% rbinom(ncol(X), 1, 0.6) + 3*rnorm(n)
-
-# standardize data
-data_std <- standardize(X,Y)
-head(data_std$x);head(data_std$y)
-ridge_weights(x = data_std$x, y = data_std$y,
-              main.effect.names = main_effect_names,
-              interaction.names = interaction_names)
-
-shim_once(x = data_std$x, y = data_std$y,
-          main.effect.names = main_effect_names,
-          interaction.names = interaction_names)
-
-rm(list = ls())
-
+# example 1 ---------------------------------------------------------------
 library(magrittr)
+library(data.table)
+library(dplyr)
+rm(list=ls())
+set.seed(123456)
 # number of observations
 n <- 1000
 
@@ -168,128 +174,168 @@ cv.res$lambda.min.name
 cv.res$lambda.1se.name
 cv.res$lambda.
 
+# example 2 ---------------------------------------------------------------
+devtools::load_all()
+library(magrittr)
+library(data.table)
 library(dplyr)
-coef(cv.res)
-coef.cv.shim
-shim_once(x = data_std$x, y = data_std$y,
-          main.effect.names = main_effect_names,
-          interaction.names = interaction_names,
-          nlambda.gamma = 5, nlambda.beta = 5)
+rm(list=ls())
+set.seed(123456)
+
+# number of predictors
+p = 10
+
+# number of test subjects
+n = 200
+
+# correlation between X's
+rho = 0.45
+
+# signal to noise ratio
+signal_to_noise_ratio = 4
+
+# names of the main effects, this will be used in many of the functions
+main_effect_names <- paste0("x",1:p)
+
+# names of the active set
+true_var_names <- c("x1","x2","x3","x4","x1:x2", "x1:x3", "x1:x4", "x2:x3", "x2:x4", "x3:x4")
+
+# different true coefficient vectors as in Table 1 of Choi et al.
+beta1 <- c(7,2,1,1,0,0,0,0,0,0) %>% magrittr::set_names(true_var_names)
+beta2 <- c(7,2,1,1,1,0,0,0.5,0.4,0.1) %>% magrittr::set_names(true_var_names)
+beta3 <- c(7,2,1,1,7,7,7,2,2,1) %>% magrittr::set_names(true_var_names)
+beta4 <- c(7,2,1,1,14,14,14,4,4,2) %>% magrittr::set_names(true_var_names)
+beta5 <- c(0,0,0,0,7,7,7,2,2,1) %>% magrittr::set_names(true_var_names)
+
+# simulate Toeplitz like correlation structure between X's
+H <- abs(outer(1:p, 1:p, "-"))
+cor <- rho^H
+
+# generate X's from multivariate normal and label the matrix
+DT <- MASS::mvrnorm(n = n, mu = rep(0,p), Sigma = cor) %>%
+  magrittr::set_colnames(paste0("x",1:p)) %>%
+  set_rownames(paste0("Subject",1:n))
+
+# create X matrix which contains all main effects and interactions
+# but not the intercept
+# each column is standardized to mean 0 and sd 1
+X <- model.matrix(
+  as.formula(paste0("~(",paste0(main_effect_names, collapse = "+"),")^2-1")),
+  data = DT %>% as.data.frame()) # %>% scale
+
+# not doing this before.. now handled by shim_multiple_faster function
+# check that means of columns are 0 and sd 1
+#colMeans(X) %>%  sum
+#apply(X, 2, sd) %>% sum
+
+# generate response with user defined signal to noise ratio and center
+# the response
+y.star <- X[,names(beta3)] %*% beta3
+error <- rnorm(n)
+k <- sqrt(var(y.star)/(signal_to_noise_ratio*var(error)))
+Y <- y.star + k*error # %>% scale(center = TRUE, scale = FALSE)
+colnames(Y) <- "Y"
+
+# record mean of response before centering
+(b0 <- mean(y.star + k*error))
+
+# names of interaction variables assuming interaction terms contain a ":"
+# this will be used in many of the functions
+interaction_names <- colnames(X) %>% grep(":",., value = T)
 
 
-DT <- data.frame(y = 1:nobs, x = ftime[ord], group = sample(c("E=1","E=0"),nobs, replace = T))
-str(DT)
+# example 3 ---------------------------------------------------------------
 
-X <- data.frame(
-  y = c(1,1,nobs,nobs),
-  x = c(0,0,0,0),
-  group = c("E=1","E=0","E=1","E=0"))
+library(magrittr)
+library(data.table)
+library(dplyr)
+rm(list=ls())
+source("https://raw.githubusercontent.com/noamross/noamtools/master/R/proftable.R")
+set.seed(123456)
+# number of observations
+n <- 100
 
-dat <- rbind(DT,X)
+# number of predictors
+p <- 10
 
-dat[]
-order()
-p <- ggplot(dat, aes(x=x, y=y))
-p + geom_polygon() + facet_grid(~group)
+# correlation between X's
+rho <- 0.75
 
+# signal to noise ratio
+signal_to_noise_ratio <- 4
 
+# environment variable
+e <- sample(c(0,1), n, replace = T)
 
+# simulate Toeplitz like correlation structure between X's
+H <- abs(outer(1:p, 1:p, "-"))
 
+# # constant correlation structure
+# H <- abs(outer(rep(2,p), rep(1,p), "-"))
+# diag(H) <- 0
+cor <- rho^H
 
-chull(X)
-## Not run:
-# Example usage from graphics package
-plot(X, cex = 0.5)
-hpts <- chull(X)
-hpts <- c(hpts, hpts[1])
-lines(X[hpts, ])
+# generate X's from multivariate normal and label the matrix
+DT <- cbind(MASS::mvrnorm(n = n, mu = rep(0,p), Sigma = cor), e) %>%
+  magrittr::set_colnames(c(paste0("x",seq_len(p)),"e")) %>%
+  set_rownames(paste0("Subject",1:n))
 
+head(DT)
 
+# design matrix without intercept (can be user defined interactions)
+(form <- paste0("~(",paste(paste0("x",seq_len(p)), collapse = "+"),")*e - 1" ))
 
-library(survival)
-data(veteran)
-table(veteran$status)
-evtimes <- veteran$time[veteran$status == 1]
-hist(evtimes, nclass=30, main='', xlab='Survival time (days)', col='gray90', probability=TRUE)
-tgrid <- seq(0, 1000, by=10)
-lines(tgrid, dexp(tgrid, rate=1.0/mean(evtimes)),
-      lwd=2, lty=2, col='red')
+X <- model.matrix(as.formula(form), data = as.data.frame(DT))
+head(X)
 
-veteran$prior <- factor(veteran$prior, levels = c(0, 10))
-veteran$celltype <- factor(veteran$celltype,
-                           levels = c('large', 'squamous', 'smallcell', 'adeno'))
-veteran$trt <- factor(veteran$trt, levels = c(1, 2))
+# response
+# names of the active set
+(true_var_names <- c(paste0("x",1:5),"e",paste0("x",1:5,":e") ))
+trueBeta <- rep(0, ncol(X))
+trueBeta[which(colnames(X) %in% true_var_names)] <- c(runif(5,3.9,4.1),4, runif(5,1.9,2.1))
+trueBeta
 
-y <- with(veteran, Surv(time, status))
-nobs <- nrow(y)
-ftime <- veteran$time
-ord <- order(ftime, decreasing=TRUE)
-plot(0, type='n', xlim=c(0, max(ftime)), ylim=c(0, nobs),
-     xlab='Follow-up time', ylab='Population')
-segments(rep(0.0, nobs), 1:nobs, ftime[ord], 1:nobs, col='gray25')
-cases <- veteran$status == 1
-points((ftime[ord])[cases[ord]], (1:nobs)[cases[ord]], pch=20, col='red', cex=0.5)
+# generate response with user defined signal to noise ratio and center
+# the response
+y.star <- X %*% trueBeta
+error <- rnorm(n)
+k <- sqrt(var(y.star)/(signal_to_noise_ratio*var(error)))
+Y <- y.star + k*error
+colnames(Y) <- "Y"
 
+# record mean of response before centering
+(b0 <- mean(y.star + k*error))
 
+# names of interaction variables assuming interaction terms contain a ":"
+# this will be used in many of the functions
+# names must appear in the same order as X matrix
+(interaction_names <- grep(":", colnames(X), value = T))
+(main_effect_names <- setdiff(colnames(X), interaction_names))
 
-# Simulate censored survival data for two outcome types from Weibull distributions:
-
-set.seed(1)
-nobs <- 5000
-
-a1 <- 1.0
-b1 <- 200
-a2 <- 1.0
-b2 <- 50
-c1 <- 0.0
-c2 <- 0.0
-
-z <- rbinom(nobs, 1, 0.5)
-t1 <- rweibull(nobs, a1, b1 * exp(z * c1)^(-1/a1))
-t2 <- rweibull(nobs, a2, b2 * exp(z * c2)^(-1/a2))
-tlim <- 10
-mean(t1 < tlim)
-mean(t2 < tlim)
-e <- 1 * (t1 < t2) + 2 * (t1 >= t2)
-t <- pmin(t1, t2)
-e[t >= tlim] <- 0
-t[t >= tlim] <- tlim
-table(e)
-
-evtimes=t[e==1]
-ncc <- length(unique(e))
-
-tgrid=sort(unique(c(seq(0, max(t), 0.1), evtimes)))
-nt <- length(tgrid)
-ne <- matrix(NA, ncc, nt)
-dim(nriskset)
-for (i in 1:nt) {
-  for (j in 1:ncc) {
-    ne[j,i]= sum(t[e==(j-1)] < tgrid[i])
-  }
-}
-
-y = ne[2,match(evtimes, tgrid)] + (nobs - (colSums(ne[,match(evtimes, tgrid)]))) * runif(sum(e==1))
-
-N <- nobs
-max.yr=max(t)
-dev.off()
-plot(1,1, xlab="Time",ylab="Population",ylim=c(0,N),xlim=c(0,max.yr),type="n",cex.lab=1.2)
-mtext("Population", side = 2, cex=1.2,line=4)
-rect(0,0,max.yr,nobs,col="grey90",border=NA)
-
-# Competing events remove individuals from the riskset, presented in the cyan area:
-polygon(c(tgrid,max.yr,max.yr,0),c(nobs-(ne[1,]+ne[3,]),nobs-max(ne[1,]+ne[3,]),nobs,nobs),col='cyan',border=NA)
-
-# If random censoring, this can be presented with a different colour:
-#polygon(c(tgrid,max.yr,max.yr,0),c(nobs-ne[1,],nobs-max(ne[1,]),nobs,nobs),col='black',border=NA)
-
-# Individuals removed from the risksets due to events of interest presented in the red area:
-polygon(c(tgrid,max.yr,max.yr,0),c(ne[2,],max(ne[2,]),0,0),col='red',border=NA)
-
-# Events of interest:
-points(evtimes, y, col='red', pch=16, cex=.5)
+coef(lm.fit(x = x[, 1, drop = F], y = y)) %>% magrittr::extract(1)
+coef(lm.fit(x = x[, 1, drop = F], y = y))[1]
+summary(lm(Y~., data = as.data.frame(cbind(Y,X))))
 
 
+res <- shim(x = X, y = Y,
+            main.effect.names = main_effect_names,
+            interaction.names = interaction_names)
+require(doMC)
+registerDoMC(cores = 3)
+system.time(cv.res <- cv.shim(x = X, y = Y,
+                              main.effect.names = main_effect_names,
+                              interaction.names = interaction_names,
+                              parallel = TRUE,
+                              nfolds = 5,
+                              nlambda.beta = 100,
+                              nlambda.gamma = 1,
+                              nlambda = 100,
+                              verbose  = FALSE))
+library(latex2exp)
+library(ggplot2)
+plot(cv.res)
+coef(cv.res, s = "lambda.min")
 
 
+names(cv.res)
+cv.res$shim.fit
