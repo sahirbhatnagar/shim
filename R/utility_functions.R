@@ -1097,7 +1097,7 @@ cv_lspath <- function(outlist, x, y, foldid,
 
   conv <- colSums(converged)
   cvraw <- (y - predmat) ^ 2
-  cvob <- cvcompute(cvraw, foldid, nlams)
+  cvob <- eclust::cvcompute(cvraw, foldid, nlams)
   cvraw <- cvob$cvraw
   N <- cvob$N
   cvm <- apply(cvraw, 2, mean, na.rm = TRUE)
@@ -1354,12 +1354,6 @@ createfolds <- function(y, k = 10, list = FALSE, returnTrain = FALSE) {
 }
 
 
-#' Print Method for shim function
-#'
-print.shim <- function (x, digits = max(3, getOption("digits") - 3), ...) {
-  cat("\nCall: ", deparse(x$call), "\n\n")
-  print(cbind(Df = x$df, `%Dev` = signif(x$dev.ratio, digits),
-              Lambda = signif(x$lambda, digits)))
-}
+
 
 

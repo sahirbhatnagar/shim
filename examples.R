@@ -256,7 +256,7 @@ set.seed(123456)
 n <- 100
 
 # number of predictors
-p <- 50
+p <- 10
 
 # correlation between X's
 rho <- 0.75
@@ -319,11 +319,23 @@ summary(lm(Y~., data = as.data.frame(cbind(Y,X))))
 
 res <- shim(x = X, y = Y,
             main.effect.names = main_effect_names,
-            interaction.names = interaction_names,
-            initialization.type = "ridge",
-            lambda.beta = lambda.beta,
-            lambda.gamma = lambda.gamma,
-            nlambda = 100,
-            nlambda.gamma = 1,
-            nlambda.beta = 100)
+            interaction.names = interaction_names)
+require(doMC)
+registerDoMC(cores = 3)
+system.time(cv.res <- cv.shim(x = X, y = Y,
+                              main.effect.names = main_effect_names,
+                              interaction.names = interaction_names,
+                              parallel = TRUE,
+                              nfolds = 5,
+                              nlambda.beta = 100,
+                              nlambda.gamma = 1,
+                              nlambda = 100,
+                              verbose  = FALSE))
+library(latex2exp)
+library(ggplot2)
+plot(cv.res)
+coef(cv.res, s = "lambda.min")
 
+
+names(cv.res)
+cv.res$shim.fit
