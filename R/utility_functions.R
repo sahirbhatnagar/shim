@@ -281,9 +281,8 @@ ridge_weights <- function(x, y, main.effect.names, interaction.names,
 
   # remove intercept (even if include.intercept is FALSE, coef.glmnet returns
   # an intercept set to 0)
-  betas.and.alphas <- coef(fit, s = "lambda.1se") %>%
-    as.matrix() %>%
-    magrittr::extract(-1, ,drop = F)
+  betas.and.alphas <- as.matrix(coef(fit, s = "lambda.1se")) %>%
+    magrittr::extract(-1, , drop = F)
 
   # create output matrix
   weights <- matrix(nrow = nrow(betas.and.alphas)) %>%
@@ -297,9 +296,7 @@ ridge_weights <- function(x, y, main.effect.names, interaction.names,
   for (k in interaction.names) {
 
     # get names of main effects corresponding to interaction
-    main <- betas.and.alphas[k, , drop = F] %>%
-      rownames %>% stringr::str_split(":") %>%
-      unlist
+    main <- strsplit(rownames(betas.and.alphas[k, , drop = F]),":")[[1]]
 
     weights[k,] <- abs(prod(betas.and.alphas[main,])/betas.and.alphas[k,])
   }
@@ -333,7 +330,7 @@ soft <- function(x, y, beta, lambda, weight) {
   if (missing(x) & missing(y) & missing(beta)) stop("user must supply x AND y, or beta but not both")
   if (missing(x) & missing(y)) return(list("beta" = sign(beta) * pmax(0, abs(beta) - lambda * weight)))
   if (missing(beta)) {
-    beta <- lm.fit(x = x[, 1, drop = F], y = y) %>% coef %>% magrittr::extract(1)
+    beta <- coef(lm.fit(x = x[, 1, drop = F], y = y))[1]
 
     b_lasso <- sign(beta)* pmax(0, abs(beta) - lambda*weight)
 
@@ -523,7 +520,7 @@ shim_once <- function(x, y, main.effect.names, interaction.names,
         x[,j_prime_not_in_j, drop = F] %*% beta_hat_next[j_prime_not_in_j, , drop = F] -
         as.matrix(rowSums(xtilde_mod(beta.main.effects = beta_hat_next[j_prime_not_in_j, , drop = F],
                                      gamma.interaction.effects = gamma_hat_next[,k,drop = F],
-                                     interaction.names = interaction.names[-grep(j, interaction.names)],
+                                     interaction.names = interaction.names[-grep(paste0("\\b",j,"\\b"), interaction.names)],
                                      data.main.effects = x[,j_prime_not_in_j, drop = F])), ncol = 1)
 
       # j' less than j (main effects)
@@ -628,9 +625,7 @@ convert <- function(betas.and.alphas, main.effect.names, interaction.names,
   for (k in interaction.names) {
 
     # get names of main effects corresponding to interaction
-    main <- betas.and.alphas[k, , drop = F] %>%
-      rownames %>% stringr::str_split(":") %>%
-      unlist
+    main <- strsplit(rownames(betas.and.alphas[k, , drop = F]),":")[[1]]
 
     # convert alpha to gamma BUT NEED TO CHECK IF BETAS ARE 0
     betas_and_gammas[k,] <- if (any(abs(betas.and.alphas[main,]) < epsilon )) 0 else
@@ -670,10 +665,7 @@ convert2 <- function(beta, gamma, main.effect.names, interaction.names,
   for (k in interaction.names) {
 
     # get names of main effects corresponding to interaction
-    main <- betas.and.gammas[k, , drop = F] %>%
-      rownames %>%
-      stringr::str_split(":") %>%
-      unlist
+    main <- strsplit(rownames(betas.and.gammas[k, , drop = F]), ":")[[1]]
 
     # convert gamma to alpha
     betas.and.alphas[k,] <- betas.and.gammas[k,]*prod(betas.and.gammas[main,])
@@ -716,7 +708,7 @@ xtilde <- function(interaction.names, data.main.effects, beta.main.effects){
   for (k in interaction.names) {
 
     # get names of main effects corresponding to interaction
-    main <- unlist(stringr::str_split(k,":"))
+    main <- strsplit(k,":")[[1]]
 
     # step 3 to calculate x tilda
     xtildas[,k] <- prod(beta.main.effects[main,]) *
@@ -757,7 +749,7 @@ xtilde_mod <- function(interaction.names, data.main.effects, beta.main.effects,
   for (k in interaction.names) {
 
     # get names of main effects corresponding to interaction
-    main <- unlist(stringr::str_split(k, ":"))
+    main <- strsplit(k, ":")[[1]]
 
     # step 4 to calculate x tilda
     xtildas[,k] <- prod(beta.main.effects[main,]) * gamma.interaction.effects[k,] *
@@ -768,6 +760,103 @@ xtilde_mod <- function(interaction.names, data.main.effects, beta.main.effects,
   return(xtildas)
 }
 
+
+# j = "x10"
+# j_prime_not_in_j <- setdiff(main.effect.names,j)
+# interaction.names = interaction_names
+# Rprof(tmp <- tempfile())
+# (beta.main.effects = beta_hat_next[j_prime_not_in_j, , drop = F]);
+# (gamma.interaction.effects = gamma_hat_next);
+# (interaction.names = interaction_names[-grep(paste0("\\b",j,"\\b"), interaction_names)]);
+# (data.main.effects = x[,j_prime_not_in_j, drop = F])
+#
+# # create output matrix. no pipe is faster
+# xtildas <- matrix(ncol = length(interaction.names),
+#                   nrow = nrow(data.main.effects))
+# colnames(xtildas) <- interaction.names
+# dim(xtildas)
+#
+# for (k in interaction.names) {
+#   k = "x1:e"
+#   # get names of main effects corresponding to interaction
+#   main <- unlist(stringr::str_split(k, ":"))
+# main <- c("x1","x4")
+#   strsplit(k, ":")[[1]]
+#
+#   # step 4 to calculate x tilda
+#   xtildas[,k] <- prod(beta.main.effects[main,]) * gamma.interaction.effects[k,] *
+#     data.main.effects[,main[1],drop = F] *
+#     data.main.effects[,main[2],drop = F]
+# }
+#
+# gamma.interaction.effects[1,1] <- 1
+# v1 <- prod(beta.main.effects[main,],gamma.interaction.effects[1,1]) *
+#   data.main.effects[,main[1],drop = F] *
+#   data.main.effects[,main[2],drop = F]
+# v2 <- prod(beta.main.effects[main,],gamma.interaction.effects[1,1])*apply(data.main.effects[,main], 1, prod)
+#
+# xtildas[,k] <- prod(beta.main.effects[main,],gamma.interaction.effects[1,1])*apply(data.main.effects[,main], 1, prod)
+# xtildas[,k] <- prod(beta.main.effects[main,]) * gamma.interaction.effects[1,1] *
+#   data.main.effects[,main[1],drop = F] *
+#   data.main.effects[,main[2],drop = F]
+# str(v1)
+# all.equal(as.numeric(v1),as.numeric(v2))
+#
+# compare <- microbenchmark("v1" = {
+#   xtildas[,3] <- prod(beta.main.effects[main,],gamma.interaction.effects[1,1]) *
+#     data.main.effects[,main[1],drop = F] *
+#     data.main.effects[,main[2],drop = F]
+# },
+# "v3" = {
+#   xtildas[,1] <- prod(beta.main.effects[main,])*gamma.interaction.effects[1,1]*
+#     data.main.effects[,main[1],drop = F] *
+#     data.main.effects[,main[2],drop = F]
+# } ,times = 2000)
+# autoplot(compare)
+#
+#
+#
+#
+# library(microbenchmark)
+# library(ggplot2)
+# compare <- microbenchmark("v1" = { y_tilde_2 <- y -
+#   x[,j_prime_not_in_j, drop = F] %*%
+#   beta_hat_next[j_prime_not_in_j, , drop = F] -
+#   rowSums(
+#     xtilde_mod(beta.main.effects = beta_hat_next[j_prime_not_in_j, , drop = F],
+#                gamma.interaction.effects = gamma_hat_next,
+#                interaction.names = interaction.names[-grep(paste0("\\b",j,"\\b"), interaction.names)],
+#                data.main.effects = x[,j_prime_not_in_j, drop = F]))},
+#   "v2" = { y_tilde_v2 <- y -
+#     x[,j_prime_not_in_j, drop = F] %*%
+#     beta_hat_next[j_prime_not_in_j, , drop = F] -
+#     myrowSums(
+#       xtilde_mod(beta.main.effects = beta_hat_next[j_prime_not_in_j, , drop = F],
+#                  gamma.interaction.effects = gamma_hat_next,
+#                  interaction.names = interaction.names[-grep(paste0("\\b",j,"\\b"), interaction.names)],
+#                  data.main.effects = x[,j_prime_not_in_j, drop = F]))}, times = 1000L)
+# autoplot(compare)
+#
+#
+# all.equal(y_tilde_2,y_tilde_v2)
+#
+# Rprof()
+# summaryRprof(tmp)
+
+
+
+# myrowSums <- function (x, na.rm = FALSE, dims = 1L) {
+#   dn <- dim(x)
+#   p <- prod(dn[-(id <- seq_len(dims))])
+#   dn <- dn[id]
+#   z <- .Internal(rowSums(x, prod(dn), p, na.rm))
+#   if (length(dn) > 1L) {
+#     dim(z) <- dn
+#     dimnames(z) <- dimnames(x)[id]
+#   }
+#   else names(z) <- dimnames(x)[[1L]]
+#   z
+# }
 
 
 
@@ -1265,6 +1354,12 @@ createfolds <- function(y, k = 10, list = FALSE, returnTrain = FALSE) {
 }
 
 
-
+#' Print Method for shim function
+#'
+print.shim <- function (x, digits = max(3, getOption("digits") - 3), ...) {
+  cat("\nCall: ", deparse(x$call), "\n\n")
+  print(cbind(Df = x$df, `%Dev` = signif(x$dev.ratio, digits),
+              Lambda = signif(x$lambda, digits)))
+}
 
 
