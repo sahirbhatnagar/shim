@@ -106,7 +106,7 @@ print.shim <- function (x, digits = max(3, getOption("digits") - 3), ...) {
 }
 
 
-# Plot Method for shim function
+#' Plot Method for shim function
 #'
 #' @description plot method for shim function
 #' @export
