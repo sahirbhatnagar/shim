@@ -101,6 +101,8 @@ DT::datatable(X)
 
 ## Running the Strong heredity interaction model once using the `shim` function
 
+NOTE: if `lambda.beta = NULL` and `lambda.gamma = NULL` then this function will use a grid of tuning parameters based on `nlambda.beta` only and the `nlambda.gamma` parameter is ignored. Therefore, if for example `nlambda.beta = 10` then you must specify `nlambda = 10x10 = 100` otherwise the function will break.
+
 ```{r, eval=TRUE}
 # load eclust library
 library(eclust)
@@ -110,18 +112,19 @@ res <- shim(x = X, y = Y,
             interaction.names = interaction_names,
             lambda.beta = NULL,
             lambda.gamma = NULL, 
-            nlambda.gamma = 12, 
             nlambda.beta = 10,
-            nlambda = 120, 
+            nlambda = 100, 
             threshold = 1e-04, 
             max.iter = 200,
             initialization.type = "ridge", 
-            intercept = TRUE,
+            center = TRUE,
             normalize = TRUE, 
             verbose = TRUE, 
             cores = 2)
 
 names(res)
+res
+
 ```
 
 ### Main effect ($\beta$) parameter estimates
@@ -136,14 +139,14 @@ DT::datatable(round(as.matrix(res$beta),2), options = list(pageLength = 100))
 
 
 ```{r, results='asis', echo=FALSE}
-DT::datatable(round(as.matrix(res$beta),2), options = list(pageLength = 100))
+DT::datatable(round(as.matrix(res$alpha),2), options = list(pageLength = 100))
 ```
 
 
 ### Sequence of Tuning Parameters
 
 ```{r, results='asis', echo=FALSE}
-DT::datatable(round(res$tuning.parameters,5), options = list(pageLength = 100))
+DT::datatable(res$tuning.parameters, options = list(pageLength = 100))
 ```
 
 
@@ -158,19 +161,12 @@ cv.res <- cv.shim(x = X, y = Y,
             main.effect.names = main_effect_names,
             interaction.names = interaction_names,
             lambda.beta = NULL,
-            lambda.gamma = NULL, 
-            nlambda.gamma = 12, 
+            lambda.gamma = NULL,
             nlambda.beta = 10,
-            nlambda = 120, 
-            threshold = 1e-04, 
-            max.iter = 200,
-            initialization.type = "ridge", 
-            intercept = TRUE,
-            normalize = TRUE, 
-            verbose = FALSE, 
+            nlambda = 100, 
             parallel = TRUE,
             type.measure = c("mse"), 
-            nfolds = 10)
+            nfolds = 5)
 
 names(cv.res)
 ```

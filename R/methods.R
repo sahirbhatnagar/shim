@@ -64,7 +64,11 @@ predict.shim <- function(object, newx, s = NULL,
 
 }
 
+#' Get coefficients from a "shim" object
+#'
 #' @rdname predict.shim
+#' @export
+
 coef.shim <- function(object, s = NULL) {
   predict(object, s = s, type = "coefficients")
 }
@@ -76,6 +80,7 @@ coef.shim <- function(object, s = NULL) {
 #' @param s Value(s) of the penalty parameter lambda at which predictions are
 #'   required. Default is the value \code{s="lambda.1se"} stored on the cv.shim
 #'   object. Alternatively \code{s="lambda.min"} can be used.
+#' @export
 
 coef.cv.shim <- function(object, s = c("lambda.1se", "lambda.min"), ...) {
 
