@@ -27,5 +27,7 @@ coefficients for each value of s.}
 this function only works for tuning parameter values defined by
   the shim_multiple_faster function. The interpolation feature is not working
   yet
+
+Get coefficients from a "shim" object
 }
 

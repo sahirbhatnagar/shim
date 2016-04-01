@@ -418,15 +418,15 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
                    center, normalize, verbose,
                    cores) {
 
-  # options(scipen = 999, digits = 4)
-  # x = X; y = Y; main.effect.names = main_effect_names;
-  # interaction.names = interaction_names;
-  # lambda.beta = NULL ; lambda.gamma = NULL
-  # threshold = 1e-4 ; max.iter = 500 ; initialization.type = "ridge";
-  # nlambda.gamma = 20; nlambda.beta = 20;
-  # nlambda = 400 ; lambda.factor = 1e-6
-  # cores = 1;
-  # center=TRUE; normalize=TRUE; verbose = TRUE
+#   options(scipen = 999, digits = 4)
+#   x = X; y = Y; main.effect.names = main_effect_names;
+#   interaction.names = interaction_names;
+#   lambda.beta = NULL ; lambda.gamma = NULL
+#   threshold = 1e-4 ; max.iter = 500 ; initialization.type = "ridge";
+#   nlambda.gamma = 12; nlambda.beta = 10;
+#   nlambda = 120 ; lambda.factor = 1e-6
+#   cores = 1;
+#   center=TRUE; normalize=TRUE; verbose = TRUE
 
   # nlambda.gamma = 20; nlambda.beta = 20;
   # nlambda = 400

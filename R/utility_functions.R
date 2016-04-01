@@ -1109,6 +1109,7 @@ cv_lspath <- function(outlist, x, y, foldid,
 }
 
 #' @describeIn cv_lspath Computations for crossvalidation error
+#' @export
 cvcompute <- function(mat, foldid, nlams) {
   nfolds <- max(foldid)
   outmat <- matrix(NA, nfolds, ncol(mat))
