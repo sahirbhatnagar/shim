@@ -1,8 +1,10 @@
 ##################################
-# R source code file for simulating data, WGCNA style
-#
+# R source code file for simulating data, WGCNA style. This
+# is only used for the report. See funcions.R and data.R for actual simulation
+# source code
+# Git: this is on the eclust repo, simulation branch
 # Created by Sahir,  March 25, 2016
-# Updated:
+# Updated: April 2, 2016
 # Notes:
 # This is based on code from Network analysis book by Horvath
 ##################################
@@ -25,51 +27,51 @@ rm(list = ls())
 #' @param rho correlations between green module and temp vector T, and red
 #'   module and temp vector T. A numeric vector of length 2
 simModule <- function(n, p, rho, exposed, ...) {
-  
+
   if (exposed) {
     #Step 1: simulate the seed module eigengenes
     sMEturquoise <- rnorm(n)
-    
+
     #expected cor(sMEblue,sMEturquoise) = 0.60
     sMEblue <- 0.60 * sMEturquoise + sqrt(1 - 0.60 ^ 2) * rnorm(n)
-    
+
     sMEyellow <- rnorm(n)
-    
+
     sMEgreen <- rnorm(n)
-    
+
     #expected cor(e.continuous,seed.ME)=0.95
     temp0 <- rho[1] * sMEgreen + sqrt(1 - rho[1] ^ 2) * rnorm(n)
-    
+
     #expected cor(y.continuous,seed.ME) <- -0.95
     sMEred <- rho[2] * temp0 + sqrt(1 - rho[2] ^ 2) * rnorm(n)
-    
-    datsME <- data.frame(sMEturquoise,sMEblue,sMEred,sMEgreen,sMEyellow) 
-    
+
+    datsME <- data.frame(sMEturquoise,sMEblue,sMEred,sMEgreen,sMEyellow)
+
     dat1 <- WGCNA::simulateDatExpr(eigengenes = datsME, nGenes = p, ...)
   } else {
-    
+
     #Step 1: simulate the seed module eigengenes
     sMEturquoise <- rnorm(n)
-    
+
     #expected cor(sMEblue,sMEturquoise) = 0.60
     sMEblue <- 0.60 * sMEturquoise + sqrt(1 - 0.60 ^ 2) * rnorm(n)
-    
+
     sMEyellow <- rnorm(n)
-    
+
     sMEgreen <- rnorm(n)
-    
+
     #expected cor(e.continuous,seed.ME)=0.95
     temp0 <- rho[1] * sMEgreen + sqrt(1 - rho[1] ^ 2) * rnorm(n)
-    
+
     #expected cor(y.continuous,seed.ME) <- -0.95
     sMEred <- rho[2] * temp0 + sqrt(1 - rho[2] ^ 2) * rnorm(n)
-    
+
     datsME <- data.frame(sMEturquoise,sMEblue,sMEred,sMEgreen,sMEyellow)
-    
+
     dat1 <- WGCNA::simulateDatExpr(eigengenes = datsME, nGenes = p, ...)
-    
-  } 
-  
+
+  }
+
   return(dat1)
 }
 
@@ -82,7 +84,7 @@ fisherTransform <- function (n1, r1, n2, r2) {
   num2b <- which(r2 <= -0.99)
   r1[num1b] <- -0.99
   r2[num2b] <- -0.99
-  # atanh (inverse hyperbolic tangent) simplifies to 
+  # atanh (inverse hyperbolic tangent) simplifies to
   # 0.5 * log(1+r)/log(1-r) , for r < 1
   z1 <- atanh(r1)
   z2 <- atanh(r2)
@@ -93,24 +95,24 @@ fisherTransform <- function (n1, r1, n2, r2) {
 
 #' Calculate Fisher's Z test for correlations
 fisherZ <- function(n0, cor0, n1, cor1) {
-  
+
   # n0 = 50
   # n1 = 50
   # cor0 = corrX0
   # cor1 = corrX1
-  
+
   # by default this doesnt include the diagonal
   # this collapses the correlation matrix by columns
   ccc0 <- as.vector(cor0[lower.tri(cor0)])
   ccc1 <- as.vector(cor1[lower.tri(cor1)])
-  
+
   p <- nrow(cor1)
-  
+
   # number of Z statistics to calculate (p choose 2)
   geneNames <- rownames(cor1)
-  
-  zstat <- fisherTransform(n0, ccc0, n1, ccc1)$diff  
-  
+
+  zstat <- fisherTransform(n0, ccc0, n1, ccc1)$diff
+
   # convert vector to symmetric matrix
   zMat <- diag(p)
   zMat[lower.tri(zMat)] <- zstat
@@ -122,18 +124,18 @@ fisherZ <- function(n0, cor0, n1, cor1) {
 
 
 #' Function to generate heatmap
-#' @decription x matrix of true correlation (P x P matrix where P is the number 
+#' @decription x matrix of true correlation (P x P matrix where P is the number
 #'   of genes). Must be object of class similarity
 
 plot.similarity <- function(x,
                             color = viridis(100),
                             truemodule, ...){
-  
+
   annotation_col <- data.frame(
-    module = factor(truemodule, 
+    module = factor(truemodule,
                     labels = c("Grey","Turquoise","Blue","Red",
                                "Green","Yellow")))
-  
+
   rownames(annotation_col) <- dimnames(x)[[2]]
   ann_colors <- list(
     module = c(Turquoise = "turquoise",
@@ -143,7 +145,7 @@ plot.similarity <- function(x,
                Yellow = "yellow",
                Grey = "grey90")
   )
-  
+
   pheatmap(x,
            show_rownames = F, show_colnames = F,
            color = color,
@@ -154,12 +156,12 @@ plot.similarity <- function(x,
            annotation_names_col = FALSE,
            drop_levels = FALSE,
            annotation_legend = FALSE, ...)
-  
-  
+
+
   # breaks = seq(min(min_max_heat$V2), max(min_max_heat$V1), length.out = 101) ,
-  # legend_breaks = round(seq(min(min_max_heat$V2), max(min_max_heat$V1), 
+  # legend_breaks = round(seq(min(min_max_heat$V2), max(min_max_heat$V1),
   # length.out = 12),1),
-  # legend_labels = round(seq(min(min_max_heat$V2), max(min_max_heat$V1), 
+  # legend_labels = round(seq(min(min_max_heat$V2), max(min_max_heat$V1),
   # length.out = 12),1),
   # drop_levels = FALSE, ...)
 }
@@ -172,24 +174,24 @@ hclustWard <- function(x,k) list(cluster = {
 })
 
 
-bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1, 
+bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
                       nblocks = 10, ncore = 2, ...){
-  
+
   # data.all = X
   # data.e0 = X0
   # data.e1 = X1
   # nblocks = 10
   # alpha = 1.5; threshold = 1
-  
+
   NCOL <- ncol(data.all)
-  
+
   SPLIT <- split(1:NCOL, ceiling(seq_along(1:NCOL)/nblocks))
-  
+
   ## create all unique combinations of blocks
   COMBS <- expand.grid(1:length(SPLIT), 1:length(SPLIT))
   COMBS <- t(apply(COMBS, 1, sort))
   COMBS <- unique(COMBS)
-  
+
   ## iterate through each block combination, calculate correlation matrix
   ## between blocks and store them in the preallocated matrix on both
   ## symmetric sides of the diagonal
@@ -199,11 +201,11 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
     COMB <- COMBS[i, ]
     G1 <- SPLIT[[COMB[1]]]
     G2 <- SPLIT[[COMB[2]]]
-    
+
     rho.all <- tril(WGCNA::corFast(data.all[, G1], data.all[, G2]), k = -1)
     rho.gd <- tril(WGCNA::corFast(data.e1[, G1], data.e1[, G2]),  k = -1)
     rho.ngd <- tril(WGCNA::corFast(data.e0[, G1], data.e0[, G2]), k = -1)
-    
+
     S <- abs(rho.gd + rho.ngd - alpha * rho.all)
     arr <- which(S > threshold, arr.ind = T)
     as.data.table(
@@ -214,9 +216,102 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
           "gene2" = dimnames(rho.all[arr[,1],arr[,2], drop = F])[[2]]),
         stringsAsFactors = FALSE))
   }
-  
+
   return(result)
 }
+
+
+#' Cluster similarity matrix and return cluster membership of each gene
+#'
+#' @param x similarity matrix. must have non-NULL dimnames i.e., the rows and
+#'   columns should be labelled preferable "Gene1, Gene2, ..."
+#' @param d a dissimilarity structure as produced by dist. If missing, then this
+#'   function will take 1-x as the dissimilarity measure.
+#' @param clusterMethod how to cluster the data
+#' @param cutMethod what method to use to cut the dendrogram. \code{dynamic}
+#'   refers to dynamicTreeCut library, \code{gap} is Tibshirani's gap statistic
+#'   \code{fixed} is a fixed number specified by the \code{nClusters} argument
+#' @param nClusters number of clusters. Only used if \code{cutMethod = fixed}
+#' @param method the agglomeration method to be used. This should be (an
+#'   unambiguous abbreviation of) one of "ward.D", "ward.D2", "single",
+#'   "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC)
+#'   or "centroid" (= UPGMC).
+clusterSimilarity <- function(x, d,
+                              clustMethod = c("hclust", "protoclust"),
+                              cutMethod = c("dynamic","gap", "fixed"),
+                              nClusters,
+                              method = c("complete", "average", "ward.D2",
+                                         "single", "ward.D", "mcquitty",
+                                         "median", "centroid")) {
+  geneNames <- dimnames(x)[[1]]
+  p <- nrow(x)
+  method <- match.arg(method)
+  cutMethod <- match.arg(cutMethod)
+  clustMethod <- match.arg(clustMethod)
+  #clust <- match.fun(match.arg(clustMethod))
+
+  distance <- if (missing(d)) as.dist(1 - x) else d
+  hc <- switch(clustMethod,
+               hclust = {
+                 hclust(distance, method = method)
+               },
+               protoclust = {
+                 protoclust(distance)
+               }
+  )
+
+  clustAssignment <- switch(cutMethod,
+                            dynamic = {
+                              if (clustMethod == "hclust") {
+                                dynamicTreeCut::cutreeDynamic(
+                                  hc,
+                                  distM = as.matrix(distance),
+                                  cutHeight = 0.995, deepSplit = 1,
+                                  pamRespectsDendro = FALSE,
+                                  minClusterSize = 20)
+                              } else {
+                                hcMod <- hc
+                                class(hcMod) <- "hclust"
+                                dynamicTreeCut::cutreeDynamic(
+                                  hcMod,
+                                  distM = as.matrix(distance),
+                                  cutHeight = 0.995, deepSplit = 1,
+                                  pamRespectsDendro = FALSE,
+                                  minClusterSize = 20)
+                              }
+                            },
+                            gap = {
+                              NULL
+                            },
+                            fixed = {
+                              if (clustMethod == "hclust") {
+                                cutree(hc, nClusters)
+                              } else protocut(hc, k = nClusters)[["cl"]]
+                            })
+
+  # check if all cluster groups are 0 which means no cluster
+  # assignment and everyone is in their own group
+  clusters <- data.table(gene = geneNames,
+                         cluster = if (all(clustAssignment == 0))
+                           1:p else clustAssignment)
+  setkey(clusters, "cluster")
+  return(clusters)
+
+  }
+
+
+clusterSimilarity(x = diffCorr, d = dist(diffCorr), cutMethod = "fixed",
+                  nClusters = 3) %>% print(nrows = Inf)
+clusterSimilarity(x = diffCorr, d = dist(diffCorr),
+                  #cutMethod = "fixed",
+                  nClusters = 3,
+                  clustMethod = "protoclust") %>% print(nrows = Inf)
+
+protocut()
+dist(corrX) %>% as.dist()
+as.dist(1 - corrX) %>% str
+
+
 
 ## ---- data ----
 n0 = 30
@@ -229,7 +324,7 @@ d0 <- simModule(n0, p, c(rho,-rho), exposed = FALSE,
                 modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
                 minCor = 0.3,
                 maxCor = 1,
-                corPower = 0.3, 
+                corPower = 0.3,
                 propNegativeCor = 0.1,
                 backgroundNoise = 0.2,
                 signed = TRUE,
@@ -239,12 +334,12 @@ d1 <- simModule(n1, p, c(rho, rho), exposed = TRUE,
                 modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
                 minCor = 0.3,
                 maxCor = 1,
-                corPower = 0.3, 
+                corPower = 0.3,
                 propNegativeCor = 0.1,
                 backgroundNoise = 0.2,
                 signed = TRUE)
 
-# these should be the same. if they arent, its because I removed the red and 
+# these should be the same. if they arent, its because I removed the red and
 # green modules from the E=0 group
 truemodule0 <- d0$setLabels
 t0 <- table(truemodule0)
@@ -342,10 +437,10 @@ gapScorr
 plot(gapScorr, main = "clusGap(., FUN = protoclust, n.start=20, B= 60)")
 
 lapply(c("firstSEmax", "Tibs2001SEmax", "globalSEmax",
-         "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"], 
-                                                     SE.f = gapScorr$Tab[, "SE.sim"], 
-                                                     method = i, 
-                                                     SE.factor = 1)) 
+         "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"],
+                                                     SE.f = gapScorr$Tab[, "SE.sim"],
+                                                     method = i,
+                                                     SE.factor = 1))
 
 hc <- hclust(as.dist(diffCorr), method = "complete")
 
@@ -355,9 +450,9 @@ plot(diffCorr, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
      clustering_method = "complete",
      clustering_distance_rows = dist(diffCorr),
      clustering_distance_cols = dist(diffCorr),
-     cutree_cols = maxSE(f = gapScorr$Tab[, "gap"], 
-                         SE.f = gapScorr$Tab[, "SE.sim"], 
-                         method = "Tibs2001SEmax", 
+     cutree_cols = maxSE(f = gapScorr$Tab[, "gap"],
+                         SE.f = gapScorr$Tab[, "SE.sim"],
+                         method = "Tibs2001SEmax",
                          SE.factor = 1))
 
 
@@ -398,10 +493,10 @@ gapScorr
 plot(gapScorr, main = "clusGap(., FUN = protoclust, n.start=20, B= 60)")
 
 lapply(c("firstSEmax", "Tibs2001SEmax", "globalSEmax",
-         "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"], 
-                                                     SE.f = gapScorr$Tab[, "SE.sim"], 
-                                                     method = i, 
-                                                     SE.factor = 1)) 
+         "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"],
+                                                     SE.f = gapScorr$Tab[, "SE.sim"],
+                                                     method = i,
+                                                     SE.factor = 1))
 
 hc <- hclust(as.dist(Scorr), method = "complete")
 
@@ -424,10 +519,10 @@ gapScorr
 plot(gapScorr, main = "clusGap(., FUN = protoclust, n.start=20, B= 60)")
 
 lapply(c("firstSEmax", "Tibs2001SEmax", "globalSEmax",
-         "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"], 
-                                                     SE.f = gapScorr$Tab[, "SE.sim"], 
-                                                     method = i, 
-                                                     SE.factor = 1)) 
+         "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"],
+                                                     SE.f = gapScorr$Tab[, "SE.sim"],
+                                                     method = i,
+                                                     SE.factor = 1))
 
 
 hc <- protoclust(as.dist(1 - corrX))
@@ -440,8 +535,8 @@ dissTOMX %>% str
 dimnames(dissTOMX)[[1]] <- paste0("Gene",1:500)
 dimnames(dissTOMX)[[2]] <- paste0("Gene",1:500)
 
-plot(dissTOMX, truemodule = truemodule1, 
-     cluster_rows = hc, 
+plot(dissTOMX, truemodule = truemodule1,
+     cluster_rows = hc,
      cluster_cols = hc,
      cutree_cols = 3
 )
@@ -479,16 +574,16 @@ gapDiff <- cluster::clusGap(1-corrX, FUNcluster = hclustWard, K.max = 20, B = 20
 print(gapDiff, method = "Tibs")
 gapDiff
 
-maxSE(f = gapDiff$Tab[, "gap"], SE.f = gapDiff$Tab[, "SE.sim"], 
-      method = "Tibs2001SEmax", 
+maxSE(f = gapDiff$Tab[, "gap"], SE.f = gapDiff$Tab[, "SE.sim"],
+      method = "Tibs2001SEmax",
       SE.factor = 1)
 
 plot(gapDiff, main = "clusGap(., FUN = kmeans, n.start=20, B= 60)")
 hc <- hclust(as.dist(1 - corrX), method = "ward.D2")
 plot(hc)
 
-plot(corrX, truemodule = truemodule1, 
-     cluster_rows = hc, 
+plot(corrX, truemodule = truemodule1,
+     cluster_rows = hc,
      cluster_cols = hc,
      cutree_cols = 5
 )
@@ -724,7 +819,7 @@ colorDynamicHybridTOM <- labels2colors(labelDynamicHybrid)
 
 # Plot results of all module detection methods together:
 plotDendroAndColors(dendro = hierTOM,
-                    colors = data.frame(truemodule, colorStaticTOM, 
+                    colors = data.frame(truemodule, colorStaticTOM,
                                         colorDynamicTOM,
                                         colorDynamicHybridTOM),
                     dendroLabels = FALSE, marAll = c(0.2, 8, 2.7, 0.2),

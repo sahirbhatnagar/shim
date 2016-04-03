@@ -1,0 +1,116 @@
+## ---- required-packages ----
+
+getPckg <- function(pckg) install.packages(pckg, repos = "http://cran.r-project.org")
+
+pckg = try(require(magrittr))
+if(!pckg) {
+  cat("Installing 'magrittr' from CRAN\n")
+  getPckg("magrittr")
+  require(magrittr)
+}
+
+pckg = try(require(data.table))
+if(!pckg) {
+  cat("Installing 'data.table' from CRAN\n")
+  getPckg("data.table")
+  require(data.table)
+}
+
+pckg = try(require(plyr))
+if(!pckg) {
+  cat("Installing 'plyr' from CRAN\n")
+  getPckg("plyr")
+  require(plyr)
+}
+
+pckg = try(require(dplyr))
+if(!pckg) {
+  cat("Installing 'dplyr' from CRAN\n")
+  getPckg("dplyr")
+  require(dplyr)
+}
+
+pckg = try(require(WGCNA))
+if(!pckg) {
+  cat("Installing 'WGCNA' from CRAN\n")
+  getPckg("WGCNA")
+  require(WGCNA)
+}
+
+pckg = try(require(glmnet))
+if(!pckg) {
+  cat("Installing 'glmnet' from CRAN\n")
+  getPckg("glmnet")
+  require(glmnet)
+}
+
+pckg = try(require(gglasso))
+if(!pckg) {
+  cat("Installing 'gglasso' from CRAN\n")
+  getPckg("gglasso")
+  require(gglasso)
+}
+
+pckg = try(require(grpreg))
+if(!pckg) {
+  cat("Installing 'grpreg' from CRAN\n")
+  getPckg("grpreg")
+  require(grpreg)
+}
+
+pckg = try(require(dynamicTreeCut))
+if(!pckg) {
+  cat("Installing 'dynamicTreeCut' from CRAN\n")
+  getPckg("dynamicTreeCut")
+  require(dynamicTreeCut)
+}
+
+pckg = try(require(ncvreg))
+if(!pckg) {
+  cat("Installing 'ncvreg' from CRAN\n")
+  getPckg("ncvreg")
+  require(ncvreg)
+}
+
+pckg = try(require(PMA))
+if(!pckg) {
+  cat("Installing 'PMA' from CRAN\n")
+  getPckg("PMA")
+  require(PMA)
+}
+
+pckg = try(require(eclust))
+if(!pckg) {
+  cat("Installing 'eclust' from CRAN\n")
+  getPckg("eclust")
+  require(eclust)
+}
+
+pckg = try(require(doMC))
+if(!pckg) {
+  cat("Installing 'doMC' from CRAN\n")
+  getPckg("doMC")
+  require(doMC)
+}
+
+pckg = try(require(cluster))
+if(!pckg) {
+  cat("Installing 'cluster' from CRAN\n")
+  getPckg("cluster")
+  require(cluster)
+}
+
+pckg = try(require(Matrix))
+if(!pckg) {
+  cat("Installing 'Matrix' from CRAN\n")
+  getPckg("Matrix")
+  require(Matrix)
+}
+
+pckg = try(require(protoclust))
+if(!pckg) {
+  cat("Installing 'protoclust' from CRAN\n")
+  getPckg("protoclust")
+  require(protoclust)
+}
+
