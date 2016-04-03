@@ -27,8 +27,8 @@ opts_template$set(
 )
 # for captions to be evaluated after R objects are available 
 opts_knit$set(eval.after = 'fig.cap') 
-#knitr::read_chunk("~/git_repositories/eclust/simulationWGCNA.R")
-knitr::read_chunk(paste(Sys.getenv("HOME"), "eclust/bin/simulation/simDataWGCNA.R", sep = "/"))
+knitr::read_chunk("~/git_repositories/eclust/simulationWGCNA.R")
+#knitr::read_chunk(paste(Sys.getenv("HOME"), "eclust/bin/simulation/simDataWGCNA.R", sep = "/"))
 library(knitr)
 library(data.table)
 library(magrittr)
@@ -76,6 +76,13 @@ library(WGCNA)
 
 ```{r cor-scor}
 ```
+
+
+### Fisher's Z Statistic
+
+```{r fishers-zstat}
+```
+
 
  
 ## Heatmaps of TOM {.tabset}

@@ -15,6 +15,7 @@ library(doMC)
 library(Matrix)
 library(data.table)
 library(protoclust)
+library(cluster)
 
 dev.off()
 rm(list = ls())
@@ -72,6 +73,53 @@ simModule <- function(n, p, rho, exposed, ...) {
   return(dat1)
 }
 
+fisherTransform <- function (n1, r1, n2, r2) {
+  num1a <- which(r1 >= 0.99)
+  num2a <- which(r2 >= 0.99)
+  r1[num1a] <- 0.99
+  r2[num2a] <- 0.99
+  num1b <- which(r1 <= -0.99)
+  num2b <- which(r2 <= -0.99)
+  r1[num1b] <- -0.99
+  r2[num2b] <- -0.99
+  # atanh (inverse hyperbolic tangent) simplifies to 
+  # 0.5 * log(1+r)/log(1-r) , for r < 1
+  z1 <- atanh(r1)
+  z2 <- atanh(r2)
+  dz <- (z1 - z2)/sqrt(1/(n1 - 3) + (1/(n2 - 3)))
+  pv <- 2 * (1 - pnorm(abs(dz)))
+  return(list(diff = dz, pval = pv))
+}
+
+#' Calculate Fisher's Z test for correlations
+fisherZ <- function(n0, cor0, n1, cor1) {
+  
+  # n0 = 50
+  # n1 = 50
+  # cor0 = corrX0
+  # cor1 = corrX1
+  
+  # by default this doesnt include the diagonal
+  # this collapses the correlation matrix by columns
+  ccc0 <- as.vector(cor0[lower.tri(cor0)])
+  ccc1 <- as.vector(cor1[lower.tri(cor1)])
+  
+  p <- nrow(cor1)
+  
+  # number of Z statistics to calculate (p choose 2)
+  geneNames <- rownames(cor1)
+  
+  zstat <- fisherTransform(n0, ccc0, n1, ccc1)$diff  
+  
+  # convert vector to symmetric matrix
+  zMat <- diag(p)
+  zMat[lower.tri(zMat)] <- zstat
+  zMat <- zMat + t(zMat) - diag(diag(zMat))
+  dimnames(zMat) <- list(geneNames,geneNames)
+  class(zMat) <- c("similarity", class(zMat))
+  return(zMat)
+}
+
 
 #' Function to generate heatmap
 #' @decription x matrix of true correlation (P x P matrix where P is the number 
@@ -116,12 +164,11 @@ plot.similarity <- function(x,
   # drop_levels = FALSE, ...)
 }
 
-
 proto1 <- function(x,k) list(cluster = {
   as.numeric(protoclust::protocut(protoclust(as.dist(x)), k = k)$cl)})
 
 hclustWard <- function(x,k) list(cluster = {
-  as.numeric(cutree(hclust(as.dist(x), method = "ward.D2"), k = k))
+  as.numeric(cutree(hclust(as.dist(x), method = "complete"), k = k))
 })
 
 
@@ -172,8 +219,8 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
 }
 
 ## ---- data ----
-n0 = 50
-n1 = 50
+n0 = 30
+n1 = 70
 n = 100
 p = 500
 rho = 0.75
@@ -231,15 +278,25 @@ class(diffCorr) <- c("similarity",class(diffCorr))
 
 TOMX <- TOMsimilarityFromExpr(X)
 class(TOMX) <- c("similarity",class(TOMX))
+dimnames(TOMX)[[1]] <- dimnames(corrX)[[1]]
+dimnames(TOMX)[[2]] <- dimnames(corrX)[[2]]
 
 TOMX0 <- TOMsimilarityFromExpr(X0)
 class(TOMX0) <- c("similarity",class(TOMX0))
+dimnames(TOMX0)[[1]] <- dimnames(corrX)[[1]]
+dimnames(TOMX0)[[2]] <- dimnames(corrX)[[2]]
 
 TOMX1 <- TOMsimilarityFromExpr(X1)
 class(TOMX1) <- c("similarity",class(TOMX1))
+dimnames(TOMX1)[[1]] <- dimnames(corrX)[[1]]
+dimnames(TOMX1)[[2]] <- dimnames(corrX)[[2]]
+
 
 diffTOM <- abs(TOMX1 - TOMX0)
 class(diffTOM) <- c("similarity",class(diffTOM))
+dimnames(diffTOM)[[1]] <- dimnames(corrX)[[1]]
+dimnames(diffTOM)[[2]] <- dimnames(corrX)[[2]]
+
 
 alpha <- 1.5
 Scorr <- abs(corrX0 + corrX1 - alpha * corrX)
@@ -248,40 +305,111 @@ class(Scorr) <- c("similarity", class(Scorr))
 Stom <- abs(TOMX0 + TOMX1 - alpha * TOMX)
 class(Stom) <- c("similarity", class(Stom))
 
+fisherScore <- fisherZ(n0 = n0,corrX0, n1 = n1, corrX1)
+
+
 ## ---- heat-corr-all ----
-hc <- hclust(as.dist(1 - corrX), method = "ward.D2")
+hc <- hclust(as.dist(1 - corrX), method = "complete")
 plot(corrX, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc)
 
 ## ---- heat-corr-e0 ----
-hc <- hclust(as.dist(1 - corrX0), method = "ward.D2")
+hc <- hclust(as.dist(1 - corrX0), method = "complete")
 plot(corrX0, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc)
 
 ## ---- heat-corr-e1 ----
-hc <- hclust(as.dist(1 - corrX1), method = "ward.D2")
+hc <- hclust(as.dist(1 - corrX1), method = "complete")
 plot(corrX1, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc)
 
+# to reproduce the above you have use this code:
+# plot(corrX1, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
+#      clustering_distance_rows = as.dist(1 - corrX1),
+#      clustering_distance_cols = as.dist(1 - corrX1))
+
+
 ## ---- heat-corr-diff ----
-hc <- hclust(as.dist(diffCorr), method = "ward.D2")
+plot(diffCorr, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
+     clustering_method = "complete",
+     clustering_distance_rows = dist(diffCorr),
+     clustering_distance_cols = dist(diffCorr))
+
+## ---- heat-corr-diff-clust ----
+hclustComp <- function(x,k) list(cluster = {
+  as.numeric(cutree(hclust(dist(x), method = "complete"), k = k))
+})
+
+gapScorr <- cluster::clusGap(diffCorr, FUNcluster = hclustComp, K.max = 10, B = 50)
+gapScorr
+plot(gapScorr, main = "clusGap(., FUN = protoclust, n.start=20, B= 60)")
+
+lapply(c("firstSEmax", "Tibs2001SEmax", "globalSEmax",
+         "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"], 
+                                                     SE.f = gapScorr$Tab[, "SE.sim"], 
+                                                     method = i, 
+                                                     SE.factor = 1)) 
+
+hc <- hclust(as.dist(diffCorr), method = "complete")
+
 plot(diffCorr, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc)
 
+plot(diffCorr, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
+     clustering_method = "complete",
+     clustering_distance_rows = dist(diffCorr),
+     clustering_distance_cols = dist(diffCorr),
+     cutree_cols = maxSE(f = gapScorr$Tab[, "gap"], 
+                         SE.f = gapScorr$Tab[, "SE.sim"], 
+                         method = "Tibs2001SEmax", 
+                         SE.factor = 1))
+
+
+
+
 ## ---- heat-tom-all ----
-hc <- hclust(as.dist(dissTOMX), method = "ward.D2")
-plot(TOMsimilarityFromExpr(X), truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc)
+hc <- hclust(as.dist(1 - TOMX), method = "complete")
+plot(TOMX, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc)
 
 ## ---- heat-tom-e0 ----
-plot(dissTOMX0, truemodule = truemodule1, cluster_rows = F, cluster_cols = F)
+hc <- hclust(as.dist(1 - TOMX0), method = "complete")
+plot(TOMX0, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc)
 
 ## ---- heat-tom-e1 ----
-plot(dissTOMX1, truemodule = truemodule1, cluster_rows = F, cluster_cols = F)
+hc <- hclust(as.dist(1 - TOMX1), method = "complete")
+plot(TOMX1, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc)
 
 ## ---- heat-tom-diff ----
-plot(diffTOM, truemodule = truemodule1, cluster_rows = T, cluster_cols = T)
+plot(diffTOM, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
+     clustering_method = "complete",
+     clustering_distance_rows = dist(diffTOM),
+     clustering_distance_cols = dist(diffTOM))
+
+## ---- fishers-zstat ----
+plot(fisherScore, truemodule = truemodule1, cluster_rows = T, cluster_cols = T)
 
 ## ---- cor-scor ----
-plot(Scorr, truemodule = truemodule1, cluster_rows = T, cluster_cols = T)
+plot(Scorr, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
+     clustering_method = "complete")
+
+## ---- cor-scor-clust ----
+hclustComp <- function(x,k) list(cluster = {
+  as.numeric(cutree(hclust(dist(x), method = "complete"), k = k))
+})
+
+gapScorr <- cluster::clusGap(diffCorr, FUNcluster = hclustComp, K.max = 10, B = 50)
+gapScorr
+plot(gapScorr, main = "clusGap(., FUN = protoclust, n.start=20, B= 60)")
+
+lapply(c("firstSEmax", "Tibs2001SEmax", "globalSEmax",
+         "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"], 
+                                                     SE.f = gapScorr$Tab[, "SE.sim"], 
+                                                     method = i, 
+                                                     SE.factor = 1)) 
+
+hc <- hclust(as.dist(Scorr), method = "complete")
+
+
 
 ## ---- cor-scor-tom ----
-plot(Stom, truemodule = truemodule1, cluster_rows = T, cluster_cols = T)
+plot(Stom, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
+     clustering_method = "complete")
 
 ## ---- cluster-cor-scor ----
 
@@ -290,9 +418,6 @@ plot(Stom, truemodule = truemodule1, cluster_rows = T, cluster_cols = T)
 MEList <- blockwiseModules(X)
 
 ## ---- gap-statistic ----
-
-
-
 
 gapScorr <- cluster::clusGap(dissTOMX, FUNcluster = proto1, K.max = 20, B = 50)
 gapScorr
