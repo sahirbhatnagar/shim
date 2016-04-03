@@ -225,7 +225,7 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
 #'
 #' @param x similarity matrix. must have non-NULL dimnames i.e., the rows and
 #'   columns should be labelled preferable "Gene1, Gene2, ..."
-#' @param d a dissimilarity structure as produced by dist. If missing, then this
+#' @param distanceMethod  a dissimilarity structure as produced by dist. If missing, then this
 #'   function will take 1-x as the dissimilarity measure.
 #' @param clusterMethod how to cluster the data
 #' @param cutMethod what method to use to cut the dendrogram. \code{dynamic}
@@ -236,7 +236,8 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
 #'   unambiguous abbreviation of) one of "ward.D", "ward.D2", "single",
 #'   "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC)
 #'   or "centroid" (= UPGMC).
-clusterSimilarity <- function(x, d,
+clusterSimilarity <- function(x,
+                              distanceMethod,
                               clustMethod = c("hclust", "protoclust"),
                               cutMethod = c("dynamic","gap", "fixed"),
                               nClusters,
@@ -248,7 +249,6 @@ clusterSimilarity <- function(x, d,
   method <- match.arg(method)
   cutMethod <- match.arg(cutMethod)
   clustMethod <- match.arg(clustMethod)
-  #clust <- match.fun(match.arg(clustMethod))
 
   distance <- if (missing(d)) as.dist(1 - x) else d
   hc <- switch(clustMethod,
@@ -259,6 +259,36 @@ clusterSimilarity <- function(x, d,
                  protoclust(distance)
                }
   )
+
+  # create cluster function used if Gap statistic is requested
+  if (cutMethod == "gap") {
+
+    FUNcluster <- if (missing(d)) {
+      switch(clustMethod,
+             hclust = {
+               function(x,k) list(cluster = {
+                 as.numeric(cutree(hclust(as.dist(1 - x), method = method), k = k))})
+             },
+             protoclust = {
+               function(x,k) list(cluster = {
+                 as.numeric(protoclust::protocut(protoclust(as.dist(1 - x)), k = k)$cl)})
+             }
+      )
+    } else {
+      switch(clustMethod,
+             hclust = {
+               function(x,k) list(cluster = {
+                 distance <- if (missing(d)) as.dist(1 - x) else d
+                 as.numeric(cutree(hclust(as.dist(x), method = method), k = k))})
+             },
+             protoclust = {
+               function(x,k) list(cluster = {
+                 as.numeric(protoclust::protocut(protoclust(as.dist(x)), k = k)$cl)})
+             }
+      )
+    }
+  }
+
 
   clustAssignment <- switch(cutMethod,
                             dynamic = {
@@ -281,7 +311,18 @@ clusterSimilarity <- function(x, d,
                               }
                             },
                             gap = {
-                              NULL
+                              gapScorr <- cluster::clusGap(dissTOMX,
+                                                           FUNcluster = proto1,
+                                                           K.max = 20, B = 50)
+                              gapScorr
+
+
+                              lapply(c("firstSEmax", "Tibs2001SEmax", "globalSEmax",
+                                       "firstmax", "globalmax"), function(i) maxSE(f = gapScorr$Tab[, "gap"],
+                                                                                   SE.f = gapScorr$Tab[, "SE.sim"],
+                                                                                   method = i,
+                                                                                   SE.factor = 1))
+
                             },
                             fixed = {
                               if (clustMethod == "hclust") {
