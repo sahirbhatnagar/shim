@@ -232,10 +232,13 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
 #' @description this function retunrs the PC instead of just the loading
 #' as well as the mean and sd for each module, that will be used in predicting
 #' the PCs for the test data
-firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along average",
-          excludeGrey = FALSE, grey = if (is.numeric(colors)) 0 else "grey",
-          subHubs = TRUE, trapErrors = FALSE, returnValidOnly = trapErrors,
-          softPower = 6, scale = TRUE, verbose = 0, indent = 0) {
+#' @rdname clusterSimilarity
+firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 1,
+                     align = "along average", excludeGrey = FALSE,
+                     grey = if (is.numeric(colors)) 0 else "grey",
+                     subHubs = TRUE, trapErrors = FALSE,
+                     returnValidOnly = trapErrors, softPower = 6, scale = TRUE,
+                     verbose = 0, indent = 0) {
 
   # expr = expr; colors = clusters$module; impute = TRUE; nPC = 1; align = "along average";
   # excludeGrey = FALSE; grey = if (is.numeric(colors)) 0 else "grey";
@@ -288,6 +291,9 @@ firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along averag
   PC <- data.frame(matrix(NA, nrow = dim(expr)[[1]],
                                 ncol = length(modlevels)))
 
+  PCTest <- data.frame(matrix(NA, nrow = dim(exprTest)[[1]],
+                          ncol = length(modlevels)))
+
   # list to store prcomp objects
   prcompObj <- vector("list", length(modlevels))
 
@@ -296,6 +302,9 @@ firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along averag
   # so this is a n x length(modlevels) matrix
   averExpr <- data.frame(matrix(NA, nrow = dim(expr)[[1]],
                                ncol = length(modlevels)))
+
+  averExprTest <- data.frame(matrix(NA, nrow = dim(exprTest)[[1]],
+                                ncol = length(modlevels)))
 
   varExpl <- vector("double", length(modlevels))
 
@@ -314,6 +323,8 @@ firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along averag
   #                          sep = "")
   names(PC) = paste("PC", modlevels, sep = ":")
   names(averExpr) = paste("AE", modlevels, sep = ":")
+  names(PCTest) = paste("PC", modlevels, sep = ":")
+  names(averExprTest) = paste("AE", modlevels, sep = ":")
 
   for (i in c(1:length(modlevels))) {
     #i=1
@@ -327,6 +338,7 @@ firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along averag
                        "genes"))
 
     datModule <- as.matrix(expr[, restrict1])
+    datModuleTest <- as.matrix(exprTest[, restrict1])
 
     # dim(datModule)
     # dim(t(datModule))
@@ -341,8 +353,8 @@ firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along averag
 
     eigenVectors[[i]] <- prcompObj[[i]]$rotation[,1, drop = F]
 
-    averExpr[,i] <- rowMeans(scale(datModule, center = scale, scale = scale),
-                             na.rm = TRUE)
+    averExpr[,i] <- rowMeans(datModule, na.rm = TRUE)
+    averExprTest[,i] <- rowMeans(datModuleTest, na.rm = TRUE)
 
     varExpl[[i]] <- factoextra::get_eigenvalue(prcompObj[[i]])[1,"variance.percent"]
     # corAve = cor(averExpr[,i], prcompObj[[i]]$rotation[,1],
@@ -351,6 +363,7 @@ firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along averag
     # if (corAve < 0) prcompObj[[i]]$rotation[,1] = -prcompObj[[i]]$rotation[,1]
 
     PC[, i] <- predict(prcompObj[[i]])[,1]
+    PCTest[, i] <- predict(prcompObj[[i]], newdata = datModuleTest)[,1]
     # plot(PC[, i], prcompObj[[i]]$x[,1])
     #means[i] <- prcompObj[[i]]$center
     #sds[i] <- prcompObj[[i]]$scale
@@ -359,20 +372,26 @@ firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along averag
   }
 
   list(eigengenes = eigenVectors, averageExpr = averExpr,
+       averageExprTest = averExprTest,
        varExplained = varExpl, validColors = validColors,
-       PC = PC, prcompObj = prcompObj)
+       PC = PC, PCTest = PCTest, prcompObj = prcompObj,
+       nclusters = length(modlevels))
 }
 
 
 
 #' Cluster similarity matrix and return cluster membership of each gene
-#'
+#' as well as average expression per module, 1st PC of each module, and 1st PC
+#' of each module from Test dataset
 #' @param x similarity matrix. must have non-NULL dimnames i.e., the rows and
 #'   columns should be labelled preferable "Gene1, Gene2, ..."
+#' @param expr gene expression data (training set). rows are people, columns are
+#'   genes
+#' @param exprTest gene expression test set
 #' @param distanceMethod  one of "euclidean","maximum","manhattan", "canberra",
 #'   "binary","minkowski" to be passed to \code{dist} function. If missing, then
 #'   this function will take 1-x as the dissimilarity measure. This
-#'   functionality is for diffCorr and diffTOM matrices which need to be
+#'   functionality is for diffCorr,diffTOM, fisherScore matrices which need to be
 #'   converted to a distance type matrix.
 #' @param clusterMethod how to cluster the data
 #' @param cutMethod what method to use to cut the dendrogram. \code{dynamic}
@@ -385,6 +404,7 @@ firstPC <- function (expr, colors, impute = TRUE, nPC = 1, align = "along averag
 #'   or "centroid" (= UPGMC).
 clusterSimilarity <- function(x,
                               expr,
+                              exprTest,
                               distanceMethod,
                               clustMethod = c("hclust", "protoclust"),
                               cutMethod = c("dynamic","gap", "fixed"),
@@ -392,18 +412,18 @@ clusterSimilarity <- function(x,
                               method = c("complete", "average", "ward.D2",
                                          "single", "ward.D", "mcquitty",
                                          "median", "centroid"),
-                              summary = c("avg", "pca"),
                               K.max = 10, B = 50) {
 
-  x = corrX ; expr = X
-  dim(X)
-  clustMethod = c("hclust")
-  cutMethod = c("dynamic")
-  nClusters = 6
-  method = c("complete")
-  summary = c("pca")
-  K.max = 10; B = 50
-  distance = as.dist(1 - x)
+  # x = corrX ; expr = X
+  # exprTest = X[sample(seq_len(nrow(X)),nrow(X), replace = TRUE ),]
+  # dim(X) ; dim(expr) ; dim(exprTest)
+  # clustMethod = c("hclust")
+  # cutMethod = c("dynamic")
+  # nClusters = 6
+  # method = c("complete")
+  # summary = c("pca")
+  # K.max = 10; B = 50
+  # distance = as.dist(1 - x)
 
   geneNames <- dimnames(x)[[1]]
   p <- nrow(x)
@@ -472,7 +492,8 @@ clusterSimilarity <- function(x,
                                 dynamicTreeCut::cutreeDynamic(
                                   hc,
                                   distM = as.matrix(distance),
-                                  cutHeight = 0.995, deepSplit = 1,
+                                  #cutHeight = 0.995,
+                                  deepSplit = 1,
                                   pamRespectsDendro = FALSE,
                                   minClusterSize = 20)
                               } else {
@@ -481,7 +502,8 @@ clusterSimilarity <- function(x,
                                 dynamicTreeCut::cutreeDynamic(
                                   hcMod,
                                   distM = as.matrix(distance),
-                                  cutHeight = 0.995, deepSplit = 1,
+                                  #cutHeight = 0.995,
+                                  deepSplit = 1,
                                   pamRespectsDendro = FALSE,
                                   minClusterSize = 20)
                               }
@@ -519,7 +541,7 @@ clusterSimilarity <- function(x,
 
   # check if all cluster groups are 0 which means no cluster
   # assignment and everyone is in their own group
-  plot(clustAssignment)
+  # plot(clustAssignment)
   clusters <- data.table(gene = geneNames,
                          cluster = if (all(clustAssignment == 0))
                            1:p else clustAssignment)
@@ -552,109 +574,74 @@ clusterSimilarity <- function(x,
   #
   # plot(l$rotation[,1,drop=F],p$eigengenes[,"MEblue"])
 
-  p <- WGCNA::moduleEigengenes(expr = expr[, clusters$gene],
-                               colors = clusters$module,
-                               align = "along average",
-                               scale = TRUE)
-
-
-  p$eigengenes
-  p$averageExpr %>% dim
-
-  pp <- firstPC(expr = expr[, clusters$gene],
-               colors = clusters$module,
-               align = "along average",
-               scale = TRUE)
-
-  pp %>% names
-  pp$varExplained
-  pp$averageExpr
-  pp$eigengenes
-  pp$PC
-  fviz_eig(pp$prcompObj[[6]])
-
-  plot(pp$PC[,2], prcomp(expr[, which(clusters$module %in% "blue")], scale. = TRUE,
-       center = TRUE)$x[,2])
-  pp$prcompObj[[1]]$rotation[,1]
-
-pp$PC
-  pp$averageExpr
-  barplot(pp$PC)
-
   # this plots the eigenvector against the average expression
   # to show the effect of the "along average" argument
-  cbind(pp$PC,pp$averageExpr) %>%
-    mutate(id = 1:n) %>%
-    gather(type, value, -id) %>%
-    separate(type, c("type","module")) %>%
-    spread(type,value) %>%
-    magrittr::set_colnames(c("id","module","average", "PC")) %>%
-    ggplot(.,aes(x = average, y = PC)) + geom_point() + facet_grid(~module) +
-    theme_bw()
+  # cbind(pp$PC,pp$averageExpr) %>%
+  #   mutate(id = 1:n) %>%
+  #   gather(type, value, -id) %>%
+  #   separate(type, c("type","module")) %>%
+  #   spread(type,value) %>%
+  #   magrittr::set_colnames(c("id","module","average", "PC")) %>%
+  #   ggplot(.,aes(x = average, y = PC)) + geom_point() + facet_grid(~module) +
+  #   theme_bw()
 
-  par(mfrow = c(3,3))
-  lapply(pp$prcompObj, get_pca_var)
+  pp <- firstPC(expr = expr[, clusters$gene],
+                exprTest = exprTest[, clusters$gene],
+                colors = clusters$module,
+                align = "along average",
+                scale = TRUE)
 
-
-    p$svdobj[[1]]
-
-  l <- prcomp(t(expr[, which(clusters$module %in% "blue")]), scale. = TRUE,
-              center = TRUE)
-
-
-  l$x %>% dim
-
-  dim(expr)
-
-  ll <- prcomp(expr[, which(clusters$module %in% "blue")], scale. = TRUE,
-               center = TRUE)
-
-  expr[, which(clusters$module %in% "blue")] %>% dim
-  l$rotation %>% dim
-
-  all.equal(l$sdev, ll$sdev)
-  l$sdev %>% sum
-  ll$sdev %>% sum
-  svd
-  ll$rotation %>%  dim
-  ll$x %>% dim
-
-  plot(l$rotation[,1],ll$rotation[,1])
-
-  plot(l$rotation[,1,drop=T],p$eigengenes[,"MEblue"])
-  all.equal(l$rotation[,1,drop=T],p$eigengenes[,"MEblue"])
-
-  stats:::prcomp.default
-  stats:::princomp.default
-
-  prcomp(expr[, which(clusters$module %in% "blue")])$x[,1:2]
-
-  plot(l$rotation[,1,drop=F],p$eigengenes[,"MEblue"])
-
-  plot(p$averageExpr[,"AEblue"], p$eigengenes[,"MEblue"])
-
-  cbind(p$eigengenes,p$averageExpr) %>%
-    reshape2::melt() %>%
-    # dplyr::select(variable)
-    # gsub("AE")
-    separate(variable, c("type","module"), sep = "E") %>%
-    gather()
+  # clusters
+  # pp %>% names
+  # pp$PCTest
+  #
+  # pp$varExplained
+  # pp$averageExpr
+  # pp$eigengenes
+  # pp$PC
 
 
-
-
-  dynamicTreeCut::printFlush
-
-  return(clusters)
+  return(list(clusters = clusters, pcInfo = pp))
 
 }
 
 
-clusterSimilarity(x = corrX,
-                  cutMethod = "dynamic",
-                  B = 20) %>% print(nrows = Inf)
+res <- clusterSimilarity(x = corrX,
+                  expr = X,
+                  exprTest = X[sample(seq_len(nrow(X)),nrow(X), replace = TRUE ),])
 
+res$pcInfo$
 
+res <- clusterSimilarity(x = fisherScore,
+                         expr = X,
+                         exprTest = X[sample(seq_len(nrow(X)),nrow(X),replace = T),],
+                         distanceMethod = "euclidean",
+                         clustMethod = "hclust",
+                         cutMethod = "gap",
+                         method = "complete",
+                         K.max = 10, B = 10)
+
+res2 <- clusterSimilarity(x = fisherScore,
+                         expr = X,
+                         exprTest = X[sample(seq_len(nrow(X)),nrow(X),replace = T),],
+                         distanceMethod = "euclidean",
+                         clustMethod = "hclust",
+                         cutMethod = "dynamic",
+                         method = "complete")
+
+res2$pcInfo$nclusters
+
+res$clusters[, table(module)]
+res2$clusters[, table(module)]
+
+res$pcInfo$averageExpr
+class(fisherScore)
+
+hc <- hclust(dist(fisherScore))
+plot.similarity(fisherScore, truemodule = truemodule1,
+                cutree_cols = 8)
+args(plot.similarity)
+args(pheatmap)
 clusterSimilarity(x = diffCorr, distanceMethod = "euclidean",
                   cutMethod = "fixed",
                   nClusters = 3,
