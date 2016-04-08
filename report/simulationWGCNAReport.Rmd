@@ -1,5 +1,5 @@
 ---
-title: 
+title: Simulation study April 8
 output:
   html_document:
     fig_height: 8
@@ -27,7 +27,7 @@ opts_template$set(
 )
 # for captions to be evaluated after R objects are available 
 opts_knit$set(eval.after = 'fig.cap') 
-knitr::read_chunk("~/git_repositories/eclust/simulationWGCNA.R")
+knitr::read_chunk("~/git_repositories/eclust/report/simulationWGCNAReport.R")
 #knitr::read_chunk(paste(Sys.getenv("HOME"), "eclust/bin/simulation/simDataWGCNA.R", sep = "/"))
 library(knitr)
 library(data.table)

@@ -9,6 +9,7 @@
 # Its based on code from Network analysis book by Horvath
 ##################################
 
+rm(list=ls())
 source("packages.R")
 source("functions.R")
 
@@ -21,9 +22,14 @@ parametersDf <- expand.grid(rho = c(0.1,0.35,0.75,0.95),
                             betaMean = 4,
                             betaE = 5,
                             alphaMean = 2,
-                            nActive = 20,
+                            nActive = 50,
                             includeInteraction = TRUE,
-                            includeStability = TRUE, stringsAsFactors = FALSE)
+                            includeStability = TRUE, stringsAsFactors = FALSE,
+                            distanceMethod = "euclidean",
+                            clustMethod = "hclust",
+                            cutMethod = "gap",
+                            method = "complete",
+                            K.max = 10, B = 10)
 
 #str(parametersDf)
 parametersDf <- transform(parametersDf, nBlocks = p/blocksize)
@@ -50,14 +56,15 @@ rho <- simulationParameters[,"rho"];
 nActive <- simulationParameters[,"nActive"];
 includeInteraction <- simulationParameters[,"includeInteraction"]
 includeStability <- simulationParameters[,"includeStability"]
+distanceMethod <- simulationParameters[,"distanceMethod"]
+clustMethod <- simulationParameters[,"clustMethod"]
+cutMethod <- simulationParameters[,"cutMethod"]
+method <- simulationParameters[,"method"]
+K.max <- simulationParameters[,"K.max"]
+B <- simulationParameters[,"B"]
 
-n0 = 30
-n1 = 70
-n = 100
-p = 500
-rho = 0.75
-
-d0 <- simModule(n0, p, c(rho,-rho), exposed = FALSE,
+# in this simulation its blocks 3 and 4 that are important
+d0 <- simModule(n = n0, p = p, rho = c(rho,-rho), exposed = FALSE,
                 modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
                 minCor = 0.3,
                 maxCor = 1,
@@ -67,7 +74,7 @@ d0 <- simModule(n0, p, c(rho,-rho), exposed = FALSE,
                 signed = TRUE,
                 leaveOut = 3:4)
 
-d1 <- simModule(n1, p, c(rho, rho), exposed = TRUE,
+d1 <- simModule(n = n1, p = p, rho = c(rho, rho), exposed = TRUE,
                 modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
                 minCor = 0.3,
                 maxCor = 1,
@@ -81,6 +88,7 @@ d1 <- simModule(n1, p, c(rho, rho), exposed = TRUE,
 truemodule0 <- d0$setLabels
 t0 <- table(truemodule0)
 truemodule1 <- d1$setLabels
+t1 <- table(truemodule1)
 table(truemodule0,truemodule1)
 
 # Convert labels to colors for plotting
@@ -89,3 +97,41 @@ moduleColors <- labels2colors(truemodule1)
 X <- rbind(d0$datExpr, d1$datExpr) %>%
   magrittr::set_colnames(paste0("Gene", 1:p)) %>%
   magrittr::set_rownames(paste0("Subject",1:n))
+
+dim(X)
+
+
+betaMainEffect <- vector("double", length = p)
+betaMainInteractions <- vector("double", length = p)
+# first assign random uniform to every gene in cluster 3 and 4,
+# then randomly remove so that thers only nActive left
+betaMainEffect[which(truemodule1 %in% 3:4)] <- runif(sum(truemodule1 %in% 3:4),
+                                           betaMean - 0.1, betaMean + 0.1)
+
+# randomly set some coefficients to 0 so that there are only nActive non zero
+betaMainEffect <- replace(betaMainEffect,
+                          sample(which(truemodule1 %in% 3:4), sum(truemodule1 %in% 3:4) - nActive,
+                                 replace = FALSE), 0)
+
+betaMainInteractions[which(betaMainEffect!=0)] <- runif(nActive, alphaMean - 0.1, alphaMean + 0.1)
+
+beta <- c(betaMainEffect,
+          betaE,
+          betaMainInteractions)
+
+result <- generate_data(p = p, n = n, n0 = n0, X = X,
+                        beta = beta, include_interaction = includeInteraction,
+                        cluster_distance = eclustMatrix,
+                        signal_to_noise_ratio = 1/2,
+                        distanceMethod = distanceMethod,
+                        clustMethod = clustMethod,
+                        cutMethod = cutMethod,
+                        method = method,
+                        K.max = K.max, B = B)
+
+
+
+
+
+
+
