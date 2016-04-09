@@ -638,58 +638,50 @@ sim_data <- function(n , n0 , p , genes,
 
 #' Generate data and test and training sets for simulation study
 #'
-#' @description create a function that takes as input, the number of genes,
-#' the true beta vector, the gene expression matrix created
-#' from the generate_blocks function
-#' and returns a list of data matrix, as well as correlation matrices, TOM matrices,
-#' cluster information, training and test data
+#' @description create a function that takes as input, the number of genes, the
+#'   true beta vector, the gene expression matrix created from the
+#'   generate_blocks function and returns a list of data matrix, as well as
+#'   correlation matrices, TOM matrices, cluster information, training and test
+#'   data
 #' @note this function calls the \code{sim_data} to generate phenotype as a
-#' function of the gene expression data. This function also returns other information
-#' derived from the simulated data including the test and training sets,
-#' the correlation and TOM matrices and the clusters.
-#' @return list of (in the following order)
-#' \describe{
-#' \item{beta_truth}{}
-#' \item{distance}{}
-#' \item{DT}{data.table of simulated data from the \code{sim_data} function}
-#' \item{Y}{}
-#' \item{X0}{}
-#' \item{X1}{}
-#' \item{X_train}{}
-#' \item{X_test}{}
-#' \item{Y_train}{}
-#' \item{Y_test}{}
-#' \item{DT_train}{}
-#' \item{DT_test}{}
-#' \item{S0}{}
-#' \item{n_clusters}{}
-#' \item{clustered_genes_train}{}
-#' \item{clustered_genes_test}{}
-#' \item{clusters}{}
-#' \item{tom_train_all}{}
-#' \item{tom_train_diff}{}
-#' \item{tom_train_e1}{}
-#' \item{tom_train_e0}{}
-#' \item{corr_train_all}{}
-#' \item{corr_train_diff}{}
-#' \item{corr_train_e1}{}
-#' \item{corr_train_e0}{}
-#' \item{mse_null}{}
-#' }
+#'   function of the gene expression data. This function also returns other
+#'   information derived from the simulated data including the test and training
+#'   sets, the correlation and TOM matrices and the clusters.
+#' @note the PCs and averages need to be calculated in the fitting functions,
+#'   because these will change based on the CV fold
+#' @return list of (in the following order) \describe{ \item{beta_truth}{}
+#'   \item{distance}{} \item{DT}{data.table of simulated data from the
+#'   \code{sim_data} function} \item{Y}{} \item{X0}{} \item{X1}{}
+#'   \item{X_train}{} \item{X_test}{} \item{Y_train}{} \item{Y_test}{}
+#'   \item{DT_train}{} \item{DT_test}{} \item{S0}{} \item{n_clusters}{}
+#'   \item{clustered_genes_train}{} \item{clustered_genes_test}{}
+#'   \item{clusters}{} \item{tom_train_all}{} \item{tom_train_diff}{}
+#'   \item{tom_train_e1}{} \item{tom_train_e0}{} \item{corr_train_all}{}
+#'   \item{corr_train_diff}{} \item{corr_train_e1}{} \item{corr_train_e0}{}
+#'   \item{mse_null}{} }
 #'
 #' @param p number of genes in design matrix
-#' @param X gene expression matrix of size n x p using the \code{generate_blocks}
-#' function
+#' @param X gene expression matrix of size n x p using the
+#'   \code{generate_blocks} function
 #' @param beta true beta coefficient vector
 #' @param n total number of subjects
 #' @param n0 total number of subjects with E=0
 #' @param signal_to_noise_ratio signal to noise ratio, default is 4
+#' @inheritParams clusterSimilarity
 #' @param cluster_distance character representing which matrix from the training
-#' set that you want to use to cluster the genes. Must be one of the following
-#' \itemize{
-#' \item corr, corr0, corr1, tom, tom0, tom1, diffcorr, difftom, corScor,
-#' tomScor, fisherScore
-#' }
+#'   set that you want to use to cluster the genes. Must be one of the following
+#'   \itemize{ \item corr, corr0, corr1, tom, tom0, tom1, diffcorr, difftom,
+#'   corScor, tomScor, fisherScore }
+#' @param EclustDistance character representing which matrix from the training
+#'   set that you want to use to cluster the genes based on the environment.
+#'   See \code{cluster_distance} for
+#'   avaialble options. Should be different from \code{cluster_distance}. For
+#'   example, if \code{cluster_distance=corr} and
+#'   \code{EclustDistance=fisherScore}. That is, one should be based on
+#'   correlations ignoring the environment, and the other should be based on
+#'   correlations accounting for the environment. This function will always
+#'   return this add on
+#'
 #' @examples
 #' \dontrun{
 #' p = 1000
@@ -712,29 +704,42 @@ sim_data <- function(n , n0 , p , genes,
 #' @rdname simulated_data
 #' @export
 
-generate_data <- function(p, X, beta, cluster_distance, n,
-                          n0, include_interaction = F,
+generate_data <- function(p, X, beta,
+                          cluster_distance = c("corr", "corr0", "corr1", "tom",
+                                               "tom0", "tom1", "diffcorr",
+                                               "difftom","corScor", "tomScor",
+                                               "fisherScore"),
+                          n, n0, include_interaction = F,
                           signal_to_noise_ratio = 1,
+                          EclustAddDistance = c("fisherScore", "corScor"),
                           clustMethod = c("hclust", "protoclust"),
                           cutMethod = c("dynamic","gap", "fixed"),
+                          distanceMethod = c("euclidean","maximum", "manhattan",
+                                             "canberra", "binary", "minkowski"),
                           nClusters,
                           method = c("complete", "average", "ward.D2",
                                      "single", "ward.D", "mcquitty",
                                      "median", "centroid"),
                           K.max = 10, B = 10) {
 
-  p = p; X = X ; beta = beta
-  n = n; n0 = n0
-  cluster_distance = "corScor"
-  include_interaction = T
-  signal_to_noise_ratio = 0.5
-  clustMethod = "hclust" ; cutMethod = "dynamic";method="complete"
+  # p = p; X = X ; beta = beta
+  # n = n; n0 = n0
+  # cluster_distance = "corr"
+  # include_interaction = T
+  # signal_to_noise_ratio = 0.5
+  # clustMethod = "hclust" ; cutMethod = "dynamic";method="complete";
+  # distanceMethod = "euclidean"
+  # EclustAdd = TRUE ; EclustAddDistance = "fisherScore"
 
 
   method <- match.arg(method)
   cutMethod <- match.arg(cutMethod)
   clustMethod <- match.arg(clustMethod)
-
+  distanceMethod <- match.arg(distanceMethod)
+  cluster_distance <- match.arg(cluster_distance)
+  EclustAddDistance <- match.arg(EclustAddDistance)
+  
+  
   names(beta) <- if (include_interaction) {
     c(paste0("Gene",1:p),"E", paste0("Gene",1:p,":E"))
   } else paste0("Gene",1:p)
@@ -749,6 +754,8 @@ generate_data <- function(p, X, beta, cluster_distance, n,
   S0 <- names(beta)[which(beta != 0)]
 
   n1 <- n - n0
+
+  message("Creating data and simulating response")
 
   DT <- as.data.frame(sim_data(n = n, n0 = n0, p = p, genes = X,
                  include_interaction = include_interaction,
@@ -780,20 +787,22 @@ generate_data <- function(p, X, beta, cluster_distance, n,
   genes_e1 <- DT_train[which(DT_train$E == 1),paste0("Gene",1:p)] %>% as.matrix
   genes_all <- rbind(genes_e0,genes_e1)
 
+  message("Calculating similarity matrices")
+
   # gene expression data
   genes_all_test <- DT_test[,paste0("Gene",1:p)] %>% as.matrix
 
-  tom_train_e0 <- WGCNA::TOMsimilarityFromExpr(genes_e0, corType = "pearson",
-                                               power = 6, networkType = "signed",
-                                               TOMType = "signed")
-  tom_train_e1 <- WGCNA::TOMsimilarityFromExpr(genes_e1, corType = "pearson",
-                                               power = 6, networkType = "signed",
-                                               TOMType = "signed")
-  tom_train_diff <- abs(tom_train_e0 - tom_train_e1)
-  tom_train_all <- WGCNA::TOMsimilarityFromExpr(genes_all,
-                                                corType = "pearson", power = 6,
-                                                networkType = "signed",
-                                                TOMType = "signed")
+  # tom_train_e0 <- WGCNA::TOMsimilarityFromExpr(genes_e0, corType = "pearson",
+  #                                              power = 6, networkType = "signed",
+  #                                              TOMType = "signed")
+  # tom_train_e1 <- WGCNA::TOMsimilarityFromExpr(genes_e1, corType = "pearson",
+  #                                              power = 6, networkType = "signed",
+  #                                              TOMType = "signed")
+  # tom_train_diff <- abs(tom_train_e0 - tom_train_e1)
+  # tom_train_all <- WGCNA::TOMsimilarityFromExpr(genes_all,
+  #                                               corType = "pearson", power = 6,
+  #                                               networkType = "signed",
+  #                                               TOMType = "signed")
 
   corr_train_e0 <- WGCNA::cor(genes_e0)
   corr_train_e1 <- WGCNA::cor(genes_e1)
@@ -805,20 +814,22 @@ generate_data <- function(p, X, beta, cluster_distance, n,
   Scorr <- abs(corr_train_e0 + corr_train_e1 - alpha * corr_train_all)
   class(Scorr) <- c("similarity", class(Scorr))
 
-  Stom <- abs(tom_train_e1 + tom_train_e0 - alpha * tom_train_all)
-  class(Stom) <- c("similarity", class(Stom))
+  # Stom <- abs(tom_train_e1 + tom_train_e0 - alpha * tom_train_all)
+  # class(Stom) <- c("similarity", class(Stom))
 
   fisherScore <- fisherZ(n0 = n0, cor0 = corr_train_e0,
                          n1 = n1, cor1 = corr_train_e1)
 
-  class(tom_train_all) <- append(class(tom_train_all), "similarity")
-  class(tom_train_diff) <- append(class(tom_train_diff), "similarity")
-  class(tom_train_e1) <- append(class(tom_train_e1), "similarity")
-  class(tom_train_e0) <- append(class(tom_train_e0), "similarity")
+  # class(tom_train_all) <- append(class(tom_train_all), "similarity")
+  # class(tom_train_diff) <- append(class(tom_train_diff), "similarity")
+  # class(tom_train_e1) <- append(class(tom_train_e1), "similarity")
+  # class(tom_train_e0) <- append(class(tom_train_e0), "similarity")
   class(corr_train_all) <- append(class(corr_train_all), "similarity")
   class(corr_train_diff) <- append(class(corr_train_diff), "similarity")
   class(corr_train_e1) <- append(class(corr_train_e1), "similarity")
   class(corr_train_e0) <- append(class(corr_train_e0), "similarity")
+
+  message("Creating CV folds from training data")
 
   # Folds for Cross validation
   folds_train <- caret::createFolds(Y_train, k = 10, list = T)
@@ -826,8 +837,11 @@ generate_data <- function(p, X, beta, cluster_distance, n,
   X_train_folds <- lapply(DT_train_folds, function(i) i[,-grep("Y",colnames(i))])
   Y_train_folds <- lapply(DT_train_folds, function(i) i[,grep("Y",colnames(i))])
 
+  message(sprintf("Calculating number of clusters based on %s using %s with %s 
+                  linkage and the %s to determine the number of clusters",
+                  cluster_distance, clustMethod, method, cutMethod))
 
-  # clusters
+  # clusters based on cluster_distance argument
   similarity <- switch(cluster_distance,
                        corr = corr_train_all,
                        corr0 = corr_train_e0,
@@ -841,6 +855,7 @@ generate_data <- function(p, X, beta, cluster_distance, n,
                        tomScor = Stom,
                        fisherScore = fisherScore)
 
+  # results for clustering, PCs and averages for each block
   # the only difference here is the distanceMethod arg
   res <- if (cluster_distance %in% c("diffcor","difftom",
                                      "corScor", "tomScor","fisherScore")) {
@@ -862,104 +877,138 @@ generate_data <- function(p, X, beta, cluster_distance, n,
                       K.max = K.max, B = B, nClusters = nClusters)
   }
 
+  message(paste("Calculating number of environment clusters based on ",
+                EclustAddDistance))
 
-  ###!!!!!!!!!!!!!!!! continue from here !!!!!!!!!!!!!!
+  # clusters based on EclustAddDistance
+  similarityEclust <- switch(EclustAddDistance,
+                         corr = corr_train_all,
+                         corr0 = corr_train_e0,
+                         corr1 = corr_train_e1,
+                         diffcorr = corr_train_diff,
+                         difftom = tom_train_diff,
+                         tom0 = tom_train_e0,
+                         tom1 = tom_train_e1,
+                         tom = tom_train_all,
+                         corScor = Scorr,
+                         tomScor = Stom,
+                         fisherScore = fisherScore)
 
-  # print(paste("The dimension of the distance matrix is",
-  #             dim(distance)[1], "by", dim(distance)[2],
-  #             ". Clutering is done on ",cluster_distance,
-  #             " matrix"))
-  #
-  # print(" starting hierarchical clustering ")
-  #
-  # cl <- hclust(
-  #   as.dist(
-  #     if (cluster_distance %in% c("diffcorr","difftom")) {
-  #       distance
-  #     } else 1 - distance
-  #   ), method = "average"
-  # )
-  #
-  # cuttree <- dynamicTreeCut::cutreeDynamic(
-  #   cl,
-  #   distM = if (cluster_distance %in% c("diffcorr","difftom")) {
-  #     distance
-  #   } else 1 - distance,
-  #   cutHeight = 0.995, deepSplit = 1,
-  #   pamRespectsDendro = FALSE,
-  #   minClusterSize = 30)
-  #
-  # # check if all cluster groups are 0 which means no cluster
-  # # assignment and everyone is in their own group
-  # clusters <- data.table(gene = paste0("Gene",1:p),
-  #                        cluster = if (all(cuttree == 0)) 1:p else cuttree)
-  # setkey(clusters,"cluster")
-  # clusters.dat <- table(cuttree)  %>% as.data.frame
 
-  # the cluster assignment of '0' means doesnt belong to a cluster
-  n_clusters <- if (all(cuttree == 0)) {
-    p
-  } else clusters[cluster != 0]$cluster %>% unique %>% length
-
-#   # not being used anywhere
-#   clustered_genes_train <- lapply(1:n_clusters, function(i) {
-#     DT_train[,clusters[cluster == i]$gene] %>%
-#       scale(center = T, scale = F) %>%
-#       as.matrix})
-#
-#   # not being used anywhere
-#   clustered_genes_test <- lapply(1:n_clusters, function(i) {
-#     DT_test[,clusters[cluster == i]$gene] %>%
-#       scale(center = T, scale = F) %>%
-#       as.matrix})
-
-  print(paste("Clustering done. The number of clusters is", n_clusters))
-
-  if (include_interaction) {
-    gene_groups = copy(clusters)
-    gene_groups[,gene := paste0(gene,":E")]
-    gene_groups <- rbind(clusters,gene_groups) %>% setkey(cluster)
-
-    pf_temp <- gene_groups[,.N, by = cluster][,pf := sqrt(N)] %>% setkey(cluster)
-    gene_groups_inter <- rbind(pf_temp[gene_groups],
-                               data.table(cluster = n_clusters + 1, N = 1, pf = 0, gene = "E"))
+  resEclust <- if (EclustAddDistance %in% c("diffcor","difftom",
+                                            "corScor", "tomScor","fisherScore")) {
+    clusterSimilarity(x = similarityEclust,
+                      expr = genes_all,
+                      exprTest = genes_all_test,
+                      distanceMethod = distanceMethod,
+                      clustMethod = clustMethod,
+                      cutMethod = cutMethod,
+                      method = method,
+                      K.max = K.max, B = B, nClusters = nClusters)
+  } else {
+    clusterSimilarity(x = similarityEclust,
+                      expr = genes_all,
+                      exprTest = genes_all_test,
+                      clustMethod = clustMethod,
+                      cutMethod = cutMethod,
+                      method = method,
+                      K.max = K.max, B = B, nClusters = nClusters)
   }
 
-  # K-Means Clustering on difference in correlation matrices
-  # nstart 100 times and then takes the permutation that minimisez the criterion
-  #
-  #   hier_clust <- hclust(as.dist(tom_train_e1/tom_train_e0), method = "ward.D2")
-  #   cutree(hier_clust,2) %>% table
-  #   plot(hier_clust)
-  #
-  #   plot(tom_train_diff)
-  #   plot(corr_train_diff)
 
-  #   kmeans_clust <- kmeans(corr_train_diff,2, nstart = 10)
-  #   kmeans_clusters <- data.table(gene = paste0("Gene",1:p),cluster = kmeans_clust$cluster)
-  #   setkey(kmeans_clusters,"cluster")
+  # we need to combine the cluster information here
+  # this is based on cluster_distance only
+  clustersAll <- copy(res$clusters)
+  n_clusters_All <- res$pcInfo$nclusters
+  
+  message(sprintf("There are %d clusters derived from the %s similarity matrix",
+                  n_clusters_All, cluster_distance))
 
-  clEclust <- hclust(as.dist(tom_train_diff), method = "average")
-  cuttreeEclust <- dynamicTreeCut::cutreeDynamic(clEclust,
-                                                 distM = tom_train_diff,
-                                                 cutHeight = 0.995, deepSplit = 1,
-                                                 pamRespectsDendro = FALSE,
-                                                 minClusterSize = 30)
-  kmeans_clusters <- data.table(gene = paste0("Gene",1:p), cluster = if (all(cuttreeEclust == 0)) 1:p else cuttreeEclust)
-  setkey(kmeans_clusters,"cluster")
+  # this is based on EclustAddDistance only
+  n_clusters_Eclust <- resEclust$pcInfo$nclusters
+  clustersEclust <- copy(resEclust$clusters)
+  
+  message(sprintf("There are %d clusters derived from the %s environment similarity matrix",
+                  n_clusters_Eclust, EclustAddDistance))
+
+  # this is based on both
+  n_clusters_Addon <- n_clusters_All + n_clusters_Eclust
+  
+  message(sprintf("There are a total of %d clusters derived from the %s 
+                  similarity matrix and the %s environment similarity matrix",
+                  n_clusters_Addon,cluster_distance,EclustAddDistance))
+
+  # check if any of the cluster numbers in clustersEclust are 0
+  # if there are, then add n_clusters+1 to each module number in
+  # clustersEclust, else just add n_clusters. this is to control for the
+  # situation where there are some clusters numbers of 0 which would cause
+  # identical cluster numbers in the clusters and clustersEclust data
+  if (clustersEclust[,any(cluster==0)]) {
+    clustersEclust[,cluster := cluster + n_clusters_All + 1 ]
+  } else {
+    clustersEclust[,cluster := cluster + n_clusters_All ]
+  }
+
+  # this contains the clusters from the cluster_distance (e.g. corr matrix)
+  # and the clusters from the EclustAddDistance (e.g. fisherScore)
+  clustersAddon <- rbindlist(list(clustersAll, clustersEclust))
+
+  # need to calculate penalty factors for group lasso
+  # I put all main effects and interactions of a given module in the same group
+  # and the size of the penalty factor is sqrt(size of module), where the
+  # size of the module includes both main and interaction effects
+  # environment does not get penalized
+  if (include_interaction) {
+
+    gene_groups = copy(clustersAll)
+    gene_groups[, gene := paste0(gene,":E")]
+    gene_groups <- rbind(clustersAll,gene_groups) %>% setkey(cluster)
+
+    pf_temp <- gene_groups[,.N, by = cluster][,pf := sqrt(N)] %>% setkey(cluster)
+
+    gene_groups_inter <- rbind(pf_temp[gene_groups],
+                               data.table(cluster = n_clusters_All + 1, N = 1,
+                                          pf = 0, gene = "E", module = "empty"))
+
+    gene_groups_Addon = copy(clustersAddon)
+    gene_groups_Addon[, gene := paste0(gene,":E")]
+    gene_groups_Addon <- rbind(clustersAddon, gene_groups_Addon) %>% setkey(cluster)
+
+    pf_temp_Addon <- gene_groups_Addon[,.N, by = cluster][,pf := sqrt(N)] %>% setkey(cluster)
+
+    gene_groups_inter_Addon <- rbind(pf_temp_Addon[gene_groups_Addon],
+                               data.table(cluster = n_clusters_Addon + 1, N = 1,
+                                          pf = 0, gene = "E", module = "empty"))
+  }
 
   DT <- DT %>% as.matrix
   class(DT) <- append(class(DT),"eset")
-  result <- list(beta_truth = beta_truth, distance = distance, DT = DT,
+
+  result <- list(beta_truth = beta_truth,
+                 similarity = similarity,
+                 similarityEclust = similarityEclust,
+                 DT = DT,
                  Y = Y, X0 = X0, X1 = X1, X_train = X_train, X_test = X_test,
                  Y_train = Y_train, Y_test = Y_test, DT_train = DT_train,
                  DT_test = DT_test, S0 = S0,
-                 n_clusters = n_clusters, clustered_genes_train = clustered_genes_train,
-                 clustered_genes_test = clustered_genes_test, kmeans_clusters = kmeans_clusters,
-                 clusters = clusters, gene_groups_inter = if (include_interaction) gene_groups_inter else NULL,
-                 tom_train_all = tom_train_all, tom_train_diff = tom_train_diff, tom_train_e1 = tom_train_e1,tom_train_e0 = tom_train_e0,
-                 corr_train_all = corr_train_all, corr_train_diff = corr_train_diff, corr_train_e1 = corr_train_e1, corr_train_e0 = corr_train_e0,
-                 mse_null = mse_null, DT_train_folds = DT_train_folds, X_train_folds = X_train_folds, Y_train_folds = Y_train_folds)
+                 n_clusters_All = n_clusters_All,
+                 n_clusters_Eclust = n_clusters_Eclust,
+                 n_clusters_Addon = n_clusters_Addon,
+                 clustersAll = clustersAll,
+                 clustersAddon = clustersAddon,
+                 clustersEclust = clustersEclust,
+                 gene_groups_inter = if (include_interaction) gene_groups_inter else NULL,
+                 gene_groups_inter_Addon = if (include_interaction) gene_groups_inter_Addon else NULL,
+                 # tom_train_all = tom_train_all, tom_train_diff = tom_train_diff,
+                 # tom_train_e1 = tom_train_e1,tom_train_e0 = tom_train_e0,
+                 corr_train_all = corr_train_all,
+                 corr_train_diff = corr_train_diff,
+                 corr_train_e1 = corr_train_e1, corr_train_e0 = corr_train_e0,
+                 fisherScore = fisherScore,
+                 corScor = Scorr, 
+                 # corTom = Stom,
+                 mse_null = mse_null, DT_train_folds = DT_train_folds,
+                 X_train_folds = X_train_folds, Y_train_folds = Y_train_folds)
   return(result)
 }
 

@@ -14,28 +14,27 @@ source("packages.R")
 source("functions.R")
 
 parametersDf <- expand.grid(rho = c(0.1,0.35,0.75,0.95),
-                            blocksize = 50,
-                            p = c(500, 1000, 3000),
-                            n = 400, n0 = 200,
-                            cluster = "diffcorr",
+                            p = c(100, 500, 1000, 3000),
+                            n = 500, n0 = 250,
+                            cluster_distance = c("corr"),
                             rhoOther = 0.6,
                             betaMean = 4,
                             betaE = 5,
                             alphaMean = 2,
                             nActive = 50,
                             includeInteraction = TRUE,
-                            includeStability = TRUE, stringsAsFactors = FALSE,
+                            includeStability = TRUE,
                             distanceMethod = "euclidean",
                             clustMethod = "hclust",
                             cutMethod = "gap",
                             method = "complete",
-                            K.max = 10, B = 10)
+                            K.max = 10, B = 10, stringsAsFactors = FALSE)
 
 #str(parametersDf)
 parametersDf <- transform(parametersDf, nBlocks = p/blocksize)
 parameterIndex <- commandArgs(trailingOnly = T)
 
-parameterIndex = 7
+parameterIndex = 11
 simulationParameters <- parametersDf[parameterIndex,, drop = F]
 
 ## ---- generate-data ----
@@ -45,9 +44,8 @@ p <- simulationParameters[,"p"];
 n <- simulationParameters[,"n"];
 n0 <- simulationParameters[,"n0"];
 n1 <- n - n0
-eclustMatrix <- simulationParameters[,"cluster"]
+cluster_distance <- simulationParameters[,"cluster_distance"]
 rhoOther <- simulationParameters[,"rhoOther"];
-blocksize <- simulationParameters[,"blocksize"];
 betaMean <- simulationParameters[,"betaMean"];
 betaE <- simulationParameters[,"betaE"]
 alphaMean <- simulationParameters[,"alphaMean"];
@@ -118,16 +116,20 @@ betaMainInteractions[which(betaMainEffect!=0)] <- runif(nActive, alphaMean - 0.1
 beta <- c(betaMainEffect,
           betaE,
           betaMainInteractions)
+plot(beta)
 
 result <- generate_data(p = p, n = n, n0 = n0, X = X,
                         beta = beta, include_interaction = includeInteraction,
-                        cluster_distance = eclustMatrix,
+                        cluster_distance = cluster_distance,
+                        EclustAddDistance = "fisherScore",
                         signal_to_noise_ratio = 1/2,
                         distanceMethod = distanceMethod,
                         clustMethod = clustMethod,
                         cutMethod = cutMethod,
                         method = method,
                         K.max = K.max, B = B)
+
+
 
 
 
