@@ -10,6 +10,8 @@
 
 ## ---- functions ----
 
+"%ni%" <- Negate("%in%")
+
 #' @param rho correlations between green module and temp vector T, and red
 #'   module and temp vector T. A numeric vector of length 2
 simModule <- function(n, p, rho, exposed, ...) {
@@ -302,10 +304,10 @@ firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 1,
 
   # names(eigenVectors) = paste(moduleColor.getMEprefix(), modlevels,
   #                          sep = "")
-  names(PC) = paste("PC", modlevels, sep = ":")
-  names(averExpr) = paste("AE", modlevels, sep = ":")
-  names(PCTest) = paste("PC", modlevels, sep = ":")
-  names(averExprTest) = paste("AE", modlevels, sep = ":")
+  names(PC) = paste("pc", modlevels, sep = "")
+  names(averExpr) = paste("avg", modlevels, sep = "")
+  names(PCTest) = paste("pc", modlevels, sep = "")
+  names(averExprTest) = paste("avg", modlevels, sep = "")
 
   for (i in c(1:length(modlevels))) {
     #i=1
@@ -738,8 +740,8 @@ generate_data <- function(p, X, beta,
   distanceMethod <- match.arg(distanceMethod)
   cluster_distance <- match.arg(cluster_distance)
   EclustAddDistance <- match.arg(EclustAddDistance)
-  
-  
+
+
   names(beta) <- if (include_interaction) {
     c(paste0("Gene",1:p),"E", paste0("Gene",1:p,":E"))
   } else paste0("Gene",1:p)
@@ -837,7 +839,7 @@ generate_data <- function(p, X, beta,
   X_train_folds <- lapply(DT_train_folds, function(i) i[,-grep("Y",colnames(i))])
   Y_train_folds <- lapply(DT_train_folds, function(i) i[,grep("Y",colnames(i))])
 
-  message(sprintf("Calculating number of clusters based on %s using %s with %s 
+  message(sprintf("Calculating number of clusters based on %s using %s with %s
                   linkage and the %s to determine the number of clusters",
                   cluster_distance, clustMethod, method, cutMethod))
 
@@ -920,21 +922,21 @@ generate_data <- function(p, X, beta,
   # this is based on cluster_distance only
   clustersAll <- copy(res$clusters)
   n_clusters_All <- res$pcInfo$nclusters
-  
+
   message(sprintf("There are %d clusters derived from the %s similarity matrix",
                   n_clusters_All, cluster_distance))
 
   # this is based on EclustAddDistance only
   n_clusters_Eclust <- resEclust$pcInfo$nclusters
   clustersEclust <- copy(resEclust$clusters)
-  
+
   message(sprintf("There are %d clusters derived from the %s environment similarity matrix",
                   n_clusters_Eclust, EclustAddDistance))
 
   # this is based on both
   n_clusters_Addon <- n_clusters_All + n_clusters_Eclust
-  
-  message(sprintf("There are a total of %d clusters derived from the %s 
+
+  message(sprintf("There are a total of %d clusters derived from the %s
                   similarity matrix and the %s environment similarity matrix",
                   n_clusters_Addon,cluster_distance,EclustAddDistance))
 
@@ -1005,7 +1007,7 @@ generate_data <- function(p, X, beta,
                  corr_train_diff = corr_train_diff,
                  corr_train_e1 = corr_train_e1, corr_train_e0 = corr_train_e0,
                  fisherScore = fisherScore,
-                 corScor = Scorr, 
+                 corScor = Scorr,
                  # corTom = Stom,
                  mse_null = mse_null, DT_train_folds = DT_train_folds,
                  X_train_folds = X_train_folds, Y_train_folds = Y_train_folds)
@@ -1013,7 +1015,141 @@ generate_data <- function(p, X, beta,
 }
 
 
+# filtering on univariate p-value, taking the lowet XX percent and then running
+# multiple linear regression on it
+uniFit <- function(train,
+                   test,
+                   s0,
+                   percent = 0.05,
+                   stability = F,
+                   include_E = F,
+                   include_interaction = F,
+                   filter_var = F,
+                   p = 1000,
+                   true_beta) {
 
+  # train: training data, response column should be called "Y"
+  #        and the covariates should be labelled Gene1, Gene2,...
+  # test: test data, response column should be called "Y"
+  #        and the covariates should be labelled Gene1, Gene2,...
+  # s0: vector of active betas
+  # percent: percentage threshold of highest significant genes
+  # note that if youre fitting interactions, the percent should be such that
+  # the 2*percent*p is still less than the sample size, else the model wont have any degrees of freedom
+  # stability: logical indicating if you just need coefficient values
+  # for calculating a stability criterion, or if you need all mse, r2, ect.
+  # calculations done
+  #         train = result[["DT_train"]] ; test = result[["DT_test"]] ; percent = 0.05 ; stability = F;
+  #         include_E = F; include_interaction = F; filter_var=F; p = 1000; s0 = result[["S0"]]
+  #         true_beta = result[["beta_truth"]]
+
+  if (include_E == F & include_interaction == T) stop("include_E needs to be T if you want to include interactions")
+
+  # this is used to create univariate filter. If interaction is true, then we filter on the interaction term
+  # and the model used to calculate the interaction p-value is Y ~ Gene + E + Gene:E
+  # else we just filter on univariate p-value (Y~Gene)
+  res <- ldply(paste0("Gene",1:p), function(i) {
+
+    #i="Gene500"
+    fit <- lm(as.formula(paste("Y ~",i, if (include_E) "+E", if (include_interaction) paste0("+",i,":E"))),data = train)
+    #fit %>% summary
+    coef.index <- if (include_interaction) paste0(i,":E") else i
+
+    data.frame(pvalue = as.numeric(pt(abs(coef(fit)[coef.index]/vcov(fit)[coef.index,coef.index] ^ 0.5),
+                                      df = fit$df.residual, lower.tail = F)*2),
+               test.stat = as.numeric(coef(fit)[coef.index]/vcov(fit)[coef.index,coef.index] ^ 0.5),
+               'mean' = mean(train[,i]),
+               'sd' = sd(train[,i]))
+  })
+
+  rownames(res) <- if (include_interaction) paste0("Gene",1:p,":E") else paste0("Gene",1:p)
+
+  top.percent <- percent*p
+
+  uni.S.hat <- if (filter_var) rownames(res[order(res$sd, decreasing = T)[1:top.percent],]) else rownames(res[order(res$pvalue)[1:top.percent],])
+  # extract gene names if there is interaction, else just use gene names. this is for the prediction step below
+  # and fitting the multivariate model.
+  gene.names <- if (include_interaction) stringr::str_sub(string = uni.S.hat, end = -3) else uni.S.hat
+
+  # when fitting the multivariate model with interactions, we must also include main effects
+  lm.model <- lm(as.formula(paste("Y ~",paste0(uni.S.hat,collapse = "+"),
+                                  if (include_interaction) paste("+",
+                                                                 paste0(gene.names, collapse = "+"),"+E"))),
+                 data = train)
+  #lm.model %>% summary
+
+  lm.oracle <- lm(as.formula(paste("Y ~",paste0(s0,collapse = "+"))), data = train)
+  #lm.oracle %>% summary()
+  coefs <- if (include_interaction)
+    data.table::data.table(Gene = c(paste0("Gene",1:p),"E",rownames(res)),
+                           coef.est = rep(0,2*length(rownames(res)) + 1)) else
+                             data.table::data.table(Gene = rownames(res),
+                                                    coef.est = rep(0,length(rownames(res))))
+
+  coefs[Gene %in% c(uni.S.hat, gene.names, if (include_interaction) "E"), coef.est := coef(lm.model)[-1]]
+  #coefs[coef.est!=0]
+  #  return(coefs)
+  #} else {
+  #summary(lm.model)
+
+  if (stability) {
+    return(coefs)
+  } else {
+    lm.pred <- predict.lm(lm.model, newdata = test[,c(gene.names, if (include_interaction) "E")])
+    lm.pred.oracle <- predict.lm(lm.oracle, newdata = test[,s0])
+
+    y_test <- test[ , "Y"]
+
+    # Mean Squared Error
+    uni.mse <- crossprod(lm.pred - y_test)/length(y_test)
+    uni.mse.oracle <- crossprod(lm.pred.oracle - y_test)/length(y_test)
+
+    # mse.null
+    mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
+
+    # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
+    uni.r2 <- (mse_null - uni.mse)/mse_null
+
+    uni.adj.r2 <- 1 - (1 - uni.r2)*(length(y_test) - 1)/(length(y_test) - length(uni.S.hat) - 1)
+
+    # model error
+    identical(true_beta %>% rownames(),coefs[["Gene"]])
+    uni.model.error <- {(true_beta - coefs[["coef.est"]]) %>% t} %*% WGCNA::cor(test[,coefs$Gene]) %*% (true_beta - coefs[["coef.est"]])
+
+    # crossprod above gives same result as
+    # sum((lm.pred - DT.test[,"V1"])^2)/nrow(DT.test)
+
+    #uni.S.hat %in% S0
+    # True Positive Rate
+    uni.TPR <- length(intersect(c(gene.names,uni.S.hat), s0))/length(s0)
+
+    # True negatives
+    trueNegs <- setdiff(colnames(train), s0)
+
+    # these are the terms which the model identified as zero
+    modelIdentifyZero <- setdiff(colnames(train),uni.S.hat)
+
+    # how many of the terms identified by the model as zero, were actually zero
+    sum(modelIdentifyZero %in% trueNegs)
+
+    # False Positive Rate = FP/(FP + TN)
+    uni.FPR <- sum(uni.S.hat %ni% s0)/(sum(uni.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs))
+
+
+    ls <- list(uni.mse = as.numeric(uni.mse), uni.r2 = as.numeric(uni.r2),
+               uni.adj.r2 = as.numeric(uni.adj.r2), uni.S.hat = length(uni.S.hat),
+               uni.TPR = uni.TPR, uni.FPR = uni.FPR, uni.relative.mse = uni.mse/uni.mse.oracle, uni.model.error = uni.model.error)
+    names(ls) <- c(paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_mse"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_r2"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_relmse"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_modelerror"))
+    return(ls)
+  }
+}
 
 clust_fun <- function(x_train,
                       x_test,
@@ -1031,15 +1167,16 @@ clust_fun <- function(x_train,
                       include_interaction = F,
                       p = 1000,
                       filter_var = F,
-                      k_means = NULL){
+                      clust_type = c("clust","Eclust","Addon")){
 
-
-  #   result %>% names
-  #               stability = F; gene_groups = result[["clusters"]];
-  #               x_train = result[["X_train"]] ; x_test = result[["X_test"]] ; y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  #               filter = F; filter_var = F; include_E = T; include_interaction = T;
-  #               s0 = result[["S0"]]; p = 1000 ;k_means = NULL
-  #               model = "shim"; summary = "pc"; topgenes = NULL;
+# result[["clustersAddon"]] %>% print(nrows=Inf)
+#     result %>% names
+#                 stability = F; gene_groups = result[["clustersAll"]];
+#                 x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
+#                 y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+#                 filter = F; filter_var = F; include_E = T; include_interaction = T;
+#                 s0 = result[["S0"]]; p = p ; k_means = NULL
+#                 model = "shim"; summary = "pc"; topgenes = NULL;
   #
   #             stability = F; gene_groups = result[["clusters"]][gene %in% result[["S0"]]];
   #             x_train = result[["X_train"]][,result[["S0"]]] ; x_test = result[["X_test"]][,result[["S0"]]] ;
@@ -1055,7 +1192,9 @@ clust_fun <- function(x_train,
   # gene_groups: data table with columns 'gene' and 'cluster'
   # filter: T or F based on univariate filter
 
-  print(paste(summary,model,"filter = ", filter, "filter_var = ", filter_var,
+  clust_type <- match.arg(clust_type)
+
+  message(paste(summary,model,"filter = ", filter, "filter_var = ", filter_var,
               "include_E = ", include_E, "include_interaction = ",
               include_interaction, sep = ","))
 
@@ -1078,33 +1217,45 @@ clust_fun <- function(x_train,
         x_train[, c(topgenes,"E")] %>% as.data.frame
       }
 
+  # test data
+  x_test_mod = if (filter & !include_E) {x_test[, topgenes] %>% as.data.frame} else if (!filter & include_E) {
+    x_test %>% as.data.frame } else if (!filter & !include_E) {
+      x_test[,which(colnames(x_test) %ni% "E")] %>% as.data.frame} else if (filter & include_E) {
+        x_test[, c(topgenes,"E")] %>% as.data.frame
+      }
+
+  # this includes interaction terms
   gene.names <- colnames(x_train_mod)[which(colnames(x_train_mod) %ni% "E")]
+
+  # these are only derived on the main effects genes.. E is only included in the model
+  PC_and_avg <- firstPC(expr = x_train_mod[,gene_groups$gene],
+                        colors = gene_groups$cluster,
+                        exprTest = x_test_mod[,gene_groups$gene])
+
+  n.clusters <- PC_and_avg$nclusters
 
   # the number of clusters in the modified set
   # remove genes which have a cluster assignment of 0, meaning they dont cluster well
-  n.clusters <-   gene_groups[cluster != 0][gene %in% gene.names]$cluster %>% unique %>% length
-  cluster_names <- gene_groups[cluster != 0][gene %in% gene.names]$cluster %>% unique
+  # n.clusters <- PC_and_avg$nclusters
+  # cluster_names <- PC_and_avg$validColors
+  #
+  #
+  # clustered.genes <- lapply(cluster_names, function(i) {
+  #   x_train_mod[,intersect(gene_groups[cluster == i]$gene, gene.names), drop = FALSE] %>%
+  #     scale(center = T, scale = F) %>%
+  #     as.matrix
+  # })
+  #
+  # # remove clusters that have no data in them due to filtering
+  # clustered.genes <- Filter(function(i) ncol(i) > 0, clustered.genes)
+  # print(sapply(clustered.genes, dim))
 
-
-  clustered.genes <- lapply(cluster_names, function(i) {
-    x_train_mod[,intersect(gene_groups[cluster == i]$gene, gene.names), drop = FALSE] %>%
-      scale(center = T, scale = F) %>%
-      as.matrix
-  })
-
-  # remove clusters that have no data in them due to filtering
-  clustered.genes <- Filter(function(i) ncol(i) > 0, clustered.genes)
-  print(sapply(clustered.genes, dim))
-
+  # this contains either the averages or PCs for each module in a data.frame
   clust_data <- switch(summary,
-                       avg = plyr::ldply(clustered.genes, rowMeans) %>% t,
-                       pc = {
-                         # output from prcomp
-                         pc.train <- lapply(clustered.genes, function(i) prcomp(i, center = F))
-                         # extract 1st PC for each cluster
-                         plyr::ldply(pc.train, function(i) i$x[,1]) %>% t
-                       },
+                       avg = PC_and_avg$averageExpr,
+                       pc = PC_and_avg$PC,
                        spc = {
+                         # works but never used
                          out <- lapply(clustered.genes,
                                        function(i) PMA::SPC.cv(i,
                                                                sumabsvs =  seq(1, sqrt(ncol(i)), len = 10),
@@ -1129,19 +1280,20 @@ clust_fun <- function(x_train,
                                      loadings = out_best_v), out_best, out_best_v)
                        })
 
-  if (summary == "spc") {
-    out_best <- clust_data[[2]]
-    out_best_v <- clust_data[[3]] # used to calculate S.hat (number of non zero components)
+  # if (summary == "spc") {
+  #   out_best <- clust_data[[2]]
+  #   out_best_v <- clust_data[[3]] # used to calculate S.hat (number of non zero components)
+  #
+  #   # these are the gene names corresponding to the non zero loadings from sparsePCA
+  #   non_zero_pc_components <- lapply(out_best_v, function(i)
+  #     i[which(i != 0), ,drop = F] %>% rownames) %>% unlist
+  # }
+  #
+  # clust_data <- if (summary == "spc") clust_data[[1]] else clust_data
 
-    # these are the gene names corresponding to the non zero loadings from sparsePCA
-    non_zero_pc_components <- lapply(out_best_v, function(i)
-      i[which(i != 0), ,drop = F] %>% rownames) %>% unlist
-  }
+  # colnames(clust_data) <- paste0(summary,cluster_names)
 
-  clust_data <- if (summary == "spc") clust_data[[1]] else clust_data
-  colnames(clust_data) <- paste0(summary,cluster_names)
-
-  #head(clust_data)
+  # head(clust_data)
 
   ml.formula <- if (include_interaction & include_E) {
     paste0("y_train ~","(",paste0(colnames(clust_data), collapse = "+"),")*E") %>% as.formula} else if (!include_interaction & include_E) {
@@ -1179,11 +1331,13 @@ clust_fun <- function(x_train,
                               },
                               shim = {
                                 require(doMC)
-                                registerDoMC(cores = 10)
+                                registerDoMC(cores = 2)
                                 cv.shim(x = X.model.formula, y = y_train,
                                         main.effect.names = c(colnames(clust_data), if (include_E) "E"),
                                         interaction.names = setdiff(colnames(X.model.formula),c(colnames(clust_data),"E")),
-                                        max.iter = 100, initialization.type = "ridge")
+                                        max.iter = 500, initialization.type = "univariate",
+                                        verbose = FALSE, threshold = 1e-06,
+                                        nlambda.gamma = 10, nlambda.beta = 10, nlambda = 100)
                               })
 
   # here we give the coefficient stability on the clusters and not the individual genes
@@ -1259,35 +1413,53 @@ clust_fun <- function(x_train,
     non_zero_clusters <- coefs[-1, , ][coef.est != 0] %>%
       magrittr::use_series("Gene")
 
+    # non_zero_clusters <- coefs[-1, , ] %>%
+    #   magrittr::use_series("Gene")
+    #
+    # non_zero_clusters <- non_zero_clusters[c(-8,-9)]
+
+    # need to determine which of non_zero_cluters are main effects and which
+    # are interactions
+    non_zero_clusters_interactions <- grep(":",non_zero_clusters, value = T)
+    non_zero_environment <- grep("^E", non_zero_clusters, value = T, ignore.case = TRUE)
+    non_zero_clusters_main_effects <- setdiff(non_zero_clusters, c(non_zero_clusters_interactions,
+                                                                   non_zero_environment))
     n.non_zero_clusters <- coefs[-1, , ][coef.est != 0] %>%
       magrittr::use_series("Gene") %>%
       length
 
-    # test data
-    x_test_mod = if (filter & !include_E) {x_test[, topgenes] %>% as.data.frame} else if (!filter & include_E) {
-      x_test %>% as.data.frame } else if (!filter & !include_E) {
-        x_test[,which(colnames(x_test) %ni% "E")] %>% as.data.frame} else if (filter & include_E) {
-          x_test[, c(topgenes,"E")] %>% as.data.frame
-        }
+    # need to get the genes corresponding to the non-zero clusters
+    # NOTE: this also includes non-zero cluster:Environment interactions
 
-    clustered.genes_test <- lapply(cluster_names, function(i) {
-      x_test_mod[,intersect(gene_groups[cluster == i]$gene, gene.names), drop = FALSE] %>% scale(center = T, scale = F) %>% as.matrix
-    }
-    )
+    # genes corresponding to non-zero clusters
+    # return non zero sparse loadings if spc combined with lm, else
+    # return non-zero clusters for penalization methods, even if your using spc
+    # clust.S.hat <- if (summary == "spc" & model == "lm") non_zero_pc_components else {
+    #   gene_groups[cluster %in%
+    #                 as.numeric(unlist(stringr::str_extract_all(non_zero_clusters, "\\d+"))),gene] }
 
-    # remove clusters that have no data in them due to filtering
-    clustered.genes_test <- Filter(function(i) ncol(i) > 0, clustered.genes_test)
+    clust.S.hat.main <- gene_groups[cluster %in% as.numeric(unlist(stringr::str_extract_all(non_zero_clusters, "\\d+"))),gene]
+
+    # this is the same as gene_groups, but the gene names contain E
+    # so that we can extract the interactions corresponding to the chose clusters
+    gene_groups_environment <- copy(gene_groups)
+    gene_groups_environment[,gene:=paste0(gene,":E")]
+
+    clust.S.hat.interaction <- gene_groups_environment[cluster %in% as.numeric(unlist(stringr::str_extract_all(non_zero_clusters_interactions, "\\d+"))),gene]
+
+    # this represents all the genes corresponding to the non-zero PC or avg
+    clust.S.hat <- c(clust.S.hat.main, non_zero_environment, clust.S.hat.interaction)
+    # clustered.genes_test <- lapply(cluster_names, function(i) {
+    #   x_test_mod[,intersect(gene_groups[cluster == i]$gene, gene.names), drop = FALSE] %>% scale(center = T, scale = F) %>% as.matrix
+    # }
+    # )
+    #
+    # # remove clusters that have no data in them due to filtering
+    # clustered.genes_test <- Filter(function(i) ncol(i) > 0, clustered.genes_test)
 
     clust_data_test <- switch(summary,
-                              avg = plyr::ldply(clustered.genes_test, rowMeans) %>% t,
-                              pc = {
-                                # output from prcomp
-                                pc.train <- lapply(clustered.genes, function(i) prcomp(i, center = F))
-                                # extract loadings for 1st PC i.e. 1st eigenvector of X, for each cluster
-                                V <- lapply(pc.train, function(i) i$rotation[,1])
-                                mapply(new.pc, data = clustered.genes_test,
-                                       loadings = V)
-                              },
+                              avg = PC_and_avg$averageExprTest,
+                              pc = PC_and_avg$PCTest,
                               spc = {
                                 V <- lapply(out_best, function(i) i$v)
                                 mapply(new.pc, data = clustered.genes_test,
@@ -1295,7 +1467,7 @@ clust_fun <- function(x_train,
                               }
     )
 
-    colnames(clust_data_test) <- paste0(summary,cluster_names)
+    #colnames(clust_data_test) <- paste0(summary,cluster_names)
 
     # need intercept for prediction
     model.formula_test <- if (include_interaction & include_E) {
@@ -1305,29 +1477,26 @@ clust_fun <- function(x_train,
         }
 
     X.model.formula_test <- model.matrix(model.formula_test,
-                                         data = if (include_E) cbind(clust_data_test,x_test_mod[,"E", drop = F]) else clust_data_test %>% as.data.frame)
-
-    # need to get the genes corresponding to the non-zero clusters
-    # NOTE: this also includes non-zero cluster:Environment interactions
-
-    # genes corresponding to non-zero clusters
-    # return non zero sparse loadings if spc combined with lm, else
-    # return non-zero clusters for penalization methods, even if your using spc
-    clust.S.hat <- if (summary == "spc" & model == "lm") non_zero_pc_components else {
-      gene_groups %>%
-        magrittr::extract(cluster %in% (grep("[0-9]",non_zero_clusters, value = T) %>%
-                                          gsub(summary,"", .) %>%
-                                          gsub(":E","",.) %>%
-                                          unique %>%
-                                          as.numeric)) %>% magrittr::use_series("gene") }
+                                         data = if (include_E) {
+                                           cbind(clust_data_test,x_test_mod[,"E", drop = F])
+                                           } else clust_data_test %>% as.data.frame)
 
 
 
     # True Positive Rate
     clust.TPR <- length(intersect(clust.S.hat, s0))/length(s0)
 
-    # False Positive Rate
-    clust.FPR <- sum(clust.S.hat %ni% s0)/(p - length(s0))
+    # True negatives
+    trueNegs <- setdiff(colnames(x_train), s0)
+
+    # these are the terms which the model identified as zero
+    modelIdentifyZero <- setdiff(colnames(x_train),clust.S.hat)
+
+    # how many of the terms identified by the model as zero, were actually zero
+    sum(modelIdentifyZero %in% trueNegs)
+
+    # False Positive Rate = FP/(FP + TN)
+    clust.FPR <- sum(clust.S.hat %ni% s0)/(sum(clust.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs))
 
     # Mean Squared Error
     clust.mse <- crossprod(X.model.formula_test %*% coefs$coef.est - y_test)/length(y_test)
@@ -1344,12 +1513,13 @@ clust_fun <- function(x_train,
     ls <- list(clust.mse = clust.mse, clust.r2 = clust.r2, clust.adj.r2 = clust.adj.r2, clust.S.hat = length(clust.S.hat),
                clust.TPR = clust.TPR, clust.FPR = clust.FPR)
 
-    names(ls) <- c(paste0(if (is.null(k_means)) "clust_" else "Eclust_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
-                   paste0(if (is.null(k_means)) "clust_" else "Eclust_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
-                   paste0(if (is.null(k_means)) "clust_" else "Eclust_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
-                   paste0(if (is.null(k_means)) "clust_" else "Eclust_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
-                   paste0(if (is.null(k_means)) "clust_" else "Eclust_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                   paste0(if (is.null(k_means)) "clust_" else "Eclust_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"))
+
+    names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"))
     return(ls)
 
   }

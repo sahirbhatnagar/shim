@@ -114,3 +114,24 @@ if(!pckg) {
   require(protoclust)
 }
 
+pckg = try(require(stringr))
+if(!pckg) {
+  cat("Installing 'stringr' from CRAN\n")
+  getPckg("stringr")
+  require(stringr)
+}
+
+pckg = try(require(ggplot2))
+if(!pckg) {
+  cat("Installing 'ggplot2' from CRAN\n")
+  getPckg("ggplot2")
+  require(ggplot2)
+}
+
+pckg = try(require(latex2exp))
+if(!pckg) {
+  cat("Installing 'latex2exp' from CRAN\n")
+  getPckg("latex2exp")
+  require(latex2exp)
+}
+

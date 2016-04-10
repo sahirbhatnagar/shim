@@ -14,7 +14,7 @@ source("packages.R")
 source("functions.R")
 
 parametersDf <- expand.grid(rho = c(0.1,0.35,0.75,0.95),
-                            p = c(100, 500, 1000, 3000),
+                            p = c(500, 1000, 3000),
                             n = 500, n0 = 250,
                             cluster_distance = c("corr"),
                             rhoOther = 0.6,
@@ -26,15 +26,15 @@ parametersDf <- expand.grid(rho = c(0.1,0.35,0.75,0.95),
                             includeStability = TRUE,
                             distanceMethod = "euclidean",
                             clustMethod = "hclust",
-                            cutMethod = "gap",
+                            cutMethod = "dynamic",
                             method = "complete",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
 #str(parametersDf)
-parametersDf <- transform(parametersDf, nBlocks = p/blocksize)
+#parametersDf <- transform(parametersDf, nBlocks = p/blocksize)
 parameterIndex <- commandArgs(trailingOnly = T)
 
-parameterIndex = 11
+parameterIndex = 4
 simulationParameters <- parametersDf[parameterIndex,, drop = F]
 
 ## ---- generate-data ----
@@ -104,7 +104,7 @@ betaMainInteractions <- vector("double", length = p)
 # first assign random uniform to every gene in cluster 3 and 4,
 # then randomly remove so that thers only nActive left
 betaMainEffect[which(truemodule1 %in% 3:4)] <- runif(sum(truemodule1 %in% 3:4),
-                                           betaMean - 0.1, betaMean + 0.1)
+                                                     betaMean - 0.1, betaMean + 0.1)
 
 # randomly set some coefficients to 0 so that there are only nActive non zero
 betaMainEffect <- replace(betaMainEffect,
@@ -130,6 +130,65 @@ result <- generate_data(p = p, n = n, n0 = n0, X = X,
                         K.max = K.max, B = B)
 
 
+## ---- univariate-pvalue -----
+
+message("Starting univariate p-value with interaction")
+
+# filtering on univariate p-value, taking the lowet 5 percent and then running
+# multiple linear regression on it
+# the correlations are really messing up the oracle model which is why when
+# you filter you get better fit
+# stability = TRUE makes the function return coefficients only. use only for
+# calculating stability measures
+# output is in the following format: eg. uni_na_lm_yes_mse
+# which represents method_clustermeasure_model_includeE_measure
+uni_res <- uniFit(train = result[["DT_train"]], test = result[["DT_test"]],
+                  percent = 0.05, stability = F,
+                  include_E = T,
+                  include_interaction = includeInteraction,
+                  filter_var = F, p = p,
+                  s0 = result[["S0"]], true_beta = result[["beta_truth"]])
+
+if (includeStability) {
+  uni_stab <- mapply(uniFit,
+                     train = result[["DT_train_folds"]],
+                     MoreArgs = list(test = result[["DT_test"]],
+                                     s0 = result[["S0"]],
+                                     true_beta = result[["beta_truth"]],
+                                     stability = T,
+                                     include_E = T,
+                                     include_interaction = includeInteraction,
+                                     percent = 0.05,
+                                     filter_var = F,
+                                     p = p),
+                     SIMPLIFY = F)
+
+  # Make the combinations of list elements
+  ll <- combn(uni_stab, 2, simplify = F)
+
+  # Pairwise correlations of the model coefficients for each of the 10 CV folds
+  uni_mean_stab <- lapply(c("pearson","spearman"), function(i) {
+    res <- sapply(ll,
+                  function(x) WGCNA::cor(x[[1]]$coef.est,
+                                         x[[2]]$coef.est,
+                                         method = i,use = 'pairwise.complete.obs')
+    ) %>% mean
+    names(res) <- paste0("uni_na_lm_yes_",i)
+    return(res)
+  }
+  )
+
+  # Jaccard index
+  uni_jacc <- sapply(ll, function(x) {
+    A = x[[1]][coef.est != 0]$Gene
+    B = x[[2]][coef.est != 0]$Gene
+    length(intersect(A,B))/length(union(A,B))
+  }
+  ) %>% mean
+
+}
+
+message("done univariate p-value with interaction")
 
 
 
@@ -137,3 +196,103 @@ result <- generate_data(p = p, n = n, n0 = n0, X = X,
 
 
 
+
+## ---- cluster-and-regress----
+
+# we will treat the clusters as fixed i.e., even if we filter, or
+# do cross validation, the group labels are predetermined by the
+# above clustering procedure
+
+print("starting cluster and regress with interaction")
+
+clust_res <- mapply(clust_fun,
+                    #summary = rep(c("pc","spc","avg"), each = 3),
+                    #model = rep(c("lm", "lasso","elasticnet"), 3),
+                    summary = c("avg","avg"),
+                    model = c("lasso","shim"),
+                    MoreArgs = list(x_train = result[["X_train"]],
+                                    x_test = result[["X_test"]],
+                                    y_train = result[["Y_train"]],
+                                    y_test = result[["Y_test"]],
+                                    stability = F,
+                                    filter = F,
+                                    filter_var = F,
+                                    include_E = T,
+                                    include_interaction = includeInteraction,
+                                    s0 = result[["S0"]],
+                                    p = p,
+                                    gene_groups = result[["clustersAll"]],
+                                    clust_type = "clust"),
+                    SIMPLIFY = F,
+                    USE.NAMES = F)
+
+result %>% names
+clust_res %>% unlist
+
+if (includeStability) {
+  clust_stab <- mapply(function(summary,
+                                model) mapply(clust_fun,
+                                              x_train = result[["X_train_folds"]],
+                                              y_train = result[["Y_train_folds"]],
+                                              MoreArgs = list(stability = T,
+                                                              summary = summary,
+                                                              model = model,
+                                                              filter = F,
+                                                              filter_var = F,
+                                                              include_E = T,
+                                                              include_interaction = includeInteraction,
+                                                              gene_groups = result[["clusters"]],
+                                                              p = p),
+                                              SIMPLIFY = F),
+                       #summary = rep(c("pc","spc","avg"), each = 3),
+                       #model = rep(c("lm", "lasso","elasticnet"), 3),
+                       summary =  c("avg","avg"),
+                       model = c("lasso","shim"),
+                       SIMPLIFY = F,
+                       USE.NAMES = F)
+
+
+  # Make the combinations of list elements
+  ll <- lapply(seq_along(clust_stab), function(i) combn(clust_stab[[i]], 2, simplify = F))
+
+
+  clust_labels <- function(summary, model) {
+    paste0("clust",paste0("_",summary),paste0("_",model),"_","yes_")
+  }
+
+  clust_labs <- mapply(clust_labels,
+                       #summary = rep(c("pc","spc","avg"), each = 3),
+                       #model = rep(c("lm", "lasso","elasticnet"), 3),
+                       summary = c("avg","avg"),
+                       model = c("lasso","shim"),
+                       USE.NAMES = F)
+
+
+  # Pairwise correlations of the model coefficients for each of the 10 CV folds
+  clust_mean_stab <- lapply(seq_along(ll), function(j) {
+    lapply(c("pearson","spearman"), function(i) {
+      res <- sapply(ll[[j]] , function(x) WGCNA::cor(x[[1]]$coef.est, x[[2]]$coef.est, method = i)) %>% mean
+      names(res) <- paste0(clust_labs[[j]], i)
+      return(res)
+    }
+    )
+  }
+  )
+
+  clust_mean_stab %>% unlist
+
+  # Jaccard index
+  clust_jacc <- lapply(seq_along(ll), function(j) {
+    res <- sapply(ll[[j]] , function(x) {
+      A = x[[1]][coef.est != 0]$Gene
+      B = x[[2]][coef.est != 0]$Gene
+      length(intersect(A,B))/length(union(A,B))
+    }) %>% mean
+    names(res) <- paste0(clust_labs[[j]],"jacc")
+    return(res)
+  })
+
+  clust_jacc %>% unlist
+}
+
+print("done clust and regress interaction")
