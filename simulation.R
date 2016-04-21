@@ -15,8 +15,9 @@ source("functions.R")
 
 parametersDf <- expand.grid(rho = c(0.1,0.35,0.75,0.95),
                             p = c(500, 1000, 3000),
-                            n = 500, n0 = 250,
+                            n = 400, n0 = 200,
                             cluster_distance = c("corr"),
+                            Ecluster_distance = "fisherScore",
                             rhoOther = 0.6,
                             betaMean = 4,
                             betaE = 5,
@@ -26,7 +27,7 @@ parametersDf <- expand.grid(rho = c(0.1,0.35,0.75,0.95),
                             includeStability = TRUE,
                             distanceMethod = "euclidean",
                             clustMethod = "hclust",
-                            cutMethod = "dynamic",
+                            cutMethod = "gap",
                             method = "complete",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
@@ -45,11 +46,12 @@ n <- simulationParameters[,"n"];
 n0 <- simulationParameters[,"n0"];
 n1 <- n - n0
 cluster_distance <- simulationParameters[,"cluster_distance"]
+Ecluster_distance <- simulationParameters[,"Ecluster_distance"]
 rhoOther <- simulationParameters[,"rhoOther"];
 betaMean <- simulationParameters[,"betaMean"];
 betaE <- simulationParameters[,"betaE"]
 alphaMean <- simulationParameters[,"alphaMean"];
-nBlocks <- simulationParameters[,"nBlocks"];
+#nBlocks <- simulationParameters[,"nBlocks"];
 rho <- simulationParameters[,"rho"];
 nActive <- simulationParameters[,"nActive"];
 includeInteraction <- simulationParameters[,"includeInteraction"]
@@ -62,22 +64,22 @@ K.max <- simulationParameters[,"K.max"]
 B <- simulationParameters[,"B"]
 
 # in this simulation its blocks 3 and 4 that are important
-d0 <- simModule(n = n0, p = p, rho = c(rho,-rho), exposed = FALSE,
+d0 <- simModule(n = n0, p = p, rho = c(0,0), exposed = FALSE,
                 modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
-                minCor = 0.3,
+                minCor = 0.4,
                 maxCor = 1,
                 corPower = 0.3,
-                propNegativeCor = 0.1,
+                #propNegativeCor = 0.1,
                 backgroundNoise = 0.2,
                 signed = TRUE,
                 leaveOut = 3:4)
 
 d1 <- simModule(n = n1, p = p, rho = c(rho, rho), exposed = TRUE,
                 modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
-                minCor = 0.3,
+                minCor = 0.4,
                 maxCor = 1,
                 corPower = 0.3,
-                propNegativeCor = 0.1,
+                #propNegativeCor = 0.1,
                 backgroundNoise = 0.2,
                 signed = TRUE)
 
@@ -91,6 +93,7 @@ table(truemodule0,truemodule1)
 
 # Convert labels to colors for plotting
 moduleColors <- labels2colors(truemodule1)
+table(moduleColors, truemodule1)
 
 X <- rbind(d0$datExpr, d1$datExpr) %>%
   magrittr::set_colnames(paste0("Gene", 1:p)) %>%
@@ -99,17 +102,35 @@ X <- rbind(d0$datExpr, d1$datExpr) %>%
 dim(X)
 
 
+# betaMainEffect <- vector("double", length = p)
+# betaMainInteractions <- vector("double", length = p)
+# # first assign random uniform to every gene in cluster 3 and 4,
+# # then randomly remove so that thers only nActive left
+# betaMainEffect[which(truemodule1 %in% 3:4)] <- runif(sum(truemodule1 %in% 3:4),
+#                                                      betaMean - 0.1, betaMean + 0.1)
+#
+# # randomly set some coefficients to 0 so that there are only nActive non zero
+# betaMainEffect <- replace(betaMainEffect,
+#                           sample(which(truemodule1 %in% 3:4), sum(truemodule1 %in% 3:4) - nActive,
+#                                  replace = FALSE), 0)
+#
+# betaMainInteractions[which(betaMainEffect!=0)] <- runif(nActive, alphaMean - 0.1, alphaMean + 0.1)
+#
+# beta <- c(betaMainEffect,
+#           betaE,
+#           betaMainInteractions)
+# plot(beta)
+
 betaMainEffect <- vector("double", length = p)
 betaMainInteractions <- vector("double", length = p)
-# first assign random uniform to every gene in cluster 3 and 4,
-# then randomly remove so that thers only nActive left
-betaMainEffect[which(truemodule1 %in% 3:4)] <- runif(sum(truemodule1 %in% 3:4),
-                                                     betaMean - 0.1, betaMean + 0.1)
 
-# randomly set some coefficients to 0 so that there are only nActive non zero
-betaMainEffect <- replace(betaMainEffect,
-                          sample(which(truemodule1 %in% 3:4), sum(truemodule1 %in% 3:4) - nActive,
-                                 replace = FALSE), 0)
+# the first nActive/2 in the 3rd block are active
+betaMainEffect[which(truemodule1 %in% 3)[1:(nActive/2)]] <- runif(
+  nActive/2, betaMean - 0.1, betaMean + 0.1)
+
+# the first nActive/2 in the 4th block are active
+betaMainEffect[which(truemodule1 %in% 4)[1:(nActive/2)]] <- runif(
+  nActive/2, betaMean - 0.1, betaMean + 0.1)
 
 betaMainInteractions[which(betaMainEffect!=0)] <- runif(nActive, alphaMean - 0.1, alphaMean + 0.1)
 
@@ -121,7 +142,7 @@ plot(beta)
 result <- generate_data(p = p, n = n, n0 = n0, X = X,
                         beta = beta, include_interaction = includeInteraction,
                         cluster_distance = cluster_distance,
-                        EclustAddDistance = "fisherScore",
+                        EclustAddDistance = Ecluster_distance,
                         signal_to_noise_ratio = 1/2,
                         distanceMethod = distanceMethod,
                         clustMethod = clustMethod,
@@ -129,7 +150,11 @@ result <- generate_data(p = p, n = n, n0 = n0, X = X,
                         method = method,
                         K.max = K.max, B = B)
 
+result$clustersEclust[which(betaMainEffect!=0)][, table(module, cluster)]
+result$clustersEclust[module=="yellow"]
 
+result$clustersAll[which(betaMainEffect!=0)][, table(module, cluster)]
+result$clustersAll[module=="blue"]
 ## ---- univariate-pvalue -----
 
 message("Starting univariate p-value with interaction")
@@ -208,8 +233,8 @@ print("starting cluster and regress with interaction")
 clust_res <- mapply(clust_fun,
                     #summary = rep(c("pc","spc","avg"), each = 3),
                     #model = rep(c("lm", "lasso","elasticnet"), 3),
-                    summary = c("avg","avg"),
-                    model = c("lasso","shim"),
+                    summary = rep(c("avg","pc"), each = 3),
+                    model = rep(c("lasso","elasticnet","shim"), 2),
                     MoreArgs = list(x_train = result[["X_train"]],
                                     x_test = result[["X_test"]],
                                     y_train = result[["Y_train"]],
@@ -226,8 +251,9 @@ clust_res <- mapply(clust_fun,
                     SIMPLIFY = F,
                     USE.NAMES = F)
 
-result %>% names
-clust_res %>% unlist
+# result %>% names
+# options(digits = 2, scipen=999)
+# clust_res %>% unlist
 
 if (includeStability) {
   clust_stab <- mapply(function(summary,
@@ -235,19 +261,21 @@ if (includeStability) {
                                               x_train = result[["X_train_folds"]],
                                               y_train = result[["Y_train_folds"]],
                                               MoreArgs = list(stability = T,
+                                                              x_test = result[["X_test"]],
                                                               summary = summary,
                                                               model = model,
                                                               filter = F,
                                                               filter_var = F,
                                                               include_E = T,
                                                               include_interaction = includeInteraction,
-                                                              gene_groups = result[["clusters"]],
-                                                              p = p),
+                                                              gene_groups = result[["clustersAll"]],
+                                                              p = p,
+                                                              clust_type = "clust"),
                                               SIMPLIFY = F),
                        #summary = rep(c("pc","spc","avg"), each = 3),
                        #model = rep(c("lm", "lasso","elasticnet"), 3),
-                       summary =  c("avg","avg"),
-                       model = c("lasso","shim"),
+                       summary = rep(c("avg"), each = 3),
+                       model = rep(c("lasso","elasticnet","shim"), 2),
                        SIMPLIFY = F,
                        USE.NAMES = F)
 
@@ -263,8 +291,8 @@ if (includeStability) {
   clust_labs <- mapply(clust_labels,
                        #summary = rep(c("pc","spc","avg"), each = 3),
                        #model = rep(c("lm", "lasso","elasticnet"), 3),
-                       summary = c("avg","avg"),
-                       model = c("lasso","shim"),
+                       summary = rep(c("avg"), each = 3),
+                       model = rep(c("lasso","elasticnet","shim"), 2),
                        USE.NAMES = F)
 
 
@@ -296,3 +324,36 @@ if (includeStability) {
 }
 
 print("done clust and regress interaction")
+
+## ---- Ecluster-and-regress----
+
+# we will treat the clusters as fixed i.e., even if we filter, or
+# do cross validation, the group labels are predetermined by the
+# above clustering procedure
+
+message("starting Environment cluster and regress with interaction")
+
+Eclust_res <- mapply(clust_fun,
+                    #summary = rep(c("pc","spc","avg"), each = 3),
+                    #model = rep(c("lm", "lasso","elasticnet"), 3),
+                    summary = rep(c("avg","pc"), each = 3),
+                    model = rep(c("lasso","elasticnet","shim"), 2),
+                    MoreArgs = list(x_train = result[["X_train"]],
+                                    x_test = result[["X_test"]],
+                                    y_train = result[["Y_train"]],
+                                    y_test = result[["Y_test"]],
+                                    stability = F,
+                                    filter = F,
+                                    filter_var = F,
+                                    include_E = T,
+                                    include_interaction = includeInteraction,
+                                    s0 = result[["S0"]],
+                                    p = p,
+                                    gene_groups = result[["clustersEclust"]],
+                                    clust_type = "Eclust"),
+                    SIMPLIFY = F,
+                    USE.NAMES = F)
+
+# result %>% names
+# options(digits = 2, scipen=999)
+# clust_res %>% unlist

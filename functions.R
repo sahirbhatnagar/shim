@@ -1156,8 +1156,8 @@ clust_fun <- function(x_train,
                       y_train,
                       y_test,
                       s0,
-                      summary,
-                      model,
+                      summary = c("pc","avg"),
+                      model = c("lm", "lasso", "scad", "mcp", "elasticnet", "shim"),
                       gene_groups,
                       true_beta = NULL,
                       topgenes = NULL,
@@ -1169,63 +1169,54 @@ clust_fun <- function(x_train,
                       filter_var = F,
                       clust_type = c("clust","Eclust","Addon")){
 
-# result[["clustersAddon"]] %>% print(nrows=Inf)
-#     result %>% names
-#                 stability = F; gene_groups = result[["clustersAll"]];
-#                 x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
-#                 y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-#                 filter = F; filter_var = F; include_E = T; include_interaction = T;
-#                 s0 = result[["S0"]]; p = p ; k_means = NULL
-#                 model = "shim"; summary = "pc"; topgenes = NULL;
-  #
-  #             stability = F; gene_groups = result[["clusters"]][gene %in% result[["S0"]]];
-  #             x_train = result[["X_train"]][,result[["S0"]]] ; x_test = result[["X_test"]][,result[["S0"]]] ;
-  #             y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  #             filter = F; filter_var = F; include_E = F; include_interaction = F;
-  #             s0 = result[["S0"]]; p = 1000 ;
-  #             model = "lm"; summary = "spc"; topgenes = NULL;
-
-  #true_beta = result[["beta_truth"]]
-
-  # model: lm, lasso, scad, mcp, elasticnet -
-  # summary: summary measure either "pc", "avg", "spc"
-  # gene_groups: data table with columns 'gene' and 'cluster'
-  # filter: T or F based on univariate filter
+  # result[["clustersAddon"]] %>% print(nrows=Inf)
+  # result[["clustersAddon"]][, table(cluster, module)]
+  # result %>% names
+  # stability = F; gene_groups = result[["clustersEclust"]];
+  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+  # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+  # filter = F; filter_var = F; include_E = T; include_interaction = T;
+  # s0 = result[["S0"]]; p = p ;
+  # model = "shim"; summary = "pc"; topgenes = NULL; clust_type="Eclust"
 
   clust_type <- match.arg(clust_type)
+  summary <- match.arg(summary)
+  model <- match.arg(model)
 
-  message(paste(summary,model,"filter = ", filter, "filter_var = ", filter_var,
-              "include_E = ", include_E, "include_interaction = ",
-              include_interaction, sep = ","))
+  message(sprintf("Summary measure: %s, Model: %s, Cluster Type: %s",
+                  summary, model, clust_type))
 
   if (include_E == F & include_interaction == T) stop("include_E needs to be
                                                       TRUE if you want to include
                                                       interactions")
-  #   if (filter == F & include_interaction == T) stop("Interaction can only be run
-  #                                                      if filter is TRUE.
-  #                                                      This is to avoid exceedingly
-  #                                                      large models")
+
   if (is.null(topgenes) & filter == T) stop("Argument topgenes is missing but
                                             filter is TRUE. You need to provide
                                             a filtered list of genes if filter
                                             is TRUE")
 
-  # train data which includes the relevant (filtered or not filtered genes and E or not E)
-  x_train_mod <- if (filter & !include_E) {x_train[, topgenes] %>% as.data.frame} else if (!filter & include_E) {
-    x_train %>% as.data.frame } else if (!filter & !include_E) {
-      x_train[,which(colnames(x_train) %ni% "E")] %>% as.data.frame} else if (filter & include_E) {
+  # train data which includes the relevant (filtered or not filtered genes
+  # and E or not E)
+  x_train_mod <- if (filter & !include_E) {
+    x_train[, topgenes] %>% as.data.frame
+    } else if (!filter & include_E) {
+    x_train %>% as.data.frame
+      } else if (!filter & !include_E) {
+      x_train[,which(colnames(x_train) %ni% "E")] %>% as.data.frame
+        } else if (filter & include_E) {
         x_train[, c(topgenes,"E")] %>% as.data.frame
       }
 
   # test data
-  x_test_mod = if (filter & !include_E) {x_test[, topgenes] %>% as.data.frame} else if (!filter & include_E) {
-    x_test %>% as.data.frame } else if (!filter & !include_E) {
-      x_test[,which(colnames(x_test) %ni% "E")] %>% as.data.frame} else if (filter & include_E) {
+  x_test_mod = if (filter & !include_E) {
+    x_test[, topgenes] %>% as.data.frame
+    } else if (!filter & include_E) {
+    x_test %>% as.data.frame
+      } else if (!filter & !include_E) {
+      x_test[,which(colnames(x_test) %ni% "E")] %>% as.data.frame
+        } else if (filter & include_E) {
         x_test[, c(topgenes,"E")] %>% as.data.frame
       }
-
-  # this includes interaction terms
-  gene.names <- colnames(x_train_mod)[which(colnames(x_train_mod) %ni% "E")]
 
   # these are only derived on the main effects genes.. E is only included in the model
   PC_and_avg <- firstPC(expr = x_train_mod[,gene_groups$gene],
@@ -1234,83 +1225,33 @@ clust_fun <- function(x_train,
 
   n.clusters <- PC_and_avg$nclusters
 
-  # the number of clusters in the modified set
-  # remove genes which have a cluster assignment of 0, meaning they dont cluster well
-  # n.clusters <- PC_and_avg$nclusters
-  # cluster_names <- PC_and_avg$validColors
-  #
-  #
-  # clustered.genes <- lapply(cluster_names, function(i) {
-  #   x_train_mod[,intersect(gene_groups[cluster == i]$gene, gene.names), drop = FALSE] %>%
-  #     scale(center = T, scale = F) %>%
-  #     as.matrix
-  # })
-  #
-  # # remove clusters that have no data in them due to filtering
-  # clustered.genes <- Filter(function(i) ncol(i) > 0, clustered.genes)
-  # print(sapply(clustered.genes, dim))
-
   # this contains either the averages or PCs for each module in a data.frame
   clust_data <- switch(summary,
                        avg = PC_and_avg$averageExpr,
-                       pc = PC_and_avg$PC,
-                       spc = {
-                         # works but never used
-                         out <- lapply(clustered.genes,
-                                       function(i) PMA::SPC.cv(i,
-                                                               sumabsvs =  seq(1, sqrt(ncol(i)), len = 10),
-                                                               nfolds = 5, niter = 5, center = F)
-
-                         )
-
-                         out_best_lambda <- lapply(out, function(i) i$bestsumabsv)
-
-                         out_best <- mapply(PMA::SPC,
-                                            x = clustered.genes,
-                                            sumabsv = out_best_lambda,
-                                            MoreArgs = list(K = 1, center = F),
-                                            SIMPLIFY = F)
-
-                         out_best_v <- mapply(function(spc, names) {
-                           spc$v %>% magrittr::set_rownames(colnames(names))
-                         }, spc = out_best, names = clustered.genes,SIMPLIFY = F)
-
-                         # output the sparse factors as well as model fit for use with testing below
-                         list(mapply(new.pc, data = clustered.genes,
-                                     loadings = out_best_v), out_best, out_best_v)
-                       })
-
-  # if (summary == "spc") {
-  #   out_best <- clust_data[[2]]
-  #   out_best_v <- clust_data[[3]] # used to calculate S.hat (number of non zero components)
-  #
-  #   # these are the gene names corresponding to the non zero loadings from sparsePCA
-  #   non_zero_pc_components <- lapply(out_best_v, function(i)
-  #     i[which(i != 0), ,drop = F] %>% rownames) %>% unlist
-  # }
-  #
-  # clust_data <- if (summary == "spc") clust_data[[1]] else clust_data
-
-  # colnames(clust_data) <- paste0(summary,cluster_names)
-
-  # head(clust_data)
+                       pc = PC_and_avg$PC)
 
   ml.formula <- if (include_interaction & include_E) {
-    paste0("y_train ~","(",paste0(colnames(clust_data), collapse = "+"),")*E") %>% as.formula} else if (!include_interaction & include_E) {
-      paste0("y_train ~",paste0(colnames(clust_data), collapse = "+"),"+E") %>% as.formula} else if (!include_interaction & !include_E) {
+    paste0("y_train ~","(",paste0(colnames(clust_data), collapse = "+"),")*E") %>% as.formula
+    } else if (!include_interaction & include_E) {
+      paste0("y_train ~",paste0(colnames(clust_data), collapse = "+"),"+E") %>% as.formula
+      } else if (!include_interaction & !include_E) {
         paste0("y_train ~",paste0(colnames(clust_data), collapse = "+")) %>% as.formula
       }
 
   # this is the same as ml.formula, except without the response.. this is used for
   # functions that have the x = and y = input instead of a formula input
   model.formula <- if (include_interaction & include_E) {
-    paste0("~ 0+(",paste0(colnames(clust_data), collapse = "+"),")*E") %>% as.formula} else if (!include_interaction & include_E) {
-      paste0("~0+",paste0(colnames(clust_data), collapse = "+"),"+E") %>% as.formula} else if (!include_interaction & !include_E) {
+    paste0("~ 0+(",paste0(colnames(clust_data), collapse = "+"),")*E") %>% as.formula
+    } else if (!include_interaction & include_E) {
+      paste0("~0+",paste0(colnames(clust_data), collapse = "+"),"+E") %>% as.formula
+      } else if (!include_interaction & !include_E) {
         paste0("~0+",paste0(colnames(clust_data), collapse = "+")) %>% as.formula
       }
 
-  X.model.formula <- model.matrix(model.formula, data = if (include_E) cbind(clust_data,x_train_mod[,"E", drop = F]) else
-    clust_data %>% as.data.frame )
+  X.model.formula <- model.matrix(model.formula, data = if (include_E) {
+    cbind(clust_data,x_train_mod[,"E", drop = F])
+    } else clust_data %>% as.data.frame)
+
   df <- X.model.formula %>% cbind(y_train) %>% as.data.frame()
 
   clust_train_model <- switch(model,
@@ -1331,43 +1272,51 @@ clust_fun <- function(x_train,
                               },
                               shim = {
                                 require(doMC)
-                                registerDoMC(cores = 2)
+                                registerDoMC(cores = 3)
                                 cv.shim(x = X.model.formula, y = y_train,
                                         main.effect.names = c(colnames(clust_data), if (include_E) "E"),
                                         interaction.names = setdiff(colnames(X.model.formula),c(colnames(clust_data),"E")),
-                                        max.iter = 500, initialization.type = "univariate",
-                                        verbose = FALSE, threshold = 1e-06,
-                                        nlambda.gamma = 10, nlambda.beta = 10, nlambda = 100)
+                                        max.iter = 100, initialization.type = "univariate",
+                                        verbose = TRUE, threshold = 1e-05,
+                                        nlambda.gamma = 1, nlambda.beta = 100, nlambda = 100,
+                                        lambda.beta = rev(lambda_sequence(x = X.model.formula,
+                                                                          y = y_train,
+                                                                          nlambda = 100)),
+                                        lambda.gamma = rep(1e-10, 100))
                               })
+  # plot(clust_train_model)
 
   # here we give the coefficient stability on the clusters and not the individual genes
   coefs <- switch(model,
                   lm = data.table::data.table(Gene = names(clust_train_model$coefficients),
                                               coef.est = coef(clust_train_model)),
                   lasso = {
-                    # need to return all 0's if there is only 1 cluster since lasso wont run with only 1 predictor
+                    # need to return all 0's if there is only 1 cluster since lasso
+                    # wont run with only 1 predictor
                     dat <- data.table::data.table(Gene = colnames(X.model.formula),
                                                   coef.est = rep(0, ncol(X.model.formula)))
                     if (n.clusters != 1) {
-                      coef(clust_train_model, s = "lambda.min") %>%
+                      coef(clust_train_model, s = "lambda.1se") %>%
                         as.matrix %>%
                         as.data.table(keep.rownames = TRUE) %>%
                         magrittr::set_colnames(c("Gene","coef.est"))
                     } else dat
                   },
                   elasticnet = {
-                    # need to return all 0's if there is only 1 cluster since lasso wont run with only 1 predictor
+                    # need to return all 0's if there is only 1 cluster since lasso
+                    # wont run with only 1 predictor
                     dat <- data.table::data.table(Gene = colnames(X.model.formula),
                                                   coef.est = rep(0, ncol(X.model.formula)))
                     if (n.clusters != 1) {
-                      coef(clust_train_model, s = "lambda.min") %>%
+                      coef(clust_train_model, s = "lambda.1se") %>%
                         as.matrix %>%
                         as.data.table(keep.rownames = TRUE) %>%
                         magrittr::set_colnames(c("Gene","coef.est"))
                     } else dat
                   },
                   scad = {
-                    # need to return all 0's if there is only 1 cluster since lasso wont run with only 1 predictor
+                    # need to return all 0's if there is only 1 cluster since lasso
+                    # wont run with only 1 predictor
                     dat <- data.table::data.table(Gene = colnames(X.model.formula),
                                                   coef.est = rep(0, ncol(X.model.formula)))
                     if (n.clusters != 1) {
@@ -1379,7 +1328,8 @@ clust_fun <- function(x_train,
                     } else dat
                   },
                   mcp = {
-                    # need to return all 0's if there is only 1 cluster since lasso wont run with only 1 predictor
+                    # need to return all 0's if there is only 1 cluster since lasso
+                    # wont run with only 1 predictor
                     dat <- data.table::data.table(Gene = colnames(X.model.formula),
                                                   coef.est = rep(0, ncol(X.model.formula)))
                     if (n.clusters != 1) {
@@ -1395,15 +1345,12 @@ clust_fun <- function(x_train,
                                                   coef.est = rep(0, ncol(X.model.formula)))
                     if (n.clusters != 1) {
 
-                      coef(clust_train_model, s = "lambda.min") %>%
+                      coef(clust_train_model, s = "lambda.1se") %>%
                         as.matrix %>%
                         as.data.table(keep.rownames = TRUE) %>%
                         magrittr::set_colnames(c("Gene","coef.est"))
                     } else dat
-                  }
-  )
-
-  coefs
+                  })
 
   if (stability) {
     # remove intercept for stability measures
@@ -1413,17 +1360,16 @@ clust_fun <- function(x_train,
     non_zero_clusters <- coefs[-1, , ][coef.est != 0] %>%
       magrittr::use_series("Gene")
 
-    # non_zero_clusters <- coefs[-1, , ] %>%
-    #   magrittr::use_series("Gene")
-    #
-    # non_zero_clusters <- non_zero_clusters[c(-8,-9)]
-
     # need to determine which of non_zero_cluters are main effects and which
     # are interactions
     non_zero_clusters_interactions <- grep(":",non_zero_clusters, value = T)
-    non_zero_environment <- grep("^E", non_zero_clusters, value = T, ignore.case = TRUE)
-    non_zero_clusters_main_effects <- setdiff(non_zero_clusters, c(non_zero_clusters_interactions,
-                                                                   non_zero_environment))
+    non_zero_environment <- grep("^E", non_zero_clusters, value = T,
+                                 ignore.case = TRUE)
+    non_zero_clusters_main_effects <- setdiff(non_zero_clusters,
+                                              c(non_zero_clusters_interactions,
+                                                non_zero_environment))
+
+    # this includes the environment if the environment is non-zero
     n.non_zero_clusters <- coefs[-1, , ][coef.est != 0] %>%
       magrittr::use_series("Gene") %>%
       length
@@ -1431,48 +1377,55 @@ clust_fun <- function(x_train,
     # need to get the genes corresponding to the non-zero clusters
     # NOTE: this also includes non-zero cluster:Environment interactions
 
-    # genes corresponding to non-zero clusters
-    # return non zero sparse loadings if spc combined with lm, else
-    # return non-zero clusters for penalization methods, even if your using spc
-    # clust.S.hat <- if (summary == "spc" & model == "lm") non_zero_pc_components else {
-    #   gene_groups[cluster %in%
-    #                 as.numeric(unlist(stringr::str_extract_all(non_zero_clusters, "\\d+"))),gene] }
+    # genes corresponding to non-zero main effect clusters
+    # this list might not be unique if clust_type="Addon" because the same gene
+    # can be in different clusters
+    clust.S.hat.main <- gene_groups[cluster %in%
+                                      as.numeric(
+                                        unlist(
+                                          stringr::str_extract_all(
+                                            non_zero_clusters_main_effects, "\\d+")
+                                          )
+                                        ),gene]
 
-    clust.S.hat.main <- gene_groups[cluster %in% as.numeric(unlist(stringr::str_extract_all(non_zero_clusters, "\\d+"))),gene]
+    # identical(gene_groups[cluster %in% c(3,12),gene],
+    #           clust.S.hat.main)
+    # identical(unique(clust.S.hat.main), clust.S.hat.main)
+    # table(clust.S.hat.main)
 
     # this is the same as gene_groups, but the gene names contain E
     # so that we can extract the interactions corresponding to the chose clusters
-    gene_groups_environment <- copy(gene_groups)
-    gene_groups_environment[,gene:=paste0(gene,":E")]
+    gene_groups_E <- copy(gene_groups)
+    gene_groups_E[,gene:=paste0(gene,":E")]
 
-    clust.S.hat.interaction <- gene_groups_environment[cluster %in% as.numeric(unlist(stringr::str_extract_all(non_zero_clusters_interactions, "\\d+"))),gene]
+    clust.S.hat.interaction <- gene_groups_E[cluster %in%
+                                               as.numeric(
+                                                 unlist(
+                                                   stringr::str_extract_all(
+                                                     non_zero_clusters_interactions, "\\d+")
+                                                 )
+                                               ),gene]
 
     # this represents all the genes corresponding to the non-zero PC or avg
-    clust.S.hat <- c(clust.S.hat.main, non_zero_environment, clust.S.hat.interaction)
-    # clustered.genes_test <- lapply(cluster_names, function(i) {
-    #   x_test_mod[,intersect(gene_groups[cluster == i]$gene, gene.names), drop = FALSE] %>% scale(center = T, scale = F) %>% as.matrix
-    # }
-    # )
-    #
-    # # remove clusters that have no data in them due to filtering
-    # clustered.genes_test <- Filter(function(i) ncol(i) > 0, clustered.genes_test)
+    # this list might not be unique if clust_type="Addon"
+    # identical(unique(clust.S.hat), clust.S.hat)
+    # I will double count if a model takes a gene more than once. ie.
+    # if the same gene gets selected twice, then this will contribute 2 to the
+    # number of non-zero estimated coefficients
+    clust.S.hat <- c(clust.S.hat.main, non_zero_environment,
+                     clust.S.hat.interaction)
+
 
     clust_data_test <- switch(summary,
                               avg = PC_and_avg$averageExprTest,
-                              pc = PC_and_avg$PCTest,
-                              spc = {
-                                V <- lapply(out_best, function(i) i$v)
-                                mapply(new.pc, data = clustered.genes_test,
-                                       loadings = V)
-                              }
-    )
-
-    #colnames(clust_data_test) <- paste0(summary,cluster_names)
+                              pc = PC_and_avg$PCTest)
 
     # need intercept for prediction
     model.formula_test <- if (include_interaction & include_E) {
-      paste0("~ 1+(",paste0(colnames(clust_data_test), collapse = "+"),")*E") %>% as.formula} else if (!include_interaction & include_E) {
-        paste0("~1+",paste0(colnames(clust_data_test), collapse = "+"),"+E") %>% as.formula} else if (!include_interaction & !include_E) {
+      paste0("~ 1+(",paste0(colnames(clust_data_test), collapse = "+"),")*E") %>% as.formula
+      } else if (!include_interaction & include_E) {
+        paste0("~1+",paste0(colnames(clust_data_test), collapse = "+"),"+E") %>% as.formula
+        } else if (!include_interaction & !include_E) {
           paste0("~1+",paste0(colnames(clust_data_test), collapse = "+")) %>% as.formula
         }
 
@@ -1480,8 +1433,6 @@ clust_fun <- function(x_train,
                                          data = if (include_E) {
                                            cbind(clust_data_test,x_test_mod[,"E", drop = F])
                                            } else clust_data_test %>% as.data.frame)
-
-
 
     # True Positive Rate
     clust.TPR <- length(intersect(clust.S.hat, s0))/length(s0)
@@ -1510,7 +1461,8 @@ clust_fun <- function(x_train,
     clust.adj.r2 <- 1 - (1 - clust.r2)*(nrow(x_test) - 1)/(nrow(x_test) - n.non_zero_clusters - 1)
 
 
-    ls <- list(clust.mse = clust.mse, clust.r2 = clust.r2, clust.adj.r2 = clust.adj.r2, clust.S.hat = length(clust.S.hat),
+    ls <- list(clust.mse = clust.mse, clust.r2 = clust.r2,
+               clust.adj.r2 = clust.adj.r2, clust.S.hat = length(clust.S.hat),
                clust.TPR = clust.TPR, clust.FPR = clust.FPR)
 
 
