@@ -593,6 +593,10 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
                                        "lambdaBeta", "lambdaGamma")))
 
   # trying to implement this one at a time, so that
+  pb <- progress::progress_bar$new(
+    format = "  fitting over all pairs of tuning parameters [:bar] :percent eta: :eta",
+    total = 100, clear = FALSE, width= 90)
+  pb$tick(0)
 
   for (LAMBDA in lambdaNames) {
     # (LAMBDA <- lambdaNames[1])
@@ -600,7 +604,9 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
     lambda_beta <- tuning_params_mat["lambda.beta",LAMBDA][[1]]
     lambda_gamma <- tuning_params_mat["lambda.gamma",LAMBDA][[1]]
 
-    message(paste("Index:",LAMBDA, ", lambda_beta:", lambda_beta, ", lambda_gamma:", lambda_gamma))
+    if (verbose) {
+      message(paste("Index:",LAMBDA, ", lambda_beta:", lambda_beta, ", lambda_gamma:", lambda_gamma))
+    }
 
     beta_hat_previous <- uni_start[main.effect.names, , drop = F]
 
@@ -797,6 +803,7 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
       # if (devianceDiff < 1e-50 | outPrint[LAMBDA,"percentDev"] > 0.999) break }
       if (outPrint[LAMBDA,"percentDev"] > 0.999) break }
 
+    pb$tick()
   }
 
   # Rprof()

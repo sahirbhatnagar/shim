@@ -33,5 +33,6 @@ Imports:
     glmnet,
     latex2exp,
     stringr,
-    doMC
+    doMC,
+    progress
 RoxygenNote: 5.0.1
