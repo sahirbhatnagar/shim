@@ -7,3 +7,5 @@
 examples.R
 simulation/*
 simulation
+k_filter.R
+ksexample.R

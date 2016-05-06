@@ -355,12 +355,19 @@ cv.shim <- function(x, y, main.effect.names, interaction.names,
   if (nfolds < 3)
     stop("nfolds must be bigger than 3; nfolds=10 recommended")
   outlist = as.list(seq(nfolds))
+
+  pb <- progress::progress_bar$new(
+    format = "  performing cross validation [:bar] :percent eta: :eta",
+    total = nfolds, clear = FALSE, width= 90)
+  pb$tick(0)
+
   if (parallel) {
     outlist = foreach(i = seq(nfolds), .packages = c("glmnet")) %dopar%
     {
       which = foldid == i
       if (is.matrix(y)) y_sub = y[!which, ] else y_sub = y[!which]
-      print(paste("Foldid = ",i))
+      #print(paste("Foldid = ",i))
+      pb$tick()
       shim(x = x[!which, , drop = FALSE],
            y = y_sub,
            main.effect.names = main.effect.names,
@@ -371,6 +378,7 @@ cv.shim <- function(x, y, main.effect.names, interaction.names,
            nlambda = shim.object$nlambda,
            nlambda.gamma = nlambda.gamma,
            nlambda.beta = nlambda.beta, ...)
+
     }
   } else {
     for (i in seq(nfolds)) {
@@ -379,16 +387,18 @@ cv.shim <- function(x, y, main.effect.names, interaction.names,
       if (is.matrix(y))
         y_sub = y[!which, ] else y_sub = y[!which]
 
-      outlist[[i]] = shim(x[!which, , drop = FALSE],
-                          y = y_sub,
-                          main.effect.names = main.effect.names,
-                          interaction.names = interaction.names,
-                          weights = weights[!which],
-                          lambda.beta = shim.object$lambda.beta,
-                          lambda.gamma = shim.object$lambda.gamma,
-                          nlambda = shim.object$nlambda,
-                          nlambda.gamma = nlambda.gamma,
-                          nlambda.beta = nlambda.beta, ...)
+        pb$tick()
+
+        outlist[[i]] = shim(x[!which, , drop = FALSE],
+                            y = y_sub,
+                            main.effect.names = main.effect.names,
+                            interaction.names = interaction.names,
+                            weights = weights[!which],
+                            lambda.beta = shim.object$lambda.beta,
+                            lambda.gamma = shim.object$lambda.gamma,
+                            nlambda = shim.object$nlambda,
+                            nlambda.gamma = nlambda.gamma,
+                            nlambda.beta = nlambda.beta, ...)
     }
   }
 

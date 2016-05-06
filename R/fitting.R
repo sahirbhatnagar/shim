@@ -418,15 +418,15 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
                    center, normalize, verbose,
                    cores) {
 
-#   options(scipen = 999, digits = 4)
-#   x = X; y = Y; main.effect.names = main_effect_names;
-#   interaction.names = interaction_names;
-#   lambda.beta = NULL ; lambda.gamma = NULL
-#   threshold = 1e-4 ; max.iter = 500 ; initialization.type = "ridge";
-#   nlambda.gamma = 12; nlambda.beta = 10;
-#   nlambda = 120 ; lambda.factor = 1e-6
-#   cores = 1;
-#   center=TRUE; normalize=TRUE; verbose = TRUE
+  # options(scipen = 999, digits = 4)
+  # x = X; y = Y; main.effect.names = main_effect_names;
+  # interaction.names = interaction_names;
+  # lambda.beta = NULL ; lambda.gamma = NULL
+  # threshold = 1e-4 ; max.iter = 500 ; initialization.type = "ridge";
+  # nlambda.gamma = 10; nlambda.beta = 10;
+  # nlambda = 100 ; lambda.factor = 1e-6
+  # cores = 1;
+  # center=TRUE; normalize=TRUE; verbose = TRUE
 
   # nlambda.gamma = 20; nlambda.beta = 20;
   # nlambda = 400
@@ -528,13 +528,9 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
 
   # determine which of the lambda's should use the previous warm start
   # for example, if there are 100 total lambdas = 10 x 10 grid, then
-  # the 11th combination should take the warm start from the 1st combo,
-  # the 21st combo should take the warm start from the 11th combo and so on..
-  # but the 2nd to 10th, 12th to 20th, 22nd to 30th... takes the preceding warm start
-  # so we are moving down the first row, then across on the first row to the
-  # second column, and then down the 2nd column, ...
-  switchWarmStart <- data.frame(cbind(seq(from = 1 + nlambda.gamma, to = nlambda, by = nlambda.gamma),
-                                      seq(from = 1 , to = nlambda-nlambda.gamma, by = nlambda.gamma)))
+  # the 11th combination should not use previous values. it should re-start
+  # using the initializations
+  switchWarmStart <- data.frame(X1 = cbind(seq(from = 1 + nlambda.gamma, to = nlambda, by = nlambda.gamma)))
   # this matrix is in the correct order such that the result of one tuning
   # parameter should be the warm start for the next parameter, accounting
   # for the fact that the search is being done over a grid. This should be
@@ -548,6 +544,9 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
                                     main.effect.names = main.effect.names,
                                     interaction.names = interaction.names)
 
+  # used in the warm start strategy because we ONLY want to use warm starts
+  # for each lambda_gamma for a fixed lambda_beta. For the next lambda_beta
+  # we restart using the initial values
   adaptive.weights.start <- adaptive.weights
   # initialization
   betas_and_alphas <- uni_fun(variables = colnames(x), x = x, y = y,
@@ -558,7 +557,10 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
   uni_start <- convert(betas_and_alphas, main.effect.names = main.effect.names,
                        interaction.names = interaction.names)
 
-  #uni_start_iteration1 <- uni_start
+  # used in the warm start strategy because we ONLY want to use warm starts
+  # for each lambda_gamma for a fixed lambda_beta. For the next lambda_beta
+  # we restart using the initial values
+  uni_start_iteration1 <- uni_start
 
   # for all the x_tilde in zero_x_tilde, return the following matrix with 0 for each coefficient
   # this is like a place holder.
@@ -599,7 +601,7 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
   pb$tick(0)
 
   for (LAMBDA in lambdaNames) {
-    # (LAMBDA <- lambdaNames[1])
+    # (LAMBDA <- lambdaNames[11])
     lambdaIndex <- which(LAMBDA==lambdaNames)
     lambda_beta <- tuning_params_mat["lambda.beta",LAMBDA][[1]]
     lambda_gamma <- tuning_params_mat["lambda.gamma",LAMBDA][[1]]
@@ -782,19 +784,25 @@ lspathWarmStarts <- function(x, y, main.effect.names, interaction.names,
     betaMat[,lambdaIndex] <- beta_hat_next
     gammaMat[,lambdaIndex] <- gamma_hat_next
 
-    betaWarmStart <- if (lambdaIndex %in% switchWarmStart$X1)
-      betaMat[, switchWarmStart[which(switchWarmStart$X1==lambdaIndex),"X2"],drop=F] else
-        beta_hat_next
+    # for a fixed lambda.beta, keep using the previous solution for each lambda.gamma
+    # for the next fixed lambda.beta restart the calculation using the initial value
+    # from the uni_fun function
+    betaWarmStart <- if (lambdaIndex %ni% switchWarmStart$X1) beta_hat_next
 
-    gammaWarmStart <- if (lambdaIndex %in% switchWarmStart$X1)
-      gammaMat[, switchWarmStart[which(switchWarmStart$X1==lambdaIndex),"X2"],drop=F] else
-        gamma_hat_next
+    gammaWarmStart <- if (lambdaIndex %ni% switchWarmStart$X1) gamma_hat_next
 
     # uni_start <- rbind(beta_hat_next, gamma_hat_next)
-    uni_start <- rbind(betaWarmStart, gammaWarmStart)
+    uni_start <- if (lambdaIndex %ni% switchWarmStart$X1) {
+      rbind(betaWarmStart, gammaWarmStart) } else {
+        uni_start_iteration1
+      }
+
     # need to update weights also!
-    adaptive.weights <- update_weights(betaWarmStart, gammaWarmStart,
-                                       main.effect.names, interaction.names)
+    adaptive.weights <- if (lambdaIndex %ni% switchWarmStart$X1) {
+      update_weights(betaWarmStart, gammaWarmStart,
+                     main.effect.names, interaction.names) } else {
+                       adaptive.weights.start
+                     }
 
     devianceDiff <- outPrint[lambdaIndex,"deviance"] - outPrint[lambdaIndex-1,"deviance"]
     #coefficientMat[,LAMBDA] <- Betas_and_Alphas

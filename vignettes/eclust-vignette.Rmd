@@ -29,6 +29,7 @@ library(plyr)
 library(glmnet)
 library(stringr)
 library(DT)
+library(progress)
 ```
 
 
@@ -110,17 +111,7 @@ library(eclust)
 res <- shim(x = X, y = Y,
             main.effect.names = main_effect_names,
             interaction.names = interaction_names,
-            lambda.beta = NULL,
-            lambda.gamma = NULL, 
-            nlambda.beta = 10,
-            nlambda = 100, 
-            threshold = 1e-04, 
-            max.iter = 200,
-            initialization.type = "ridge", 
-            center = TRUE,
-            normalize = TRUE, 
-            verbose = TRUE, 
-            cores = 2)
+            verbose = FALSE)
 
 names(res)
 res
@@ -153,18 +144,14 @@ DT::datatable(res$tuning.parameters, options = list(pageLength = 100))
 
 ## Cross Validation using the `cv.shim` function
 
-```{r, eval=TRUE}
+```{r, eval = TRUE}
 
 library(doMC)
-registerDoMC(cores = 10)
+registerDoMC(cores = 2)
 cv.res <- cv.shim(x = X, y = Y,
             main.effect.names = main_effect_names,
             interaction.names = interaction_names,
-            lambda.beta = NULL,
-            lambda.gamma = NULL,
-            nlambda.beta = 10,
-            nlambda = 100, 
-            parallel = TRUE,
+            parallel = TRUE, verbose = FALSE,
             type.measure = c("mse"), 
             nfolds = 5)
 

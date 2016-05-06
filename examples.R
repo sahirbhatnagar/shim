@@ -43,6 +43,7 @@
 library(magrittr)
 library(data.table)
 library(dplyr)
+library(eclust)
 rm(list=ls())
 set.seed(123456)
 # number of observations
