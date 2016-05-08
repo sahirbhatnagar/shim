@@ -9,3 +9,5 @@ simulation/*
 simulation
 k_filter.R
 ksexample.R
+eclustRD/*
+eclustRD
