@@ -132,8 +132,6 @@
                 <div class="col-md-9" role="main">
 
 <h1 id="eclust-vignette">Eclust Vignette</h1>
-<p>Sahir R. Bhatnagar<br />
-<code>r Sys.Date()</code>  </p>
 <h1 id="load-required-packages">Load Required Packages</h1>
 <pre><code class="r">library(knitr)
 library(data.table)
@@ -145,6 +143,7 @@ library(plyr)
 library(glmnet)
 library(stringr)
 library(DT)
+library(progress)
 </code></pre>
 
 <h1 id="simulate-data">Simulate Data</h1>
@@ -191,7 +190,7 @@ X &lt;- model.matrix(
     data = DT %&gt;% as.data.frame()) 
 
 # generate response with user defined signal to noise ratio 
-y.star &lt;- X[,names(beta4)] %*% beta4
+y.star &lt;- X[,names(beta1)] %*% beta1
 error &lt;- rnorm(n)
 k &lt;- sqrt(var(y.star)/(signal_to_noise_ratio*var(error))) 
 Y &lt;- y.star + k*error 
@@ -206,62 +205,151 @@ main_effect_names &lt;- setdiff(colnames(X), interaction_names)
 
 <h1 id="analysis">Analysis</h1>
 <h2 id="running-the-strong-heredity-interaction-model-once-using-the-shim-function">Running the Strong heredity interaction model once using the <code>shim</code> function</h2>
+<p>NOTE: if <code>lambda.beta = NULL</code> and <code>lambda.gamma = NULL</code> then this function will use a grid of tuning parameters based on <code>nlambda.beta</code> only and the <code>nlambda.gamma</code> parameter is ignored. Therefore, if for example <code>nlambda.beta = 10</code> then you must specify <code>nlambda = 10x10 = 100</code> otherwise the function will break.</p>
 <pre><code class="r"># load eclust library
 library(eclust)
 
 res &lt;- shim(x = X, y = Y,
             main.effect.names = main_effect_names,
             interaction.names = interaction_names,
-            lambda.beta = NULL,
-            lambda.gamma = NULL, 
-            nlambda.gamma = 12, 
-            nlambda.beta = 10,
-            nlambda = 120, 
-            threshold = 1e-04, 
-            max.iter = 200,
-            initialization.type = &quot;ridge&quot;, 
-            intercept = TRUE,
-            normalize = TRUE, 
-            verbose = TRUE, 
-            cores = 2)
-</code></pre>
+            verbose = FALSE)
 
-<pre><code class="r">names(res)
+names(res)
 </code></pre>
 
 <pre><code>##  [1] &quot;b0&quot;                &quot;beta&quot;              &quot;alpha&quot;            
 ##  [4] &quot;gamma&quot;             &quot;lambda.beta&quot;       &quot;lambda.gamma&quot;     
 ##  [7] &quot;tuning.parameters&quot; &quot;dfbeta&quot;            &quot;dfalpha&quot;          
-## [10] &quot;converged&quot;         &quot;x&quot;                 &quot;y&quot;                
-## [13] &quot;bx&quot;                &quot;by&quot;                &quot;sx&quot;               
-## [16] &quot;intercept&quot;         &quot;normalize&quot;         &quot;call&quot;             
-## [19] &quot;nlambda.gamma&quot;     &quot;nlambda.beta&quot;      &quot;nlambda&quot;          
-## [22] &quot;interaction.names&quot; &quot;main.effect.names&quot;
+## [10] &quot;dev.ratio&quot;         &quot;deviance&quot;          &quot;converged&quot;        
+## [13] &quot;x&quot;                 &quot;y&quot;                 &quot;bx&quot;               
+## [16] &quot;by&quot;                &quot;sx&quot;                &quot;center&quot;           
+## [19] &quot;normalize&quot;         &quot;nlambda.gamma&quot;     &quot;nlambda.beta&quot;     
+## [22] &quot;nlambda&quot;           &quot;interaction.names&quot; &quot;main.effect.names&quot;
+## [25] &quot;call&quot;              &quot;nobs&quot;
 </code></pre>
 
-<h3 id="main-effect-beta-parameter-estimates">Main effect ($\beta$) parameter estimates</h3>
-<h3 id="interaction-effect-alpha-parameter-estimates">Interaction effect ($\alpha$) parameter estimates</h3>
-<h3 id="sequence-of-tuning-parameters">Sequence of Tuning Parameters</h3>
+<pre><code class="r">res
+</code></pre>
+
+<pre><code>## 
+## Call:  shim(x = X, y = Y, main.effect.names = main_effect_names, interaction.names = interaction_names,      verbose = FALSE) 
+## 
+##      dfBeta dfAlpha percentDev LambdaBeta LambdaGamma
+## s1        8      28     0.8485  8.304e-06   8.304e-06
+## s2        7      21     0.8337  8.304e-06   3.854e-05
+## s3        7      21     0.8337  8.304e-06   1.789e-04
+## s4        7      21     0.8336  8.304e-06   8.304e-04
+## s5        7      21     0.8333  8.304e-06   3.854e-03
+## s6        7      19     0.8323  8.304e-06   1.789e-02
+## s7        7      16     0.8283  8.304e-06   8.304e-02
+## s8        7      11     0.8239  8.304e-06   3.854e-01
+## s9        7       6     0.8170  8.304e-06   1.789e+00
+## s10       6       5     0.8134  8.304e-06   8.304e+00
+## s11       6      15     0.8288  3.854e-05   8.304e-06
+## s12       7      21     0.8345  3.854e-05   3.854e-05
+## s13       7      21     0.8337  3.854e-05   1.789e-04
+## s14       7      21     0.8336  3.854e-05   8.304e-04
+## s15       7      21     0.8333  3.854e-05   3.854e-03
+## s16       7      19     0.8323  3.854e-05   1.789e-02
+## s17       7      16     0.8283  3.854e-05   8.304e-02
+## s18       7      11     0.8239  3.854e-05   3.854e-01
+## s19       6       6     0.8164  3.854e-05   1.789e+00
+## s20       6       5     0.8132  3.854e-05   8.304e+00
+## s21       5      10     0.8215  1.789e-04   8.304e-06
+## s22       7      21     0.8338  1.789e-04   3.854e-05
+## s23       7      21     0.8338  1.789e-04   1.789e-04
+## s24       7      21     0.8337  1.789e-04   8.304e-04
+## s25       7      21     0.8334  1.789e-04   3.854e-03
+## s26       7      19     0.8323  1.789e-04   1.789e-02
+## s27       7      16     0.8284  1.789e-04   8.304e-02
+## s28       6       9     0.8177  1.789e-04   3.854e-01
+## s29       5       3     0.8079  1.789e-04   1.789e+00
+## s30       5       2     0.8047  1.789e-04   8.304e+00
+## s31       5      10     0.8139  8.304e-04   8.304e-06
+## s32       5      10     0.8172  8.304e-04   3.854e-05
+## s33       5      10     0.8172  8.304e-04   1.789e-04
+## s34       5      10     0.8172  8.304e-04   8.304e-04
+## s35       5      10     0.8170  8.304e-04   3.854e-03
+## s36       5      10     0.8163  8.304e-04   1.789e-02
+## s37       5       9     0.8144  8.304e-04   8.304e-02
+## s38       5       6     0.8100  8.304e-04   3.854e-01
+## s39       4       2     0.8044  8.304e-04   1.789e+00
+## s40       4       1     0.8042  8.304e-04   8.304e+00
+## s41       3       3     0.8043  3.854e-03   8.304e-06
+## s42       3       3     0.8042  3.854e-03   3.854e-05
+## s43       3       3     0.8042  3.854e-03   1.789e-04
+## s44       3       3     0.8042  3.854e-03   8.304e-04
+## s45       3       3     0.8042  3.854e-03   3.854e-03
+## s46       3       3     0.8042  3.854e-03   1.789e-02
+## s47       3       3     0.8043  3.854e-03   8.304e-02
+## s48       3       3     0.8043  3.854e-03   3.854e-01
+## s49       3       3     0.8041  3.854e-03   1.789e+00
+## s50       3       1     0.8038  3.854e-03   8.304e+00
+## s51       3       3     0.8043  1.789e-02   8.304e-06
+## s52       3       3     0.8043  1.789e-02   3.854e-05
+## s53       3       3     0.8043  1.789e-02   1.789e-04
+## s54       3       3     0.8043  1.789e-02   8.304e-04
+## s55       3       3     0.8043  1.789e-02   3.854e-03
+## s56       3       3     0.8043  1.789e-02   1.789e-02
+## s57       3       3     0.8043  1.789e-02   8.304e-02
+## s58       3       3     0.8043  1.789e-02   3.854e-01
+## s59       3       3     0.8041  1.789e-02   1.789e+00
+## s60       3       1     0.8038  1.789e-02   8.304e+00
+## s61       3       3     0.8043  8.304e-02   8.304e-06
+## s62       3       3     0.8043  8.304e-02   3.854e-05
+## s63       3       3     0.8043  8.304e-02   1.789e-04
+## s64       3       3     0.8043  8.304e-02   8.304e-04
+## s65       3       3     0.8043  8.304e-02   3.854e-03
+## s66       3       3     0.8043  8.304e-02   1.789e-02
+## s67       3       3     0.8043  8.304e-02   8.304e-02
+## s68       3       3     0.8043  8.304e-02   3.854e-01
+## s69       3       2     0.8041  8.304e-02   1.789e+00
+## s70       3       1     0.8039  8.304e-02   8.304e+00
+## s71       3       3     0.8037  3.854e-01   8.304e-06
+## s72       3       3     0.8037  3.854e-01   3.854e-05
+## s73       3       3     0.8036  3.854e-01   1.789e-04
+## s74       3       3     0.8036  3.854e-01   8.304e-04
+## s75       3       3     0.8036  3.854e-01   3.854e-03
+## s76       3       3     0.8036  3.854e-01   1.789e-02
+## s77       3       3     0.8036  3.854e-01   8.304e-02
+## s78       3       3     0.8036  3.854e-01   3.854e-01
+## s79       3       2     0.8034  3.854e-01   1.789e+00
+## s80       3       1     0.8032  3.854e-01   8.304e+00
+## s81       1       0     0.7170  1.789e+00   8.304e-06
+## s82       1       0     0.7170  1.789e+00   3.854e-05
+## s83       1       0     0.7170  1.789e+00   1.789e-04
+## s84       1       0     0.7170  1.789e+00   8.304e-04
+## s85       1       0     0.7170  1.789e+00   3.854e-03
+## s86       1       0     0.7170  1.789e+00   1.789e-02
+## s87       1       0     0.7170  1.789e+00   8.304e-02
+## s88       1       0     0.7170  1.789e+00   3.854e-01
+## s89       1       0     0.7170  1.789e+00   1.789e+00
+## s90       1       0     0.7170  1.789e+00   8.304e+00
+## s91       1       0     0.7035  8.304e+00   8.304e-06
+## s92       1       0     0.7035  8.304e+00   3.854e-05
+## s93       1       0     0.7035  8.304e+00   1.789e-04
+## s94       1       0     0.7035  8.304e+00   8.304e-04
+## s95       1       0     0.7035  8.304e+00   3.854e-03
+## s96       1       0     0.7035  8.304e+00   1.789e-02
+## s97       1       0     0.7035  8.304e+00   8.304e-02
+## s98       1       0     0.7035  8.304e+00   3.854e-01
+## s99       1       0     0.7035  8.304e+00   1.789e+00
+## s100      1       0     0.7035  8.304e+00   8.304e+00
+</code></pre>
+
+<pre><code class="r">plot(res)
+</code></pre>
+
+<p><img alt="" src="../eclust-vignette_files/figure-html/unnamed-chunk-2-1.png" /><!-- --></p>
 <h2 id="cross-validation-using-the-cvshim-function">Cross Validation using the <code>cv.shim</code> function</h2>
 <pre><code class="r">library(doMC)
-registerDoMC(cores = 10)
+registerDoMC(cores = 4)
 cv.res &lt;- cv.shim(x = X, y = Y,
             main.effect.names = main_effect_names,
             interaction.names = interaction_names,
-            lambda.beta = NULL,
-            lambda.gamma = NULL, 
-            nlambda.gamma = 12, 
-            nlambda.beta = 10,
-            nlambda = 120, 
-            threshold = 1e-04, 
-            max.iter = 200,
-            initialization.type = &quot;ridge&quot;, 
-            intercept = TRUE,
-            normalize = TRUE, 
-            verbose = FALSE, 
-            parallel = TRUE,
+            parallel = TRUE, verbose = FALSE,
             type.measure = c(&quot;mse&quot;), 
-            nfolds = 10)
+            nfolds = 5)
 
 names(cv.res)
 </code></pre>
@@ -278,35 +366,99 @@ names(cv.res)
 <pre><code class="r">plot(cv.res)
 </code></pre>
 
-<p><img alt="" src="../eclust-vignette_files/figure-html/unnamed-chunk-7-1.png" /></p>
+<p><img alt="" src="../eclust-vignette_files/figure-html/unnamed-chunk-7-1.png" /><!-- --></p>
 <h3 id="coefficient-estimates">Coefficient Estimates</h3>
 <pre><code class="r">coef(cv.res, s = &quot;lambda.1se&quot;)
 </code></pre>
 
 <pre><code>## 56 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
 ##              Y
-## X                    s44
-##   (Intercept)  4.4706024
-##   x1          12.6502968
-##   x2           7.6899616
-##   x3          10.2182909
+## X                     s71
+##   (Intercept) -0.07660618
+##   x1           6.97690913
+##   x2           1.51190024
+##   x3           1.92657143
+##   x4           .         
+##   x5           .         
+##   x6           .         
+##   x7           .         
+##   x8           .         
+##   x9           .         
+##   x10          .         
+##   x1:x2       -0.06471414
+##   x1:x3       -0.19559520
+##   x1:x4        .         
+##   x1:x5        .         
+##   x1:x6        .         
+##   x1:x7        .         
+##   x1:x8        .         
+##   x1:x9        .         
+##   x1:x10       .         
+##   x2:x3        0.63248399
+##   x2:x4        .         
+##   x2:x5        .         
+##   x2:x6        .         
+##   x2:x7        .         
+##   x2:x8        .         
+##   x2:x9        .         
+##   x2:x10       .         
+##   x3:x4        .         
+##   x3:x5        .         
+##   x3:x6        .         
+##   x3:x7        .         
+##   x3:x8        .         
+##   x3:x9        .         
+##   x3:x10       .         
+##   x4:x5        .         
+##   x4:x6        .         
+##   x4:x7        .         
+##   x4:x8        .         
+##   x4:x9        .         
+##   x4:x10       .         
+##   x5:x6        .         
+##   x5:x7        .         
+##   x5:x8        .         
+##   x5:x9        .         
+##   x5:x10       .         
+##   x6:x7        .         
+##   x6:x8        .         
+##   x6:x9        .         
+##   x6:x10       .         
+##   x7:x8        .         
+##   x7:x9        .         
+##   x7:x10       .         
+##   x8:x9        .         
+##   x8:x10       .         
+##   x9:x10       .
+</code></pre>
+
+<pre><code class="r">coef(cv.res, s = &quot;lambda.min&quot;)
+</code></pre>
+
+<pre><code>## 56 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##              Y
+## X                    s60
+##   (Intercept) -0.1499439
+##   x1           6.8466272
+##   x2           1.7668964
+##   x3           2.0307660
 ##   x4           .        
 ##   x5           .        
 ##   x6           .        
-##   x7           3.9026677
+##   x7           .        
 ##   x8           .        
 ##   x9           .        
 ##   x10          .        
-##   x1:x2        9.2706249
-##   x1:x3       18.3317082
+##   x1:x2        .        
+##   x1:x3        .        
 ##   x1:x4        .        
 ##   x1:x5        .        
 ##   x1:x6        .        
-##   x1:x7        0.7652197
+##   x1:x7        .        
 ##   x1:x8        .        
 ##   x1:x9        .        
 ##   x1:x10       .        
-##   x2:x3        6.4082682
+##   x2:x3        0.5483146
 ##   x2:x4        .        
 ##   x2:x5        .        
 ##   x2:x6        .        
@@ -317,7 +469,7 @@ names(cv.res)
 ##   x3:x4        .        
 ##   x3:x5        .        
 ##   x3:x6        .        
-##   x3:x7       -2.6885265
+##   x3:x7        .        
 ##   x3:x8        .        
 ##   x3:x9        .        
 ##   x3:x10       .        
@@ -341,70 +493,6 @@ names(cv.res)
 ##   x7:x10       .        
 ##   x8:x9        .        
 ##   x8:x10       .        
-##   x9:x10       .
-</code></pre>
-
-<pre><code class="r">coef(cv.res, s = &quot;lambda.min&quot;)
-</code></pre>
-
-<pre><code>## 56 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
-##              Y
-## X                   s87
-##   (Intercept)  5.190222
-##   x1          13.212962
-##   x2           8.337120
-##   x3           8.926785
-##   x4           .       
-##   x5           .       
-##   x6           .       
-##   x7           .       
-##   x8           .       
-##   x9           .       
-##   x10          1.871489
-##   x1:x2        9.223568
-##   x1:x3       18.409148
-##   x1:x4        .       
-##   x1:x5        .       
-##   x1:x6        .       
-##   x1:x7        .       
-##   x1:x8        .       
-##   x1:x9        .       
-##   x1:x10       5.373335
-##   x2:x3        5.856195
-##   x2:x4        .       
-##   x2:x5        .       
-##   x2:x6        .       
-##   x2:x7        .       
-##   x2:x8        .       
-##   x2:x9        .       
-##   x2:x10      -6.956081
-##   x3:x4        .       
-##   x3:x5        .       
-##   x3:x6        .       
-##   x3:x7        .       
-##   x3:x8        .       
-##   x3:x9        .       
-##   x3:x10       3.012622
-##   x4:x5        .       
-##   x4:x6        .       
-##   x4:x7        .       
-##   x4:x8        .       
-##   x4:x9        .       
-##   x4:x10       .       
-##   x5:x6        .       
-##   x5:x7        .       
-##   x5:x8        .       
-##   x5:x9        .       
-##   x5:x10       .       
-##   x6:x7        .       
-##   x6:x8        .       
-##   x6:x9        .       
-##   x6:x10       .       
-##   x7:x8        .       
-##   x7:x9        .       
-##   x7:x10       .       
-##   x8:x9        .       
-##   x8:x10       .       
 ##   x9:x10       .
 </code></pre></div>
             
