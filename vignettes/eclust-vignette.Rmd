@@ -93,7 +93,7 @@ interaction_names <- grep(":", colnames(X), value = T)
 main_effect_names <- setdiff(colnames(X), interaction_names)
 ```
 
-```{r results='asis', echo=FALSE}
+```{r results='asis', echo=FALSE, eval=FALSE}
 DT::datatable(X)
 ```
 
@@ -111,17 +111,18 @@ library(eclust)
 res <- shim(x = X, y = Y,
             main.effect.names = main_effect_names,
             interaction.names = interaction_names,
-            verbose = FALSE)
+            verbose = TRUE)
 
 names(res)
 coef(res)
+plot(res)
 
 ```
 
 ### Main effect ($\beta$) parameter estimates
 
 
-```{r, results='asis', echo=FALSE}
+```{r, results='asis', echo=FALSE, eval=FALSE}
 DT::datatable(round(as.matrix(res$beta),2), options = list(pageLength = 100))
 ```
 
@@ -129,14 +130,14 @@ DT::datatable(round(as.matrix(res$beta),2), options = list(pageLength = 100))
 ### Interaction effect ($\alpha$) parameter estimates
 
 
-```{r, results='asis', echo=FALSE}
+```{r, results='asis', echo=FALSE, eval=FALSE}
 DT::datatable(round(as.matrix(res$alpha),2), options = list(pageLength = 100))
 ```
 
 
 ### Sequence of Tuning Parameters
 
-```{r, results='asis', echo=FALSE}
+```{r, results='asis', echo=FALSE, eval=FALSE}
 DT::datatable(res$tuning.parameters, options = list(pageLength = 100))
 ```
 
@@ -147,7 +148,7 @@ DT::datatable(res$tuning.parameters, options = list(pageLength = 100))
 ```{r, eval = TRUE}
 
 library(doMC)
-registerDoMC(cores = 3)
+registerDoMC(cores = 4)
 cv.res <- cv.shim(x = X, y = Y,
             main.effect.names = main_effect_names,
             interaction.names = interaction_names,
