@@ -111,12 +111,11 @@ library(eclust)
 res <- shim(x = X, y = Y,
             main.effect.names = main_effect_names,
             interaction.names = interaction_names,
-            verbose = TRUE)
+            verbose = FALSE)
 
 names(res)
-coef(res)
+res
 plot(res)
-
 ```
 
 ### Main effect ($\beta$) parameter estimates
