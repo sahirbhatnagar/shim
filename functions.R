@@ -212,18 +212,26 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
 
 #' Modified version of WGCNA::moduleEigengenes
 #'
-#' @description this function retunrs the PC instead of just the loading
+#' @description this function retunrs the 1st and 2nd PC instead of just the loading
 #' as well as the mean and sd for each module, that will be used in predicting
 #' the PCs for the test data
 #' @rdname clusterSimilarity
-firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 1,
+firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 2,
                     align = "along average", excludeGrey = FALSE,
                     grey = if (is.numeric(colors)) 0 else "grey",
                     subHubs = TRUE, trapErrors = FALSE,
                     returnValidOnly = trapErrors, softPower = 6, scale = TRUE,
                     verbose = 0, indent = 0) {
 
-  # expr = expr; colors = clusters$module; impute = TRUE; nPC = 1; align = "along average";
+
+  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+  # x_train_mod <- x_train %>% as.data.frame
+  # x_test_mod = x_test %>% as.data.frame
+  # gene_groups = result[["clustersAddon"]]
+  # expr = x_train_mod[,gene_groups$gene];
+  # colors = gene_groups$cluster;
+  # exprTest = x_test_mod[,gene_groups$gene]
+  # impute = TRUE; nPC = 1; align = "along average";
   # excludeGrey = FALSE; grey = if (is.numeric(colors)) 0 else "grey";
   # subHubs = TRUE; trapErrors = FALSE; returnValidOnly = trapErrors;
   # softPower = 6; scale = TRUE; verbose = 0; indent = 0;
@@ -265,21 +273,21 @@ firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 1,
                  "and grey module is excluded from the calculation."))
     }
 
-  # these are the loadings aka the first eigenvector for each module
+  # these are the loadings aka the first and second eigenvector for each module
   # length of these vectors will vary depending on the size of the module
-  eigenVectors <- vector("list", length(modlevels))
+  eigenVectors <- vector("list", 2*length(modlevels))
 
   # these are the actual PC's aka the data %*% eigenvector
   # each column will be a n-dimensional vector.. i.e. a value for each person
+  #  this will contain the first 2 PCs for each module
   PC <- data.frame(matrix(NA, nrow = dim(expr)[[1]],
-                          ncol = length(modlevels)))
+                          ncol = 2*length(modlevels)))
 
   PCTest <- data.frame(matrix(NA, nrow = dim(exprTest)[[1]],
-                              ncol = length(modlevels)))
+                              ncol = 2*length(modlevels)))
 
   # list to store prcomp objects
   prcompObj <- vector("list", length(modlevels))
-
 
   # this is the average expression in a module for each subject
   # so this is a n x length(modlevels) matrix
@@ -289,7 +297,7 @@ firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 1,
   averExprTest <- data.frame(matrix(NA, nrow = dim(exprTest)[[1]],
                                     ncol = length(modlevels)))
 
-  varExpl <- vector("double", length(modlevels))
+  varExpl <- vector("double", 2*length(modlevels))
 
   # validMEs = rep(TRUE, length(modlevels))
   # validAEs = rep(FALSE, length(modlevels))
@@ -304,12 +312,12 @@ firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 1,
 
   # names(eigenVectors) = paste(moduleColor.getMEprefix(), modlevels,
   #                          sep = "")
-  names(PC) = paste("pc", modlevels, sep = "")
+  names(PC) = paste(rep(c("pc1","pc2"), length(modlevels)), rep(modlevels, each = 2), sep = "_")
   names(averExpr) = paste("avg", modlevels, sep = "")
-  names(PCTest) = paste("pc", modlevels, sep = "")
+  names(PCTest) = paste(rep(c("pc1","pc2"), length(modlevels)), rep(modlevels, each = 2), sep = "_")
   names(averExprTest) = paste("avg", modlevels, sep = "")
 
-  for (i in c(1:length(modlevels))) {
+  for (i in seq_len(length(modlevels))) {
     #i=1
     if (verbose > 1)
       printFlush(paste(spaces, "moduleEigengenes : Working on ME for module",
@@ -329,24 +337,28 @@ firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 1,
 
     # using prcomp first (need to use untransposed data!)
     prcompObj[[i]] <- prcomp(datModule, center = scale, scale. = scale)
-    #View(stats:::prcomp.default)
+    # plot(prcompObj[[i]])
+    # View(stats:::prcomp.default)
     # prcompObj[[i]]$x %>% dim
     # prcompObj[[i]] %>% names
     # prcompObj[[i]]$rotation %>% dim
 
-    eigenVectors[[i]] <- prcompObj[[i]]$rotation[,1, drop = F]
-
+    eigenVectors[[2*i-1]] <- prcompObj[[i]]$rotation[,1, drop = F]
+    eigenVectors[[2*i]] <- prcompObj[[i]]$rotation[,2, drop = F]
     averExpr[,i] <- rowMeans(datModule, na.rm = TRUE)
     averExprTest[,i] <- rowMeans(datModuleTest, na.rm = TRUE)
 
-    varExpl[[i]] <- factoextra::get_eigenvalue(prcompObj[[i]])[1,"variance.percent"]
+    varExpl[[2*i-1]] <- factoextra::get_eigenvalue(prcompObj[[i]])[1,"variance.percent"]
+    varExpl[[2*i]] <- factoextra::get_eigenvalue(prcompObj[[i]])[2,"variance.percent"]
     # corAve = cor(averExpr[,i], prcompObj[[i]]$rotation[,1],
     #              use = "p")
     # if (!is.finite(corAve)) corAve = 0
     # if (corAve < 0) prcompObj[[i]]$rotation[,1] = -prcompObj[[i]]$rotation[,1]
 
-    PC[, i] <- predict(prcompObj[[i]])[,1]
-    PCTest[, i] <- predict(prcompObj[[i]], newdata = datModuleTest)[,1]
+    PC[, 2*i-1] <- predict(prcompObj[[i]])[,1]
+    PC[, 2*i] <- predict(prcompObj[[i]])[,2]
+    PCTest[, 2*i-1] <- predict(prcompObj[[i]], newdata = datModuleTest)[,1]
+    PCTest[, 2*i] <- predict(prcompObj[[i]], newdata = datModuleTest)[,2]
     # plot(PC[, i], prcompObj[[i]]$x[,1])
     #means[i] <- prcompObj[[i]]$center
     #sds[i] <- prcompObj[[i]]$scale
@@ -1172,12 +1184,12 @@ clust_fun <- function(x_train,
   # result[["clustersAddon"]] %>% print(nrows=Inf)
   # result[["clustersAddon"]][, table(cluster, module)]
   # result %>% names
-  # stability = F; gene_groups = result[["clustersEclust"]];
+  # stability = F; gene_groups = result[["clustersAddon"]];
   # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
   # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
   # filter = F; filter_var = F; include_E = T; include_interaction = T;
   # s0 = result[["S0"]]; p = p ;
-  # model = "shim"; summary = "pc"; topgenes = NULL; clust_type="Eclust"
+  # model = "shim"; summary = "pc"; topgenes = NULL; clust_type="Addon"
 
   clust_type <- match.arg(clust_type)
   summary <- match.arg(summary)
@@ -1248,6 +1260,7 @@ clust_fun <- function(x_train,
         paste0("~0+",paste0(colnames(clust_data), collapse = "+")) %>% as.formula
       }
 
+  # this is the design matrix based on model.formula
   X.model.formula <- model.matrix(model.formula, data = if (include_E) {
     cbind(clust_data,x_train_mod[,"E", drop = F])
     } else clust_data %>% as.data.frame)
@@ -1272,17 +1285,12 @@ clust_fun <- function(x_train,
                               },
                               shim = {
                                 require(doMC)
-                                registerDoMC(cores = 3)
+                                registerDoMC(cores = 4)
                                 cv.shim(x = X.model.formula, y = y_train,
                                         main.effect.names = c(colnames(clust_data), if (include_E) "E"),
                                         interaction.names = setdiff(colnames(X.model.formula),c(colnames(clust_data),"E")),
-                                        max.iter = 100, initialization.type = "univariate",
-                                        verbose = TRUE, threshold = 1e-05,
-                                        nlambda.gamma = 1, nlambda.beta = 100, nlambda = 100,
-                                        lambda.beta = rev(lambda_sequence(x = X.model.formula,
-                                                                          y = y_train,
-                                                                          nlambda = 100)),
-                                        lambda.gamma = rep(1e-10, 100))
+                                        max.iter = 120, initialization.type = "ridge",
+                                        verbose = FALSE, parallel = TRUE, nfolds = 10)
                               })
   # plot(clust_train_model)
 
@@ -1363,6 +1371,8 @@ clust_fun <- function(x_train,
     # need to determine which of non_zero_cluters are main effects and which
     # are interactions
     non_zero_clusters_interactions <- grep(":",non_zero_clusters, value = T)
+
+    # this checks if the environment is non-zero
     non_zero_environment <- grep("^E", non_zero_clusters, value = T,
                                  ignore.case = TRUE)
     non_zero_clusters_main_effects <- setdiff(non_zero_clusters,
@@ -1384,7 +1394,7 @@ clust_fun <- function(x_train,
                                       as.numeric(
                                         unlist(
                                           stringr::str_extract_all(
-                                            non_zero_clusters_main_effects, "\\d+")
+                                            non_zero_clusters_main_effects, "(\\d+)$")
                                           )
                                         ),gene]
 
@@ -1402,7 +1412,8 @@ clust_fun <- function(x_train,
                                                as.numeric(
                                                  unlist(
                                                    stringr::str_extract_all(
-                                                     non_zero_clusters_interactions, "\\d+")
+                                                     stringr::str_extract_all(non_zero_clusters_interactions,"^.*?(?=:)"),
+                                                     "(\\d+)$")
                                                  )
                                                ),gene]
 
@@ -1478,4 +1489,302 @@ clust_fun <- function(x_train,
 }
 
 
+pen_fun <- function(x_train,
+                    x_test,
+                    y_train,
+                    y_test,
+                    s0,
+                    model,
+                    true_beta,
+                    topgenes = NULL,
+                    stability = F,
+                    filter = F,
+                    include_E = F,
+                    include_interaction = F,
+                    p = 1000,
+                    filter_var = F){
 
+  #   stability = F; x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
+  #   y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+  #   filter = F; filter_var = F; include_E = F; include_interaction = F;
+  #   s0 = result[["S0"]]; p = 1000 ;
+  #   model = "scad"; topgenes = NULL; true_beta = result[["beta_truth"]]
+
+  #     stability = F; x_train = result_interaction[["X_train"]] ; x_test = result_interaction[["X_test"]] ;
+  #     y_train = result_interaction[["Y_train"]] ; y_test = result_interaction[["Y_test"]];
+  #     filter = F; filter_var = F; include_E = T; include_interaction = T;
+  #     s0 = result_interaction[["S0"]]; p = 1000 ;
+  #     model = "scad"; topgenes = NULL; true_beta = result_interaction[["beta_truth"]]
+
+  # model: "scad", "mcp", "lasso", "elasticnet", "ridge"
+  # filter: T or F based on univariate filter
+
+  print(paste(model,"filter = ", filter, "filter_var = ",filter_var, "include_E = ", include_E, "include_interaction = ", include_interaction, sep = ","))
+
+  if (include_E == F & include_interaction == T) stop("include_E needs to be
+                                                      TRUE if you want to include
+                                                      interactions")
+  #   if (filter == F & include_interaction == T) stop("Interaction can only be run
+  #                                                      if filter is TRUE.
+  #                                                      This is to avoid exceedingly
+  #                                                      large models")
+  if (is.null(topgenes) & filter == T) stop("Argument topgenes is missing but
+                                            filter is TRUE. You need to provide
+                                            a filtered list of genes if filter
+                                            is TRUE")
+
+  #gene.names <- colnames(x_train)[which(colnames(x_train) %ni% "E")]
+
+  # penalization model
+  pen_model <- switch(model,
+                      lasso = glmnet::cv.glmnet(x = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
+                        as.matrix(x_train), y = y_train, alpha = 1),
+                      elasticnet = glmnet::cv.glmnet(x = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
+                        as.matrix(x_train), y = y_train, alpha = 0.5),
+                      ridge = glmnet::cv.glmnet(x = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
+                        as.matrix(x_train), y = y_train, alpha = 0),
+                      scad = ncvreg::cv.ncvreg(X = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
+                        as.matrix(x_train), y = y_train,
+                        family = "gaussian", penalty = "SCAD"),
+                      mcp = ncvreg::cv.ncvreg(X = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
+                        as.matrix(x_train), y = y_train,
+                        family = "gaussian", penalty = "MCP")
+  )
+
+  # oracle penalization model
+  pen_model_oracle <- switch(model,
+                             lasso = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 1),
+                             elasticnet = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 0.5),
+                             ridge = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 0),
+                             scad = ncvreg::cv.ncvreg(X = x_train[,s0], y = y_train,
+                                                      family = "gaussian", penalty = "SCAD"),
+                             mcp = ncvreg::cv.ncvreg(X = x_train[,s0], y = y_train,
+                                                     family = "gaussian", penalty = "MCP")
+  )
+
+  # here we give the coefficient stability on the individual genes
+  coefs <- coef(pen_model, s = "lambda.min") %>%
+    as.matrix %>%
+    as.data.table(keep.rownames = TRUE) %>%
+    magrittr::set_colnames(c("Gene","coef.est")) %>%
+    magrittr::extract(-1,)
+
+
+  if (stability) {
+    # remove intercept for stability measures
+    return(coefs)
+  } else {
+
+    pen.S.hat <- coefs[coef.est != 0] %>% magrittr::use_series("Gene")
+
+    pen.pred <- if (model %in% c("lasso","elasticnet","ridge")) {
+      predict(pen_model, newx =  if (!include_E) as.matrix(x_test[,-grep("E", colnames(x_test))]) else
+        as.matrix(x_test), s = "lambda.min") } else if (model %in% c("scad","mcp")) {
+          predict(pen_model, X =  if (!include_E) as.matrix(x_test[,-grep("E", colnames(x_test))]) else
+            as.matrix(x_test),
+            lambda = pen_model$lambda.min)
+        }
+
+    pen.pred.oracle <- if (model %in% c("lasso","elasticnet","ridge")) {
+      predict(pen_model_oracle, newx = x_test[,s0], s = "lambda.min") } else if (model %in% c("scad","mcp")) {
+        predict(pen_model_oracle, X = x_test[,s0],
+                lambda = pen_model_oracle$lambda.min)
+      }
+
+    # Mean Squared Error
+    pen.mse <- crossprod(pen.pred - y_test)/length(y_test)
+
+    # Mean Squared Error Oracle
+    pen.mse.oracle <- crossprod(pen.pred.oracle - y_test)/length(y_test)
+
+    # mse.null
+    mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
+
+    # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
+    pen.r2 <- (mse_null - pen.mse)/mse_null
+
+    pen.adj.r2 <- 1 - (1 - pen.r2)*(length(y_test) - 1)/(length(y_test) - length(pen.S.hat) - 1)
+
+    # True Positive Rate
+    pen.TPR <- length(intersect(pen.S.hat, s0))/length(s0)
+
+    # False Positive Rate
+    pen.FPR <- sum(pen.S.hat %ni% s0)/(p - length(s0))
+
+    # model error
+    identical(true_beta %>% rownames(),coefs[["Gene"]])
+    pen.model.error <- {(true_beta - coefs[["coef.est"]]) %>% t} %*% WGCNA::cor(x_test[,coefs[["Gene"]]]) %*% (true_beta - coefs[["coef.est"]])
+
+    ls <- list(pen.mse = as.numeric(pen.mse), pen.r2 = as.numeric(pen.r2),
+               pen.adj.r2 = as.numeric(pen.adj.r2), pen.S.hat = length(pen.S.hat),
+               pen.TPR = pen.TPR, pen.FPR = pen.FPR, pen.relative.mse = pen.mse/pen.mse.oracle, pen.model.error = pen.model.error)
+    names(ls) <- c(paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_relmse"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_modelerror"))
+    return(ls)
+  }
+
+}
+
+group_pen_fun <- function(x_train,
+                          x_test,
+                          y_train,
+                          y_test,
+                          s0,
+                          model,
+                          true_beta,
+                          gene_groups,
+                          topgenes = NULL,
+                          stability = F,
+                          filter = F,
+                          include_E = F,
+                          include_interaction = F,
+                          p = 1000,
+                          filter_var = F){
+
+  #   stability = F; x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
+  #   y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+  #   filter = F; filter_var = F; include_E = F; include_interaction = F;
+  #   s0 = result[["S0"]]; p = 1000 ;
+  #   model = "gglasso"; topgenes = NULL; true_beta = result[["beta_truth"]]
+  #   gene_groups = result[["clusters"]]
+  #
+  #   # interaction
+  #   stability = F; x_train = result_interaction[["X_train"]] ; x_test = result_interaction[["X_test"]] ;
+  #   y_train = result_interaction[["Y_train"]] ; y_test = result_interaction[["Y_test"]];
+  #   filter = F; filter_var = F; include_E = T; include_interaction = T;
+  #   s0 = result_interaction[["S0"]]; p = 1000 ;
+  #   model = "gglasso"; topgenes = NULL; true_beta = result_interaction[["beta_truth"]]
+  #   gene_groups = result_interaction[["gene_groups_inter"]]
+
+  # model: "gglasso"
+  # filter: T or F based on univariate filter
+
+  print(paste(model,"filter = ", filter, "filter_var = ",filter_var, "include_E = ", include_E, "include_interaction = ", include_interaction, sep = ","))
+
+  if (include_E == F & include_interaction == T) stop("include_E needs to be
+                                                      TRUE if you want to include
+                                                      interactions")
+  #   if (filter == F & include_interaction == T) stop("Interaction can only be run
+  #                                                      if filter is TRUE.
+  #                                                      This is to avoid exceedingly
+  #                                                      large models")
+  if (is.null(topgenes) & filter == T) stop("Argument topgenes is missing but
+                                            filter is TRUE. You need to provide
+                                            a filtered list of genes if filter
+                                            is TRUE")
+
+  gene.names <- colnames(x_train)[which(colnames(x_train) %ni% "E")]
+
+  #   cv.glasso <- gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]), y_train, group = gene_groups[cluster != 0]$cluster,
+  #                           loss = "ls")
+  #
+  #   coef.glasso <- coef(cv.glasso, s = "lambda.min") %>% as.data.table(keep.rownames = T)
+  #   setnames(coef.glasso, c("gene","coef"))
+  #   fit.glasso <- predict(cv.glasso, newx = as.matrix(DT.test[,clusters[cluster!=0]$gene]), s = "lambda.min")
+  #
+  #   # Mean Squared Error
+  #   gglasso.mse <- crossprod(fit.glasso - DT.test[,"V1"])/nrow(DT.test)
+  #
+  #   # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
+  #   gglasso.r2 <- (mse.null-gglasso.mse)/mse.null
+
+
+
+  # penalization model
+  grp_pen_model <- switch(model,
+                          gglasso =   if (include_interaction) {
+                            gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]),
+                                                y_train,
+                                                pf = gene_groups %>% distinct(cluster) %>% magrittr::use_series("pf"),
+                                                group = gene_groups[cluster != 0]$cluster,
+                                                loss = "ls")} else {
+                                                  gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]),
+                                                                      y_train,
+                                                                      group = gene_groups[cluster != 0]$cluster,
+                                                                      loss = "ls")
+                                                }
+  )
+
+  # oracle penalization model
+  grp_pen_model_oracle <- switch(model,
+                                 gglasso =  gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0][gene %in% s0]$gene]),
+                                                                y_train,
+                                                                group = factor(gene_groups[cluster != 0][gene %in% s0]$cluster) %>% as.numeric,
+                                                                loss = "ls"))
+
+  # here we give the coefficient stability on the individual genes
+  coefs <- coef(grp_pen_model, s = "lambda.min") %>%
+    as.matrix %>%
+    as.data.table(keep.rownames = TRUE) %>%
+    magrittr::set_colnames(c("Gene","coef.est")) %>%
+    magrittr::extract(-1,)
+
+  if (stability) {
+    return(coefs)
+  } else {
+
+    grp.pen.S.hat <- coefs[Gene != "E"][coef.est != 0] %>% magrittr::use_series("Gene") %>%
+      gsub(":E","",.) %>% unique
+
+    grp.pen.pred <- predict(grp_pen_model, newx = as.matrix(x_test[,gene_groups[cluster !=0 ]$gene]), s = "lambda.min")
+    grp.pen.pred.oracle <- predict(grp_pen_model_oracle, newx = as.matrix(x_test[,s0]), s = "lambda.min")
+    # this is to make sure that the order of coefficients corresponds to that of the test data:
+    # identical(coef(grp_pen_model)[-1,,drop=F] %>% rownames(),gene_groups[cluster !=0 ]$gene )
+
+    # Mean Squared Error
+    grp.pen.mse <- crossprod(grp.pen.pred - y_test)/length(y_test)
+
+    # Mean Squared Error Oracle
+    grp.pen.mse.oracle <- crossprod(grp.pen.pred.oracle - y_test)/length(y_test)
+
+    # mse.null
+    mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
+
+    # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
+    grp.pen.r2 <- (mse_null - grp.pen.mse)/mse_null
+
+    grp.pen.adj.r2 <- 1 - (1 - grp.pen.r2)*(length(y_test) - 1)/(length(y_test) - length(grp.pen.S.hat) - 1)
+
+    # True Positive Rate
+    grp.pen.TPR <- length(intersect(grp.pen.S.hat, s0))/length(s0)
+
+    # False Positive Rate
+    grp.pen.FPR <- sum(grp.pen.S.hat %ni% s0)/(p - length(s0))
+
+    # model error
+    identical(true_beta %>% rownames(),coefs[["Gene"]])
+
+    # this is required to be able to take proper differences between vectors, so we join them first
+    truth <- true_beta %>% as.data.table(keep.rownames = T) %>% magrittr::set_colnames(c("Gene","true_beta")) %>% setkey(Gene)
+    setkey(coefs,Gene)
+
+    tmp <- truth[coefs]
+    tmp[,diff:=true_beta-coef.est]
+
+    grp.pen.model.error <- {(tmp$diff) %>% t} %*% WGCNA::cor(x_test[,tmp[["Gene"]]]) %*% (tmp$diff)
+
+    ls <- list(grp.pen.mse = as.numeric(grp.pen.mse), grp.pen.r2 = as.numeric(grp.pen.r2),
+               grp.pen.adj.r2 = as.numeric(grp.pen.adj.r2), grp.pen.S.hat = length(grp.pen.S.hat),
+               grp.pen.TPR = grp.pen.TPR,
+               grp.pen.FPR = grp.pen.FPR,
+               grp.pen.relative.mse = grp.pen.mse/grp.pen.mse.oracle,
+               #grp.pen.relative.mse = NA,
+               grp.pen.model.error = grp.pen.model.error)
+    names(ls) <- c(paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_mse"),
+                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_r2"),
+                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_relmse"),
+                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_modelerror"))
+    return(ls)
+  }
+
+}

@@ -107,12 +107,12 @@ if(!pckg) {
   require(Matrix)
 }
 
-pckg = try(require(protoclust))
-if(!pckg) {
-  cat("Installing 'protoclust' from CRAN\n")
-  getPckg("protoclust")
-  require(protoclust)
-}
+# pckg = try(require(protoclust))
+# if(!pckg) {
+#   cat("Installing 'protoclust' from CRAN\n")
+#   getPckg("protoclust")
+#   require(protoclust)
+# }
 
 pckg = try(require(stringr))
 if(!pckg) {
@@ -133,5 +133,12 @@ if(!pckg) {
   cat("Installing 'latex2exp' from CRAN\n")
   getPckg("latex2exp")
   require(latex2exp)
+}
+
+pckg = try(require(factoextra))
+if(!pckg) {
+  cat("Installing 'factoextra' from CRAN\n")
+  getPckg("factoextra")
+  require(factoextra)
 }
 
