@@ -4,3 +4,4 @@
 inst/doc
 .nfs*
 eclustRD
+*.Rproj
