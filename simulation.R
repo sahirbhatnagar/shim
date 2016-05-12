@@ -1,13 +1,12 @@
 ##################################
 # R source code file for conducting simulations
-# on Mamouth cluster
-# Git: this is on the eclust repo, sim2-modules-mammouth branch
+# on hydra cluster
+# Git: this is on the eclust repo, sim1-protocol-hydra branch
 # Created by Sahir,  April 2, 2016
 # Updated: May 11, 2016
 # Notes:
-# This is a modified simulation and different from simulation1
-# Its based on code from Network analysis book by Horvath
-# In all fitting models, we are fitting interactions
+# This is the simulation from the protocol except we're only fitting
+# interaction models
 ##################################
 
 # rm(list=ls())
@@ -15,15 +14,19 @@
 # source("functions.R")
 options(digits = 4, scipen=999)
 
-source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/packages.R")
-source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/functions.R")
+# source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/packages.R")
+# source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/functions.R")
+
+source(paste(Sys.getenv("PBS_O_WORKDIR"),"packages.R", sep="/"))
+source(paste(Sys.getenv("PBS_O_WORKDIR"),"functions.R", sep="/"))
 
 parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
                             p = c(500, 1000, 3000),
                             SNR = c(0.2, 0.8),
                             n = c(100,200,400), # this is the total train + test sample size
-                            nActive = c(10, 50, 100), # must be even because its being split among two modules
+                            nActive = c(10, 50, 100), 
                             #n0 = 200,
+                            nBlocks = 5,
                             cluster_distance = c("corr"),
                             Ecluster_distance = c("diffcorr","fisherScore"),
                             rhoOther = 0.6,
@@ -39,10 +42,10 @@ parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
                             method = "complete",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
-parametersDf <- transform(parametersDf, n0 = n/2)
+parametersDf <- transform(parametersDf, n0 = n/2, blockSize = p/nBlocks)
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
-#parameterIndex = 7
+# parameterIndex = 3
 simulationParameters <- parametersDf[parameterIndex,, drop = F]
 
 print(simulationParameters)
@@ -58,6 +61,8 @@ n1 <- n - n0
 cluster_distance <- simulationParameters[,"cluster_distance"]
 Ecluster_distance <- simulationParameters[,"Ecluster_distance"]
 rhoOther <- simulationParameters[,"rhoOther"];
+nBlocks <- simulationParameters[,"nBlocks"];
+blockSize <- simulationParameters[,"blockSize"];
 betaMean <- simulationParameters[,"betaMean"];
 betaE <- simulationParameters[,"betaE"]
 alphaMean <- simulationParameters[,"alphaMean"];
@@ -72,74 +77,25 @@ method <- simulationParameters[,"method"]
 K.max <- simulationParameters[,"K.max"]
 B <- simulationParameters[,"B"]
 
-# in this simulation its blocks 3 and 4 that are important
-d0 <- simModule(n = n0, p = p, rho = c(0,0), exposed = FALSE,
-                modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
-                minCor = 0.4,
-                maxCor = 1,
-                corPower = 0.3,
-                #propNegativeCor = 0.1,
-                backgroundNoise = 0.2,
-                signed = TRUE,
-                leaveOut = 3:4)
 
-d1 <- simModule(n = n1, p = p, rho = c(rho, rho), exposed = TRUE,
-                modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
-                minCor = 0.4,
-                maxCor = 1,
-                corPower = 0.3,
-                #propNegativeCor = 0.1,
-                backgroundNoise = 0.2,
-                signed = TRUE)
-
-# these should be the same. if they arent, its because I removed the red and
-# green modules from the E=0 group
-truemodule0 <- d0$setLabels
-t0 <- table(truemodule0)
-truemodule1 <- d1$setLabels
-t1 <- table(truemodule1)
-table(truemodule0,truemodule1)
-
-# Convert labels to colors for plotting
-moduleColors <- labels2colors(truemodule1)
-table(moduleColors, truemodule1)
-
-X <- rbind(d0$datExpr, d1$datExpr) %>%
-  magrittr::set_colnames(paste0("Gene", 1:p)) %>%
+X <- mapply(generate_blocks,
+            rho_E0 = c(0, rep(rhoOther,nBlocks-1)),
+            rho_E1 = c(rho,  rep(rhoOther,nBlocks-1)),
+            MoreArgs = list(n = n, n0 = n0, block_size = blockSize), SIMPLIFY = F) %>% 
+  do.call(cbind, . ) %>% 
+  magrittr::set_colnames(paste0("Gene", 1:p)) %>% 
   magrittr::set_rownames(paste0("Subject",1:n))
 
-dim(X)
-
-
-# betaMainEffect <- vector("double", length = p)
-# betaMainInteractions <- vector("double", length = p)
-# # first assign random uniform to every gene in cluster 3 and 4,
-# # then randomly remove so that thers only nActive left
-# betaMainEffect[which(truemodule1 %in% 3:4)] <- runif(sum(truemodule1 %in% 3:4),
-#                                                      betaMean - 0.1, betaMean + 0.1)
-#
-# # randomly set some coefficients to 0 so that there are only nActive non zero
-# betaMainEffect <- replace(betaMainEffect,
-#                           sample(which(truemodule1 %in% 3:4), sum(truemodule1 %in% 3:4) - nActive,
-#                                  replace = FALSE), 0)
-#
-# betaMainInteractions[which(betaMainEffect!=0)] <- runif(nActive, alphaMean - 0.1, alphaMean + 0.1)
-#
-# beta <- c(betaMainEffect,
-#           betaE,
-#           betaMainInteractions)
-# plot(beta)
+# pheatmap::pheatmap(cor(X), cluster_rows = FALSE, cluster_cols = FALSE)
+# pheatmap::pheatmap(cor(X[1:50,]), cluster_rows = FALSE, cluster_cols = FALSE)
+# pheatmap::pheatmap(cor(X[51:100,]), cluster_rows = FALSE, cluster_cols = FALSE)
 
 betaMainEffect <- vector("double", length = p)
 betaMainInteractions <- vector("double", length = p)
 
-# the first nActive/2 in the 3rd block are active
-betaMainEffect[which(truemodule1 %in% 3)[1:(nActive/2)]] <- runif(
-  nActive/2, betaMean - 0.1, betaMean + 0.1)
-
-# the first nActive/2 in the 4th block are active
-betaMainEffect[which(truemodule1 %in% 4)[1:(nActive/2)]] <- runif(
-  nActive/2, betaMean - 0.1, betaMean + 0.1)
+# the first nActive in the 1st block are active
+betaMainEffect[1:(nActive)] <- runif(
+  nActive, betaMean - 0.1, betaMean + 0.1)
 
 betaMainInteractions[which(betaMainEffect!=0)] <- runif(nActive, alphaMean - 0.1, alphaMean + 0.1)
 
@@ -547,9 +503,10 @@ final_results <- if (includeStability) {
 final_results %>% t %>% as.data.frame()
 
 
-filename <- tempfile(pattern = paste0(sprintf("%s_%.2f_%1.0f_%.2f_%1.0f_%1.0f",Ecluster_distance,rho,p,SNR, n, nActive),"_"),
-                     #tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"), "simulation1/", sep="/")
-                     tmpdir = "/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/results/")
+filename <- tempfile(pattern = paste0(sprintf("%s_%.2f_%1.0f_%.2f_%1.0f_%1.0f",
+                                              Ecluster_distance,rho,p,SNR, n, nActive),"_"),
+                    tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"), sep="/"))
+                     #tmpdir = "/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/results/")
 write.table(final_results %>% t %>% as.data.frame(),
             file = filename,
             quote = F,
