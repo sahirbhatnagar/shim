@@ -725,7 +725,7 @@ generate_data <- function(p, X, beta,
                                                "fisherScore"),
                           n, n0, include_interaction = F,
                           signal_to_noise_ratio = 1,
-                          EclustAddDistance = c("fisherScore", "corScor"),
+                          EclustAddDistance = c("fisherScore", "corScor", "diffcorr"),
                           clustMethod = c("hclust", "protoclust"),
                           cutMethod = c("dynamic","gap", "fixed"),
                           distanceMethod = c("euclidean","maximum", "manhattan",
@@ -824,7 +824,7 @@ generate_data <- function(p, X, beta,
   corr_train_all <- WGCNA::cor(genes_all)
 
   # corScor and Fisher Score matrices
-  alpha <- 1.5
+  alpha <- 2
   Scorr <- abs(corr_train_e0 + corr_train_e1 - alpha * corr_train_all)
   class(Scorr) <- c("similarity", class(Scorr))
 
@@ -871,7 +871,7 @@ generate_data <- function(p, X, beta,
 
   # results for clustering, PCs and averages for each block
   # the only difference here is the distanceMethod arg
-  res <- if (cluster_distance %in% c("diffcor","difftom",
+  res <- if (cluster_distance %in% c("diffcorr","difftom",
                                      "corScor", "tomScor","fisherScore")) {
     clusterSimilarity(x = similarity,
                       expr = genes_all,
@@ -909,7 +909,7 @@ generate_data <- function(p, X, beta,
                          fisherScore = fisherScore)
 
 
-  resEclust <- if (EclustAddDistance %in% c("diffcor","difftom",
+  resEclust <- if (EclustAddDistance %in% c("diffcorr","difftom",
                                             "corScor", "tomScor","fisherScore")) {
     clusterSimilarity(x = similarityEclust,
                       expr = genes_all,
@@ -1037,7 +1037,7 @@ uniFit <- function(train,
                    include_E = F,
                    include_interaction = F,
                    filter_var = F,
-                   p = 1000,
+                   p,
                    true_beta) {
 
   # train: training data, response column should be called "Y"
@@ -1051,9 +1051,9 @@ uniFit <- function(train,
   # stability: logical indicating if you just need coefficient values
   # for calculating a stability criterion, or if you need all mse, r2, ect.
   # calculations done
-  #         train = result[["DT_train"]] ; test = result[["DT_test"]] ; percent = 0.05 ; stability = F;
-  #         include_E = F; include_interaction = F; filter_var=F; p = 1000; s0 = result[["S0"]]
-  #         true_beta = result[["beta_truth"]]
+          # train = result[["DT_train"]] ; test = result[["DT_test"]] ; percent = 0.05 ; stability = F;
+          # include_E = T; include_interaction = T; filter_var=F; p = 1000; s0 = result[["S0"]]
+          # true_beta = result[["beta_truth"]]
 
   if (include_E == F & include_interaction == T) stop("include_E needs to be T if you want to include interactions")
 
@@ -1075,8 +1075,8 @@ uniFit <- function(train,
   })
 
   rownames(res) <- if (include_interaction) paste0("Gene",1:p,":E") else paste0("Gene",1:p)
-
-  top.percent <- percent*p
+  # nobs <- nrow(train)
+  top.percent <- ceiling(percent*p)
 
   uni.S.hat <- if (filter_var) rownames(res[order(res$sd, decreasing = T)[1:top.percent],]) else rownames(res[order(res$pvalue)[1:top.percent],])
   # extract gene names if there is interaction, else just use gene names. this is for the prediction step below
@@ -1787,4 +1787,52 @@ group_pen_fun <- function(x_train,
     return(ls)
   }
 
+}
+
+
+## ---- summary-se ----
+
+## Summarizes data.
+## Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr)
+  
+  # New version of length which can handle NA's: if na.rm==T, don't count them
+  length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  
+  # This does the summary. For each group's data frame, return a vector with
+  # N, mean, and sd
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm),
+                     lower = quantile(xx[[col]], 0.025,na.rm=na.rm),
+                     upper = quantile(xx[[col]],0.975,na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  
+  # Rename the "mean" column
+  #datac <- rename(datac, c("mean" = measurevar))
+  
+  datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+  
+  # Confidence interval multiplier for standard error
+  # Calculate t-statistic for confidence interval:
+  # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  
+  return(datac)
 }
