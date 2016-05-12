@@ -1,0 +1,17 @@
+#~/bin/bash
+#PBS -m ea
+#PBS -l walltime=10:00:00,mem=2gb
+#PBS -l nodes=1:ppn=1
+#PBS -q qwork
+#PBS -r n
+#PBS -N sim2
+#PBS -t 1-100
+#PBS -o log/
+#PBS -e log/
+#PBS -V
+
+module load bioinformatics/R/3.2.5
+
+SRC=$HOME/coexpression/may2016simulation/sim2-modules-mammouth
+
+Rscript $SRC/simulation.R ${index} $PBS_ARRAYID
