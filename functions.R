@@ -1285,7 +1285,7 @@ clust_fun <- function(x_train,
                               },
                               shim = {
                                 require(doMC)
-                                registerDoMC(cores = 4)
+                                registerDoMC(cores = 1)
                                 cv.shim(x = X.model.formula, y = y_train,
                                         main.effect.names = c(colnames(clust_data), if (include_E) "E"),
                                         interaction.names = setdiff(colnames(X.model.formula),c(colnames(clust_data),"E")),

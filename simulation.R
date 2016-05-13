@@ -43,11 +43,11 @@ parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
 parametersDf <- transform(parametersDf, n0 = n/2)
 nSimScenarios <- nrow(parametersDf)
 
-# 24 cores per node are reserved on mammouth
-# 324 simulation scenarios results in 14 qsubs
+# 23 cores per node are reserved on mammouth
+# 324 simulation scenarios results in 15 qsubs
 # so the first command line argument which is parameterIndex below 
-# should be between 1 and 14 (inclusive) 
-SPLIT <- split(1:nSimScenarios, ceiling(seq_along(1:nSimScenarios)/24))
+# should be between 1 and 15 (inclusive) 
+SPLIT <- split(1:nSimScenarios, ceiling(seq_along(1:nSimScenarios)/23))
 
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
@@ -562,8 +562,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   
   filename <- tempfile(pattern = paste0(sprintf("%s_%.2f_%1.0f_%.2f_%1.0f_%1.0f",Ecluster_distance,rho,p,SNR, n, nActive),"_"),
                        #tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"), "simulation1/", sep="/")
-                       #tmpdir = "/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/results/"
-                       tmpdir = "~/git_repositories/eclust/")
+                       tmpdir = "/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/results/")
+                       #tmpdir = "~/git_repositories/eclust/")
   write.table(final_results %>% t %>% as.data.frame(),
               file = filename,
               quote = F,

@@ -54,6 +54,9 @@ DT.summary <- DT.long %>%
   as.data.table
 
 DT.summary$name %>%  unique
+DT.summary[, table(rho)]
+DT.summary[, table(p)]
+
 
 # levels.name <- c("na_lm",
 #                  "na_ridge", "na_lasso", "na_scad", "na_elasticnet", "na_mcp",
@@ -92,7 +95,7 @@ p %>%
   ggplot(aes(x = Shat, y = TPR, color=method)) +
   geom_point(size=2.5, aes(shape=method)) +
   #geom_rug()+
-  facet_grid(SNR~rho) +
+  facet_grid(p~rho) +
   #facet_grid(name~size+rho)+
   #background_grid(major = "xy", minor = "xy")+
   theme_bw()+
@@ -125,7 +128,7 @@ ggplot(#DT.summary[measure=="mse"][name %in% c("lm", "lasso", "elasticnet", "gro
   xlab("model")+
   ylab("test set mean squared error")+
   #ylab(TeX("average MSE (1000 simulations)"))+
-  facet_grid(SNR~rho, scales="fixed")+
+  facet_grid(p~rho, scales="fixed")+
   theme_bw()+
   theme(legend.position = "top")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
@@ -178,7 +181,7 @@ ggplot(DT.summary[measure=="jacc"],
   xlab("model")+
   ylab("Jaccard index")+
   #ylab(TeX("average MSE (1000 simulations)"))+
-  facet_grid(SNR~rho, scales="fixed")+
+  facet_grid(p~rho, scales="fixed")+
   theme_bw()+
   theme(legend.position = "top")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
@@ -203,7 +206,7 @@ ggplot(DT.summary[measure=="spearman"],
   xlab("model")+
   ylab("Spearman correlation")+
   #ylab(TeX("average MSE (1000 simulations)"))+
-  facet_grid(SNR~rho, scales="fixed")+
+  facet_grid(p~rho, scales="fixed")+
   theme_bw()+
   theme(legend.position = "top")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
