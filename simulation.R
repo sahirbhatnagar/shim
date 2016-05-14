@@ -20,8 +20,8 @@ source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/pack
 source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/functions.R")
 
 parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
-                            p = c(500, 1000, 3000),
-                            SNR = c(0.2, 0.8),
+                            p = c(500, 1000),
+                            SNR = c(1),
                             n = c(100,200,400), # this is the total train + test sample size
                             nActive = c(10, 50, 100), # must be even because its being split among two modules
                             #n0 = 200,
@@ -44,9 +44,9 @@ parametersDf <- transform(parametersDf, n0 = n/2)
 nSimScenarios <- nrow(parametersDf)
 
 # 23 cores per node are reserved on mammouth
-# 324 simulation scenarios results in 15 qsubs
+# 108 simulation scenarios results in 5 qsubs
 # so the first command line argument which is parameterIndex below 
-# should be between 1 and 15 (inclusive) 
+# should be between 1 and 10 (inclusive) 
 SPLIT <- split(1:nSimScenarios, ceiling(seq_along(1:nSimScenarios)/23))
 
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
