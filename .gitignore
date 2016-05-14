@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+inst/doc
+.nfs*
+eclustRD
+*.Rproj
+*.xlsx
+CovariableModified.csv
+IDZPREG*
+WholeGenomeSampleSheet*
+data/*
+
