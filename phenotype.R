@@ -23,7 +23,7 @@
 # get gestational diabetes phenotype..NOTE: the phenotype are the same as bloodcoord, but the sample ID names
 # are different which is why you need to load this one for the code to work
 #DT.pheno.placenta <- fread("/mnt/GREENWOOD_BACKUP/share/PROJECTS/Luigi_Bouchard/Methylation/10-06-2014/placenta/COVARIABLE_DATA/CovariableModified.csv")
-DT.pheno.placenta <- fread("CovariableModified.csv")
+DT.pheno.placenta <- fread("~/Documents/bouchard_data/CovariableModified.csv")
 set(DT.pheno.placenta,i = NULL, j = "ID", value = paste(DT.pheno.placenta[["Sentrix_ID"]], DT.pheno.placenta[["Sentrix_Position"]], sep = "_"))
 
 setkey(DT.pheno.placenta,ID)
@@ -89,7 +89,7 @@ DT.pheno.placenta[is.na(ZScoreBMI)]
 # DT.pheno.cordblood[is.na(ZScoreBMI)]
 
 # DT.pheno.new <- as.data.table(readxl::read_excel("/mnt/GREENWOOD_BACKUP/share/PROJECTS/Luigi_Bouchard/Methylation/10-06-2014/placenta/COVARIABLE_DATA/phénotypes enfants 5 ans ZPREG.xlsx"))
-DT.pheno.new <- as.data.table(readxl::read_excel("phenotypes enfants 5 ans ZPREG.xlsx"))
+DT.pheno.new <- as.data.table(readxl::read_excel("~/Documents/bouchard_data/phenotypes enfants 5 ans ZPREG.xlsx"))
 DT.pheno.new <- DT.pheno.new[!is.na(ID_zpreg)]
 DT.pheno.new[,str(ID_zpreg)]
 setkey(DT.pheno.new, ID_zpreg)
@@ -118,12 +118,12 @@ key(DT.pheno.placenta)
 #setwd("~/share/greenwood.group/PROJECTS/Luigi_Bouchard/Expression")
 
 # DT.cov <- fread("/mnt/GREENWOOD_BACKUP/share/PROJECTS/Luigi_Bouchard/Expression/WholeGenomeSampleSheet lBouchard001modified.csv")
-DT.cov <- fread("WholeGenomeSampleSheet lBouchard001modified.csv")
+DT.cov <- fread("~/Documents/bouchard_data/WholeGenomeSampleSheet lBouchard001modified.csv")
 DT.cov[,IDNEW := paste(Sentrix_ID,Sentrix_Position,sep="_")]
 setkey(DT.cov, Sample_Name)
 
 # DT.id <- fread("/mnt/GREENWOOD_BACKUP/share/PROJECTS/Luigi_Bouchard/Expression/IDZPREG_EXPRESSION.csv")
-DT.id <- fread("IDZPREG_EXPRESSION.csv")
+DT.id <- fread("~/Documents/bouchard_data/IDZPREG_EXPRESSION.csv")
 setkey(DT.id,IDZPREG)
 
 DT.temp <- DT.id[DT.pheno.placenta]

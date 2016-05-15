@@ -24,7 +24,8 @@ hm450 = FDb.InfiniumMethylation.hg19::get450k()
 # DT.raw.cord[, "6229050136_R06C02" := NULL,]
 
 # load("/mnt/GREENWOOD_BACKUP/share/PROJECTS/Luigi_Bouchard/Methylation/10-06-2014/placenta/FILTERED_DATA/matrix_filter1.RData")
-load("data/methylation/placenta/matrix_filter1.RData")
+load("~/Documents/bouchard_data/methylation/placenta/matrix_filter1.RData")
+
 DT.raw.placenta <- as.data.table(filtered_matrix, keep.rownames = TRUE)
 # Remove 61F_Rep replicated subject
 DT.raw.placenta[,"5975819046_R06C02" := NULL, ]

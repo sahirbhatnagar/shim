@@ -18,18 +18,44 @@ source("data_cleaning.R")
 
 
 ## ---- corScor ----
-require(doMC)
-registerDoMC(cores = 3)
-cor_scor_placenta <- bigcorPar(data.all = t(DT.placenta.all[1:10000,]),
-                               data.e0 = t(DT.placenta.ngd[1:10000,]),
-                               data.e1 = t(DT.placenta.gd[1:10000,]),
-                               alpha = 2, threshold = 1, nblocks = 100,
-                               ncore = 3)
+# require(doMC)
+# registerDoMC(cores = 3)
+# cor_scor_placenta <- bigcorPar(data.all = t(DT.placenta.all),
+#                                data.e0 = t(DT.placenta.ngd),
+#                                data.e1 = t(DT.placenta.gd),
+#                                alpha = 2, threshold = 1.5, nblocks = 1000,
+#                                ncore = 3)
+# save(cor_scor_placenta, file = "cor_scor_placenta.RData")
+# I saved the results of the above calculation in a RData file
+load("cor_scor_placenta.RData")
 
-cor_scor_placenta$score %>% as.numeric %>% hist
-
+cor_scor_placenta$score %>% hist
 probes_placenta <- unique(c(cor_scor_placenta$gene1, cor_scor_placenta$gene2))
 
+
+corr_all <- DT.placenta.all[probes_placenta,] %>% t %>% cor
+class(corr_all) <- c("correlation", class(corr_all))
+png("plots/corr_all.png")
+plot(corr_all)
+dev.off()
+
+corr_gd <- DT.placenta.gd[probes_placenta,] %>% t %>% cor
+class(corr_gd) <- c("correlation", class(corr_gd))
+png("plots/corr_gd.png")
+plot(corr_gd)
+dev.off()
+
+corr_ngd <- DT.placenta.ngd[probes_placenta,] %>% t %>% cor
+class(corr_ngd) <- c("correlation", class(corr_ngd))
+png("plots/corr_ngd.png")
+plot(corr_ngd)
+dev.off()
+
+
+corScor_filtered <- abs(corr_gd + corr_ngd - 2*corr_all)
+png("plots/corr_scor_filtered.png")
+plot(corScor_filtered)
+dev.off()
 
 ## ---- list-of-cg-sites ----
 

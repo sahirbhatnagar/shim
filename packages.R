@@ -178,3 +178,17 @@ if(!pckg) {
   getPckg("bit64")
   require(bit64)
 }
+
+pckg = try(require(pheatmap))
+if(!pckg) {
+  cat("Installing 'pheatmap' from CRAN\n")
+  getPckg("pheatmap")
+  require(pheatmap)
+}
+
+pckg = try(require(viridis))
+if(!pckg) {
+  cat("Installing 'viridis' from CRAN\n")
+  getPckg("viridis")
+  require(viridis)
+}

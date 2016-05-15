@@ -1898,5 +1898,90 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 2, threshold = 1,
 
 
 
+#' Calculate Fisher's Z test for correlations
+fisherZBig <- function(data.all, data.e0, data.e1, n0, n1, threshold = 1, 
+                       nblocks = 100, ncore=2, ...) {
+  
+  # n0 = 8;
+  # n1 = 20;
+  # dim(DT.placenta.all)
+  # alpha = 2; threshold = 3
+  # nblocks = 100; ncore=2
+  # # rows are people, columns are probes
+  # data.all = t(DT.placenta.all[1:1000,])
+  # data.e0 = t(DT.placenta.ngd[1:1000,])
+  # data.e1 = t(DT.placenta.gd[1:1000,])
+  
+  NCOL <- ncol(data.all)
+  
+  SPLIT <- split(1:NCOL, ceiling(seq_along(1:NCOL)/nblocks))
+  
+  ## create all unique combinations of blocks
+  COMBS <- expand.grid(1:length(SPLIT), 1:length(SPLIT))
+  COMBS <- t(apply(COMBS, 1, sort))
+  COMBS <- unique(COMBS)
+  
+  # registerDoMC(cores = 3)
+  res <- foreach(i = seq_len(nrow(COMBS)), .combine = rbind) %dopar% {
+    
+    #i=1
+    COMB <- COMBS[i, ]
+    G1 <- SPLIT[[COMB[1]]]
+    G2 <- SPLIT[[COMB[2]]]
+    
+    cor0 <- WGCNA::corFast(data.e0[, G1], data.e0[, G2])
+    cor1 <- WGCNA::corFast(data.e1[, G1], data.e1[, G2])
+
+    # by default this doesnt include the diagonal
+    # this collapses the correlation matrix by columns    
+    ccc0 <- as.vector(cor0[lower.tri(cor0)])
+    ccc1 <- as.vector(cor1[lower.tri(cor1)])
+    
+    p <- nrow(cor1)
+    
+    # number of Z statistics to calculate (p choose 2)
+    geneNames <- rownames(cor1)
+    
+    zstat <- fisherTransform(n0, ccc0, n1, ccc1)$diff
+    
+    # convert vector to symmetric matrix
+    zMat <- diag(p)
+    zMat[lower.tri(zMat)] <- zstat
+    zMat <- zMat + t(zMat) - diag(diag(zMat))
+    dimnames(zMat) <- list(geneNames,geneNames)
+    class(zMat) <- c("correlation", class(zMat))
+    
+    arr <- which(zMat > threshold, arr.ind = T)
+    
+    as.data.table(data.frame(cbind("score" = zMat[arr] ,
+                                   "gene1" = dimnames(zMat[arr[,1],arr[,2], drop = F])[[1]],
+                                   "gene2" = dimnames(zMat[arr[,1],arr[,2], drop = F])[[2]]),
+                             stringsAsFactors = FALSE))
+    
+  }
+  
+  return(res)
+  
+}
+
+
+
+
+
+
+plot.correlation <- function(x,
+                             color = viridis(100),...){
+  pheatmap(x,
+           show_rownames = F, show_colnames = F,
+           color = color,
+           # annotation_col = annotation_col,
+           # annotation_row = annotation_col,
+           # annotation_colors = ann_colors,
+           annotation_names_row = FALSE,
+           annotation_names_col = FALSE,
+           drop_levels = FALSE,
+           annotation_legend = FALSE, ...)
+}
+
 
 
