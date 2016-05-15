@@ -1,15 +1,16 @@
 #!/bin/bash
-#PBS -l nodes=5:ppn=20
-#PBS -l walltime=7:00:00
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=10:00:00
+#PBS -q qwork
 #PBS -o log/
 #PBS -e log/
 #PBS -N sim1
 #PBS -m ea
-#PBS -t 1-100
+#PBS -t 1-25
+#PBS -V
 
-cd $PBS_O_WORKDIR
+module load bioinformatics/R/3.2.5
 
-SRC=$PBS_O_WORKDIR
+SRC=$HOME/coexpression/may2016simulation/sim1-protocol-mammouth
 
-
-Rscript ${SRC}/simulation.R ${index} $PBS_ARRAYID
+Rscript $SRC/simulation.R ${index} $PBS_ARRAYID
