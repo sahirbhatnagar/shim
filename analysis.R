@@ -20,8 +20,10 @@ col.names <- as.character(fread("colnames", header = F))
 # DT <- fread(paste(Sys.getenv("HOME"),"eclust/simulation/simulation1", sep = "/"), stringsAsFactors = FALSE) %>%
 #   setnames(col.names)
 
-DT <- fread("sim2", stringsAsFactors = FALSE) %>%
+DT <- fread("sim1-results", stringsAsFactors = FALSE) %>%
   setnames(col.names)
+
+DT
 
 DT[, `:=`(simulation = 1:nrow(DT))]
 
@@ -29,7 +31,7 @@ DT[, `:=`(simulation = 1:nrow(DT))]
 # this still has all the raw data, but melted
 options(warning.length = 8170)
 DT.long <- DT %>%
-  reshape2::melt(id.vars = c("simulation",colnames(DT)[1:20])) %>%
+  reshape2::melt(id.vars = c("simulation",colnames(DT)[1:22])) %>%
   tidyr::separate(variable, c("method", "summary", "model", "interaction", "measure"), convert = T) %>%
   as.data.table
 
@@ -48,7 +50,7 @@ DT.long[, `:=`(method = factor(method, levels = levels))]
 DT.summary <- DT.long %>%
   tidyr::unite(name, summary, model) %>%
   summarySE(measurevar = "value", 
-            groupvars = c("rho","p","SNR","n","nActive","Ecluster_distance",
+            groupvars = c("rho","p","n","nActive","Ecluster_distance","blockSize",
                           "measure","method","name"), 
             na.rm = TRUE) %>%
   as.data.table
@@ -92,7 +94,7 @@ p %>%
   ggplot(aes(x = Shat, y = TPR, color=method)) +
   geom_point(size=2.5, aes(shape=method)) +
   #geom_rug()+
-  facet_grid(SNR~rho) +
+  facet_grid(nActive~rho) +
   #facet_grid(name~size+rho)+
   #background_grid(major = "xy", minor = "xy")+
   theme_bw()+
@@ -125,7 +127,7 @@ ggplot(#DT.summary[measure=="mse"][name %in% c("lm", "lasso", "elasticnet", "gro
   xlab("model")+
   ylab("test set mean squared error")+
   #ylab(TeX("average MSE (1000 simulations)"))+
-  facet_grid(SNR~rho, scales="fixed")+
+  facet_grid(nActive~n, scales="fixed")+
   theme_bw()+
   theme(legend.position = "top")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
