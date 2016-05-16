@@ -100,6 +100,22 @@ cor_scor_placenta <- fisherZBig(data.all = t(DT.placenta.all),
                                threshold = 5, nblocks = 1000,
                                ncore = 3)
 
+
+# K-Filter ----------------------------------------------------------------
+
+
+source("https://raw.githubusercontent.com/sahirbhatnagar/eclust/master/k_filter.R")
+
+obj <- k.filter(x=t(DT.placenta.all[1:10000,]),
+                y=DT.pheno.placenta$`imc z-score`)
+
+order(obj$k.rank)[1:5]
+
+dat <- data.frame(x=t(DT.placenta.all[order(obj$k.rank)[1:5],,drop=F]), y=DT.pheno.placenta$`imc z-score`)
+
+lm(y ~ ., dat) %>% summary()
+                
+
 ## ---- rand-Index ----
 
 

@@ -80,3 +80,24 @@ dim(DT.placenta.all)
 dimnames(DT.placenta.all)[[1]] <- DT.placenta$rn
 
 rm(filtered_matrix, DT.raw.placenta)
+
+setkey(DT.pheno.placenta, NULL)
+setkey(DT.pheno.placenta, i.ID)
+
+dim(DT.placenta)
+
+# only keep the phenotypes for who we have methylation data
+DT.pheno.placenta <- DT.pheno.placenta[match(dimnames(DT.placenta.all)[[2]],DT.pheno.placenta$i.ID)]
+
+
+DT.placenta.all_datatable <- as.data.table(DT.placenta.all)
+# reorder columns of methylation data to match the ordering of the phenotype data
+data.table::setcolorder(DT.placenta.all_datatable, DT.pheno.placenta$i.ID)
+dim(DT.placenta.all_datatable)
+
+# check that ordering is correct
+colnames(DT.placenta.all_datatable)==DT.pheno.placenta$i.ID
+
+# convert back to matrix
+DT.placenta.all <- as.matrix(DT.placenta.all_datatable)
+
