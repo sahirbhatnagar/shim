@@ -192,3 +192,10 @@ if(!pckg) {
   getPckg("viridis")
   require(viridis)
 }
+
+pckg = try(require(R.matlab))
+if(!pckg) {
+  cat("Installing 'R.matlab' from CRAN\n")
+  getPckg("R.matlab")
+  require(R.matlab)
+}
