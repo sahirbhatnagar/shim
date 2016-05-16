@@ -11,7 +11,7 @@
 # source("/mnt/GREENWOOD_BACKUP/share/sy/bouchard/cca/scripts/multiplot.R")
 # source("/mnt/GREENWOOD_BACKUP/share/sy/interactions/coexpression/bouchard/bigcorPar.R")
 
-hm450 = FDb.InfiniumMethylation.hg19::get450k()
+hm450 <- FDb.InfiniumMethylation.hg19::get450k()
 
 # load("/mnt/GREENWOOD_BACKUP/share/PROJECTS/Luigi_Bouchard/Methylation/10-06-2014/bloodcord/FILTERED_DATA/matrix_filter1.RData")
 # load("~/Documents/methylation_bouchard/bloodcord/matrix_filter1.RData")
@@ -41,13 +41,6 @@ DT.raw.placenta[, "sd_methylation" := rowSds(DT.raw.placenta[,which(colnames(DT.
 # annotated dataset
 DT.placenta <- cg.annotate(DT.raw.placenta[mean_methylation>=0.1 & mean_methylation <= 0.9])
 
-# DT.cord <- cg.annotate(DT.raw.cord[mean_methylation>=0.1 & mean_methylation <= 0.9])
-
-# # for celia
-# write.table(DT.raw.placenta$sd_methylation, file = "sd_placenta.txt", quote = F, row.names = F, col.names = F)
-# write.table(DT.raw.cord$sd_methylation, file = "sd_cord.txt", quote = F, row.names = F, col.names = F)
-# g <- fread("sd_cord.txt")
-
 # load phenotype
 source("phenotype.R")
 
@@ -57,47 +50,47 @@ GD <- DT.pheno.placenta[!is.na(`imc z-score`)][case == "DG"]$i.ID
 # ID of non-GD cases
 NGD <- DT.pheno.placenta[!is.na(`imc z-score`)][case == "NGT"]$i.ID
 
-
 GD %in% colnames(DT.placenta) %>% sum
 NGD %in% colnames(DT.placenta) %>% sum
 
-
 str(DT.pheno.placenta)
 
+# rows are probes, columns are people
+placentaGD <- DT.placenta[,colnames(DT.placenta) %in% GD, with = F] %>% as.matrix()
+dim(placentaGD)
+dimnames(placentaGD)[[1]] <- DT.placenta$rn
 
-#DT.placenta.gd <- DT.placenta[sd_methylation > quantile(DT.raw.placenta$sd_methylation,probs = c(0.4))][,colnames(DT.placenta) %in% GD, with = F] %>% as.matrix()
+# rows are probes, columns are people
+placentaNGD <- DT.placenta[,colnames(DT.placenta) %in% NGD, with = F] %>% as.matrix()
+dim(placentaNGD)
+dimnames(placentaNGD)[[1]] <- DT.placenta$rn
 
-DT.placenta.gd <- DT.placenta[,colnames(DT.placenta) %in% GD, with = F] %>% as.matrix()
-dim(DT.placenta.gd)
-dimnames(DT.placenta.gd)[[1]] <- DT.placenta$rn
-
-DT.placenta.ngd <- DT.placenta[,colnames(DT.placenta) %in% NGD, with = F] %>% as.matrix()
-dim(DT.placenta.ngd)
-dimnames(DT.placenta.ngd)[[1]] <- DT.placenta$rn
-
-DT.placenta.all <- DT.placenta[,colnames(DT.placenta) %in% c(GD,NGD), with = F] %>% as.matrix()
-dim(DT.placenta.all)
-dimnames(DT.placenta.all)[[1]] <- DT.placenta$rn
+# rows are probes, columns are people
+placentaALL <- DT.placenta[,colnames(DT.placenta) %in% c(GD,NGD), with = F] %>% as.matrix()
+dim(placentaALL)
+dimnames(placentaALL)[[1]] <- DT.placenta$rn
 
 rm(filtered_matrix, DT.raw.placenta)
 
 setkey(DT.pheno.placenta, NULL)
 setkey(DT.pheno.placenta, i.ID)
 
-dim(DT.placenta)
 
 # only keep the phenotypes for who we have methylation data
-DT.pheno.placenta <- DT.pheno.placenta[match(dimnames(DT.placenta.all)[[2]],DT.pheno.placenta$i.ID)]
+DT.pheno.placenta <- DT.pheno.placenta[match(dimnames(placentaALL)[[2]],DT.pheno.placenta$i.ID)]
 
+DT.placentaALL <- as.data.table(placentaALL)
 
-DT.placenta.all_datatable <- as.data.table(DT.placenta.all)
 # reorder columns of methylation data to match the ordering of the phenotype data
-data.table::setcolorder(DT.placenta.all_datatable, DT.pheno.placenta$i.ID)
-dim(DT.placenta.all_datatable)
+data.table::setcolorder(DT.placentaALL, DT.pheno.placenta$i.ID)
+dim(DT.placentaALL)
 
 # check that ordering is correct
-colnames(DT.placenta.all_datatable)==DT.pheno.placenta$i.ID
+colnames(DT.placentaALL)==DT.pheno.placenta$i.ID
 
-# convert back to matrix
-DT.placenta.all <- as.matrix(DT.placenta.all_datatable)
+# convert to matrix
+placentaALL <- as.matrix(DT.placentaALL)
+
+
+
 
