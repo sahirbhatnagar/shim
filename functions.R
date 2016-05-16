@@ -1839,78 +1839,21 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
 
 
 
-#doMC::registerDoMC(cores = 3)
 
-bigcorPar <- function(data.all, data.e0, data.e1, alpha = 2, threshold = 1, 
-                      nblocks = 100, ncore=2, ...){
-  
-  # dim(DT.placenta.all)
-  # alpha = 2; threshold = 1
-  # nblocks = 100; ncore=2
-  # # rows are people, columns are probes
-  # data.all = t(DT.placenta.all[1:10000,])
-  # data.e0 = t(DT.placenta.ngd[1:10000,])
-  # data.e1 = t(DT.placenta.gd[1:10000,])
-
-  NCOL <- ncol(data.all)
-  
-  SPLIT <- split(1:NCOL, ceiling(seq_along(1:NCOL)/nblocks))
-  
-  ## create all unique combinations of blocks
-  COMBS <- expand.grid(1:length(SPLIT), 1:length(SPLIT))
-  COMBS <- t(apply(COMBS, 1, sort))
-  COMBS <- unique(COMBS)
-  
-  ## iterate through each block combination, calculate correlation matrix
-  ## between blocks and store them in the preallocated matrix on both
-  ## symmetric sides of the diagonal
-  res <- foreach(i = seq_len(nrow(COMBS)), .combine = rbind) %dopar% {
-    
-    #i=1
-    COMB <- COMBS[i, ]
-    G1 <- SPLIT[[COMB[1]]]
-    G2 <- SPLIT[[COMB[2]]]
-    
-    rho.all <- tril(WGCNA::corFast(data.all[, G1], data.all[, G2]), k = -1)
-    rho.gd <- tril(WGCNA::corFast(data.e1[, G1], data.e1[, G2]),  k = -1)
-    rho.ngd <- tril(WGCNA::corFast(data.e0[, G1], data.e0[, G2]), k = -1)
-    
-    S <- abs(rho.gd + rho.ngd - alpha * rho.all)
-    arr <- which(S > threshold, arr.ind = T)
-
-    
-    as.data.table(data.frame(cbind("score" = S[arr] ,
-                                               "gene1" = dimnames(rho.all[arr[,1],arr[,2], drop = F])[[1]],
-                                               "gene2" = dimnames(rho.all[arr[,1],arr[,2], drop = F])[[2]]),
-                                         stringsAsFactors = FALSE))
-    
-    # write.table(as.data.table(data.frame(cbind("score" = S[arr] , 
-    #                                            "gene1" = dimnames(rho.all[arr[,1],arr[,2], drop = F])[[1]],
-    #                                            "gene2" = dimnames(rho.all[arr[,1],arr[,2], drop = F])[[2]]),
-    #                                      stringsAsFactors = FALSE)), 
-    #             file = tempfile(tmpdir = "corScore"), 
-    #             quote = F, row.names = F)
-    # gc()
-  }
-  
-  return(res)
-}
-
-
-
+# registerDoMC(cores = 2)
 #' Calculate Fisher's Z test for correlations
-fisherZBig <- function(data.all, data.e0, data.e1, n0, n1, threshold = 1, 
+fisherZBig <- function(data.all, data.e0, data.e1, n0, n1, threshold = 5, 
                        nblocks = 100, ncore=2, ...) {
   
   # n0 = 8;
   # n1 = 20;
   # dim(DT.placenta.all)
-  # alpha = 2; threshold = 3
-  # nblocks = 100; ncore=2
+  # alpha = 2; threshold = 4
+  # nblocks = 100; ncore=3
   # # rows are people, columns are probes
-  # data.all = t(DT.placenta.all[1:1000,])
-  # data.e0 = t(DT.placenta.ngd[1:1000,])
-  # data.e1 = t(DT.placenta.gd[1:1000,])
+  # data.all = t(DT.placenta.all[1:10000,])
+  # data.e0 = t(DT.placenta.ngd[1:10000,])
+  # data.e1 = t(DT.placenta.gd[1:10000,])
   
   NCOL <- ncol(data.all)
   
@@ -1951,7 +1894,7 @@ fisherZBig <- function(data.all, data.e0, data.e1, n0, n1, threshold = 1,
     dimnames(zMat) <- list(geneNames,geneNames)
     class(zMat) <- c("correlation", class(zMat))
     
-    arr <- which(zMat > threshold, arr.ind = T)
+    arr <- which(abs(zMat) > threshold, arr.ind = T)
     
     as.data.table(data.frame(cbind("score" = zMat[arr] ,
                                    "gene1" = dimnames(zMat[arr[,1],arr[,2], drop = F])[[1]],

@@ -86,6 +86,20 @@ write.table(DT.placenta[,c("rn","nearestGeneSymbol","CHR" ), with=F],
             file = "probes_placenta_used_in_correlations.txt",
             quote=F, row.names = F)
 
+
+
+
+# Fisher ------------------------------------------------------------------
+
+require(doMC)
+registerDoMC(cores = 3)
+cor_scor_placenta <- fisherZBig(data.all = t(DT.placenta.all),
+                               data.e0 = t(DT.placenta.ngd),
+                               data.e1 = t(DT.placenta.gd),
+                               n0 = 8, n1 = 20,
+                               threshold = 5, nblocks = 1000,
+                               ncore = 3)
+
 ## ---- rand-Index ----
 
 
