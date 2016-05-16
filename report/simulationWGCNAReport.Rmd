@@ -1,0 +1,120 @@
+---
+title: Simulation study April 8
+output:
+  html_document:
+    fig_height: 8
+    fig_width: 11
+    code_folding: hide
+    toc: false
+    toc_float: true
+---
+
+
+```{r setup, echo=FALSE,warning=FALSE,message=FALSE,cache=FALSE, results='hide'}
+options(width=60, digits=2)
+set.seed(45)
+library(knitr)
+options(decorate.contr.Treatment = "")
+opts_chunk$set(echo = FALSE, tidy = TRUE, cache = FALSE, warning = FALSE, 
+               message = FALSE)
+opts_template$set(
+    fig.large = list(fig.width = 7, fig.height = 5, fig.align = 'center', 
+                     fig.pos = 'H'),
+    fig.small = list(fig.width = 6, fig.height = 4, fig.align = 'center', 
+                     fig.pos = 'H'),
+    fig.full = list(fig.width = 11, fig.height = 8, fig.align = 'center', 
+                    fig.pos = 'H')
+)
+# for captions to be evaluated after R objects are available 
+opts_knit$set(eval.after = 'fig.cap') 
+knitr::read_chunk("~/git_repositories/eclust/report/simulationWGCNAReport.R")
+#knitr::read_chunk(paste(Sys.getenv("HOME"), "eclust/bin/simulation/simDataWGCNA.R", sep = "/"))
+library(knitr)
+library(data.table)
+library(magrittr)
+library(viridis)
+library(pheatmap)
+library(WGCNA)
+```
+
+
+```{r functions}
+```
+
+```{r data}
+```
+
+
+
+## Heatmaps of Correlations {.tabset}
+ 
+
+###  All
+
+```{r heat-corr-all}
+```
+
+
+###  E=0
+
+```{r heat-corr-e0}
+```
+
+
+###  E=1
+
+```{r heat-corr-e1}
+```
+
+
+###  E=1 - E=0
+
+```{r heat-corr-diff}
+```
+
+### $S = |\rho_{E=0} + \rho_{E=1} - 1.5 \rho|$
+
+```{r cor-scor}
+```
+
+
+### Fisher's Z Statistic
+
+```{r fishers-zstat}
+```
+
+
+ 
+## Heatmaps of TOM {.tabset}
+ 
+
+###  All
+
+```{r heat-tom-all}
+```
+
+
+###  E=0
+
+```{r heat-tom-e0}
+```
+
+
+###  E=1
+
+```{r heat-tom-e1}
+```
+
+
+###  E=1 - E=0
+
+```{r heat-tom-diff}
+```
+ 
+ 
+###  $S = |TOM_{E=0} + TOM_{E=1} - 1.5 TOM|$ 
+
+```{r cor-scor-tom}
+```
+ 
+ 
