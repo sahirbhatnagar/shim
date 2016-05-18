@@ -4,14 +4,15 @@
 # Created by Sahir, May 11, 2016
 # Updated:
 ##################################
-
+rm(list = ls())
+source("packages.R")
+source("functions.R")
 # note that some of the stability measures are NA in the Eclust, because both mclusters got 0 coefficients, therefore
 # the intersect and union command give NAs
 ## ---- data ----
-#rm(list = ls())
+
 #source(paste(Sys.getenv("HOME"),"eclust/bin/simulation/sim_functions.R", sep = "/"))
-# source("packages.R")
-# source("functions.R")
+
 
 # this contains all the simulation results
 #col.names <- as.character(fread(paste(Sys.getenv("HOME"),"eclust/bin/simulation/colnames", sep = "/"), header = F))
@@ -21,6 +22,9 @@ col.names <- as.character(fread("~/git_repositories/eclust/colnames", header = F
 #   setnames(col.names)
 
 DT <- fread("~/git_repositories/eclust/sim2-results", stringsAsFactors = FALSE) %>%
+  setnames(col.names)
+
+DT <- fread("~/git_repositories/eclust/sim2-results-v2", stringsAsFactors = FALSE) %>%
   setnames(col.names)
 
 DT[, `:=`(simulation = 1:nrow(DT))]
@@ -54,7 +58,10 @@ DT.summary <- DT.long %>%
 DT.summary$name %>%  unique
 DT.summary[, table(rho)]
 DT.summary[, table(p)]
-
+DT.summary[, table(n)]
+DT.summary[, table(nActive)]
+DT.summary[, table(Ecluster_distance)]
+DT.summary[, table(SNR)]
 
 levels.name <- c("na_lm", "na_elasticnet", "na_lasso","avg_elasticnet",
                  "avg_lasso", "avg_shim","pc_elasticnet",
@@ -79,7 +86,7 @@ p %>%
   ggplot(aes(x = Shat, y = TPR, color=method)) +
   geom_point(size=2.5, aes(shape=method)) +
   #geom_rug()+
-  facet_grid(p~rho) +
+  facet_grid(nActive+SNR~rho) +
   #facet_grid(name~size+rho)+
   #background_grid(major = "xy", minor = "xy")+
   theme_bw()+
@@ -104,7 +111,7 @@ pd <- position_dodge(width = 0.7) # move them .05 to the left and right
 
 
 ggplot(#DT.summary[measure=="mse"][name %in% c("lm", "lasso", "elasticnet", "group lasso", "avg_lasso","avg_shim")][rho %in% c(0.10,0.35)],
-  DT.summary[measure=="mse"],
+  DT.summary[measure=="mse"][nActive==20],
   aes(x = name, y = mean, colour = method)) +
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.3,size=1, position=pd) +
   geom_point(position=pd, size=3)+
@@ -112,7 +119,7 @@ ggplot(#DT.summary[measure=="mse"][name %in% c("lm", "lasso", "elasticnet", "gro
   xlab("model")+
   ylab("test set mean squared error")+
   #ylab(TeX("average MSE (1000 simulations)"))+
-  facet_grid(p~rho, scales="fixed")+
+  facet_grid(nActive~rho, scales="fixed")+
   theme_bw()+
   theme(legend.position = "top")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
