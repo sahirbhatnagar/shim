@@ -725,7 +725,8 @@ generate_data <- function(p, X, beta,
                                                "fisherScore"),
                           n, n0, include_interaction = F,
                           signal_to_noise_ratio = 1,
-                          EclustAddDistance = c("fisherScore", "corScor", "diffcorr"),
+                          EclustAddDistance = c("fisherScore", "corScor", "diffcorr",
+                                                "difftom"),
                           clustMethod = c("hclust", "protoclust"),
                           cutMethod = c("dynamic","gap", "fixed"),
                           distanceMethod = c("euclidean","maximum", "manhattan",
@@ -806,23 +807,30 @@ generate_data <- function(p, X, beta,
   # gene expression data
   genes_all_test <- DT_test[,paste0("Gene",1:p)] %>% as.matrix
 
-  # tom_train_e0 <- WGCNA::TOMsimilarityFromExpr(genes_e0, corType = "pearson",
-  #                                              power = 6, networkType = "signed",
-  #                                              TOMType = "signed")
-  # tom_train_e1 <- WGCNA::TOMsimilarityFromExpr(genes_e1, corType = "pearson",
-  #                                              power = 6, networkType = "signed",
-  #                                              TOMType = "signed")
-  # tom_train_diff <- abs(tom_train_e0 - tom_train_e1)
-  # tom_train_all <- WGCNA::TOMsimilarityFromExpr(genes_all,
-  #                                               corType = "pearson", power = 6,
-  #                                               networkType = "signed",
-  #                                               TOMType = "signed")
-
   corr_train_e0 <- WGCNA::cor(genes_e0)
   corr_train_e1 <- WGCNA::cor(genes_e1)
   corr_train_diff <- abs(corr_train_e1 - corr_train_e0)
   corr_train_all <- WGCNA::cor(genes_all)
 
+  tom_train_e0 <- WGCNA::TOMsimilarityFromExpr(genes_e0)
+  dimnames(tom_train_e0)[[1]] <- dimnames(corr_train_all)[[1]]
+  dimnames(tom_train_e0)[[2]] <- dimnames(corr_train_all)[[2]]
+  
+  tom_train_e1 <- WGCNA::TOMsimilarityFromExpr(genes_e1)
+  dimnames(tom_train_e1)[[1]] <- dimnames(corr_train_all)[[1]]
+  dimnames(tom_train_e1)[[2]] <- dimnames(corr_train_all)[[2]]
+  
+  tom_train_diff <- abs(tom_train_e1 - tom_train_e0)
+  dimnames(tom_train_diff)[[1]] <- dimnames(corr_train_all)[[1]]
+  dimnames(tom_train_diff)[[2]] <- dimnames(corr_train_all)[[2]]
+  
+  tom_train_all <- WGCNA::TOMsimilarityFromExpr(genes_all)
+  dimnames(tom_train_all)[[1]] <- dimnames(corr_train_all)[[1]]
+  dimnames(tom_train_all)[[2]] <- dimnames(corr_train_all)[[2]]
+
+  
+  
+  
   # corScor and Fisher Score matrices
   alpha <- 2
   Scorr <- abs(corr_train_e0 + corr_train_e1 - alpha * corr_train_all)
@@ -1013,8 +1021,8 @@ generate_data <- function(p, X, beta,
                  clustersEclust = clustersEclust,
                  gene_groups_inter = if (include_interaction) gene_groups_inter else NULL,
                  gene_groups_inter_Addon = if (include_interaction) gene_groups_inter_Addon else NULL,
-                 # tom_train_all = tom_train_all, tom_train_diff = tom_train_diff,
-                 # tom_train_e1 = tom_train_e1,tom_train_e0 = tom_train_e0,
+                 tom_train_all = tom_train_all, tom_train_diff = tom_train_diff,
+                 tom_train_e1 = tom_train_e1,tom_train_e0 = tom_train_e0,
                  corr_train_all = corr_train_all,
                  corr_train_diff = corr_train_diff,
                  corr_train_e1 = corr_train_e1, corr_train_e0 = corr_train_e0,

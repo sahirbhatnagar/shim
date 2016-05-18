@@ -21,16 +21,15 @@ source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/func
 
 parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
                             p = c(1000),
-                            SNR = c(0.5, 2),
+                            SNR = c(1),
                             n = c(400), # this is the total train + test sample size
-                            nActive = c(20,50,100), # must be even because its being split among two modules
+                            nActive = c(100), # must be even because its being split among two modules
                             #n0 = 200,
-                            cluster_distance = c("corr"),
-                            Ecluster_distance = c("fisherScore"),
+                            cluster_distance = c("tom"),
+                            Ecluster_distance = c("difftom"),
                             rhoOther = 0.6,
-                            betaMean = 4,
-                            betaE = 5,
-                            alphaMean = 2,
+                            betaMean = c(0.1,0.5,1,2),
+                            betaE = 1,
                             includeInteraction = TRUE,
                             includeStability = TRUE,
                             distanceMethod = "euclidean",
@@ -40,7 +39,7 @@ parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
                             method = "average",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
-parametersDf <- transform(parametersDf, n0 = n/2)
+parametersDf <- transform(parametersDf, n0 = n/2, alphaMean = betaMean/2)
 nSimScenarios <- nrow(parametersDf)
 
 # 23 cores per node are reserved on mammouth
@@ -56,6 +55,7 @@ parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 simScenarioIndices <- SPLIT[[parameterIndex]]
 
 FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
+  # INDEX=1
   simulationParameters <- parametersDf[INDEX,, drop = F]
   
   print(simulationParameters)
@@ -94,7 +94,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                   #propNegativeCor = 0.1,
                   backgroundNoise = 0.2,
                   signed = TRUE,
-                  leaveOut = 3:4)
+                  leaveOut = 1:4)
   
   d1 <- simModule(n = n1, p = p, rho = c(rho, rho), exposed = TRUE,
                   modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
@@ -560,7 +560,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   final_results %>% t %>% as.data.frame()
   
   
-  filename <- tempfile(pattern = paste0(sprintf("%s_%.2f_%1.0f_%.2f_%1.0f_%1.0f",Ecluster_distance,rho,p,SNR, n, nActive),"_"),
+  filename <- tempfile(pattern = paste0(sprintf("%s_%.2f_%1.0f_%.2f_%1.0f_%1.0f_%.2f",Ecluster_distance,rho,p,SNR, n, nActive, betaMean),"_"),
                        #tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"), "simulation1/", sep="/")
                        tmpdir = "/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/results/")
                        #tmpdir = "~/git_repositories/eclust/")
