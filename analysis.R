@@ -8,19 +8,19 @@
 # note that some of the stability measures are NA in the Eclust, because both mclusters got 0 coefficients, therefore
 # the intersect and union command give NAs
 ## ---- data ----
-rm(list = ls())
+#rm(list = ls())
 #source(paste(Sys.getenv("HOME"),"eclust/bin/simulation/sim_functions.R", sep = "/"))
-source("packages.R")
-source("functions.R")
+# source("packages.R")
+# source("functions.R")
 
 # this contains all the simulation results
 #col.names <- as.character(fread(paste(Sys.getenv("HOME"),"eclust/bin/simulation/colnames", sep = "/"), header = F))
-col.names <- as.character(fread("colnames", header = F))
+col.names <- as.character(fread("~/git_repositories/eclust/colnames", header = F))
 
 # DT <- fread(paste(Sys.getenv("HOME"),"eclust/simulation/simulation1", sep = "/"), stringsAsFactors = FALSE) %>%
 #   setnames(col.names)
 
-DT <- fread("sim2", stringsAsFactors = FALSE) %>%
+DT <- fread("~/git_repositories/eclust/sim2-results", stringsAsFactors = FALSE) %>%
   setnames(col.names)
 
 DT[, `:=`(simulation = 1:nrow(DT))]
@@ -37,8 +37,6 @@ DT.long$method %>% table
 DT.long$model %>% table
 DT.long$summary %>% table
 
-# levels <- c("uni", "pen", "group", "clust",
-#             "Eclust")
 levels <- c("uni", "pen", "clust", "Eclust")
 
 DT.long[, `:=`(method = factor(method, levels = levels))]
@@ -58,28 +56,14 @@ DT.summary[, table(rho)]
 DT.summary[, table(p)]
 
 
-# levels.name <- c("na_lm",
-#                  "na_ridge", "na_lasso", "na_scad", "na_elasticnet", "na_mcp",
-#                  "na_gglasso",
-#                  "avg_lm", "avg_lasso", "avg_elasticnet",
-#                  "pc_lm", "pc_lasso", "pc_elasticnet",
-#                  "spc_lm", "spc_lasso", "spc_elasticnet")
-
 levels.name <- c("na_lm", "na_elasticnet", "na_lasso","avg_elasticnet",
                  "avg_lasso", "avg_shim","pc_elasticnet",
                  "pc_lasso", "pc_shim")
 
-
-# labels.name <- c("lm",
-#                  "ridge", "lasso", "scad", "elasticnet", "mcp",
-#                  "group lasso",
-#                  "avg_lm", "avg_lasso", "avg_elasticnet",
-#                  "pc_lm", "pc_lasso", "pc_elasticnet",
-#                  "spc_lm", "spc_lasso", "spc_elasticnet")
-
 labels.name <- c("lm", "elasticnet", "lasso","avg_elasticnet",
                  "avg_lasso", "avg_shim","pc_elasticnet",
                  "pc_lasso", "pc_shim")
+
 DT.summary[,`:=`(name = factor(name, levels = levels.name, labels = labels.name))]
 
 DT.summary$name %>% table

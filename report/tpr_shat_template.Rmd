@@ -1,0 +1,47 @@
+<!--** Sample Size = {{n}}, Number of Active Predictors = {{nActive}}**-->
+
+
+```{r {{n}}-{{nActive}}-{{eclust_distance}}, opts.label = 'fig.full', eval=FALSE}
+global_labeller <- labeller(
+  .default = label_both
+)
+
+tp[n=={{n}}][nActive=={{nActive}}][Ecluster_distance %in% deparse(substitute({{eclust_distance}}))] %>%
+ ggplot(aes(x = Shat, y = TPR, color=method)) +
+  geom_point(size=1.5, aes(shape=method)) +
+  facet_grid(n+p~rho+nActive, labeller = global_labeller) +
+  theme_bw()+
+  ylab("true positive rate")+
+  xlab("number of non-zero estimated coefficients")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=13),
+        axis.text.y  = element_text(size=13),
+        axis.title.x = element_text(face="bold", colour="#990000", size=15),
+        axis.title.y = element_text(face="bold", colour="#990000", size=15),
+        title = element_text(size=13),legend.text = element_text(colour="blue", size = 14),
+        strip.text = element_text(size=11))+
+  theme(legend.key.width=unit(1, "inches"))+
+  theme(legend.position = "top")
+```
+
+```{r TPR-{{eclust_distance}}, opts.label = 'fig.full', eval=TRUE}
+global_labeller <- labeller(
+  .default = label_both
+)
+
+tp[Ecluster_distance %in% deparse(substitute({{eclust_distance}}))] %>%
+ ggplot(aes(x = Shat, y = TPR, color=method)) +
+  geom_point(size=1.5, aes(shape=method)) +
+  facet_grid(n+p~rho+nActive, labeller = global_labeller) +
+  theme_bw()+
+  ylab("true positive rate") +
+  xlim(c(0,2000)) + 
+  xlab("number of non-zero estimated coefficients")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=13),
+        axis.text.y  = element_text(size=13),
+        axis.title.x = element_text(face="bold", colour="#990000", size=15),
+        axis.title.y = element_text(face="bold", colour="#990000", size=15),
+        title = element_text(size=13),legend.text = element_text(colour="blue", size = 14),
+        strip.text = element_text(size=11))+
+  theme(legend.key.width=unit(1, "inches"))+
+  theme(legend.position = "top")
+```

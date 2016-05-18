@@ -488,8 +488,8 @@ clusterSimilarity <- function(x,
                                   hc,
                                   distM = as.matrix(distance),
                                   #cutHeight = 0.995,
-                                  deepSplit = 1,
-                                  pamRespectsDendro = FALSE,
+                                  deepSplit = 0,
+                                  pamRespectsDendro = T,
                                   minClusterSize = 20)
                               } else {
                                 hcMod <- hc
@@ -498,8 +498,8 @@ clusterSimilarity <- function(x,
                                   hcMod,
                                   distM = as.matrix(distance),
                                   #cutHeight = 0.995,
-                                  deepSplit = 1,
-                                  pamRespectsDendro = FALSE,
+                                  deepSplit = 0,
+                                  pamRespectsDendro = T,
                                   minClusterSize = 20)
                               }
                             },
@@ -1285,7 +1285,7 @@ clust_fun <- function(x_train,
                               },
                               shim = {
                                 require(doMC)
-                                registerDoMC(cores = 1)
+                                registerDoMC(cores = 4)
                                 cv.shim(x = X.model.formula, y = y_train,
                                         main.effect.names = c(colnames(clust_data), if (include_E) "E"),
                                         interaction.names = setdiff(colnames(X.model.formula),c(colnames(clust_data),"E")),
@@ -1839,6 +1839,108 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
 
 
 
+#' Simulate data with differential correlation depending on a binary environment
+#' variable
+#' 
+#' @description Generate gene expression data for a block of genes for n
+#' subjects. The data is generated depending on the binary environment variable
+#' E. The data is generated such that the first n0 rows are subjects who have E
+#' = 0, and the next n-n0 rows are subjects with E = 1
+#' @name simulated_data
+NULL
+#' 
+#' @return simulated gene expression data 
+#' 
+#' @param block_size the number of genes in this block
+#' @param rho_E0 correlation between -1 and 1 of the genes in the block for 
+#' subjects with E = 0
+#' @param rho_E1 correlation between -1 and 1 of the genes in the block for 
+#' subjects with E = 1
+#' @param beta true beta coefficient vector of length 2p+1 if \code{include_interaction} is TRUE. 
+#' Must be ordered in this way: first the coefficients for Gene1, Gene2, ..., Genep, E, Gene1:E, 
+#' Gene2:E, ..., Genep:E. If \code{include_interaction} is FALSE should be vector of length p.
+#' @param n total number of subjects
+#' @param n0 number of subjects with E = 0
+#' @param genes gene expression data matrix where rows are subjects and columns 
+#' are genes. Rownames should be "Subject1", "Subject2", ... and colnames should
+#' be "Gene1", "Gene2",... This information is used for annotation heatmaps.
+#' @param signal_to_noise_ratio signal to noise ratio see ESL book for details
+#' @param include_interaction logical indicating if youre doing an analysis with interactions
+#' this will affect all downstream analysis
+#' @param E numeric vector for environment status of subjects in \code{genes} 
+#' data. Should be 0 for E=0 and 1 for E=1.
+#' @note to simulate data using you need to first run the \code{generate_blocks} function
+#' to create the \code{genes} and then subsequently pass this to the \code{sim_data} function.
+#' \code{sim_data} 
+#' @rdname simulated_data
+#' @export
 
+generate_blocks <- function(block_size, rho_E0, rho_E1, n, n0) {
+  #rho_E0 = -0.55; rho_E1 = 0.75 ; n = 200; n0 = 100 ; block_size = 100
+  
+  t_E0 <- replicate(block_size, rnorm(n0, sd = 1 - abs(rho_E0))) 
+  z_E0 <- replicate(1, rnorm(n0, sd = abs(rho_E0)))  
+  
+  # this returns an n0 x block_size matrix (subjects are rows, columns are genes)
+  # of gene expression
+  genes0 <- lapply(1:ncol(t_E0), function(i) { 
+    if (rho_E0 < 0) {
+      if (i <= block_size/2) t_E0[,i] + z_E0 else t_E0[,i] - z_E0   
+    } else {
+      t_E0[,i] + z_E0
+    }
+  }
+  ) %>% 
+    do.call(cbind, .)
+  
+  #   genes0 %>% dim
+  #   
+  #   genes0 %>% cor %>%  pheatmap::pheatmap(cluster_rows = F,
+  #                                          cluster_cols = F,
+  #                                          show_colnames = F,
+  #                                          show_rownames = F)
+  #   genes0 %>%
+  #     magrittr::set_colnames(paste0("Gene", 1:100)) %>% 
+  #     magrittr::set_rownames(paste0("Subject",1:100)) %>% 
+  #     pheatmap::pheatmap(cluster_rows = F,
+  #                       cluster_cols = F,
+  #                       show_colnames = T,
+  #                       show_rownames = T,
+  #                       color = colorRampPalette((brewer.pal(n = 7, name =
+  #                                                                 "Reds")))(100))
+  
+  t_E1 <- replicate(block_size, rnorm(n - n0, sd = 1 - abs(rho_E1))) 
+  z_E1 <- replicate(1, rnorm(n - n0, sd = abs(rho_E1)))  
+  
+  # this returns an n-n0 x block_size matrix (subjects are rows, columns are genes)
+  # of gene expression
+  genes1 <- lapply(1:ncol(t_E1), function(i) { 
+    if (rho_E1 < 0) {
+      if (i <= block_size/2) t_E1[,i] + z_E1 else t_E1[,i] - z_E1   
+    } else {
+      t_E1[,i] + z_E1
+    }
+  }
+  ) %>% 
+    do.call(cbind, .)
+  
+  #   genes1 %>% cor %>%  pheatmap::pheatmap(cluster_rows = F,
+  #                                          cluster_cols = F,
+  #                                          show_colnames = F,
+  #                                          show_rownames = F)
+  #   
+  #   genes1 %>%
+  #     magrittr::set_colnames(paste0("Gene", 1:100)) %>% 
+  #     magrittr::set_rownames(paste0("Subject",101:200)) %>% 
+  #     pheatmap::pheatmap(cluster_rows = F,
+  #                        cluster_cols = F,
+  #                        show_colnames = T,
+  #                        show_rownames = T,
+  #                        color = colorRampPalette(brewer.pal(n = 7, name =
+  #                                                               "Reds"))(100))
+  
+  return(rbind(genes0,genes1))
+  
+}
 
 

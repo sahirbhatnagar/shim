@@ -137,34 +137,34 @@ class(corrX1) <- c("similarity",class(corrX1))
 diffCorr <- abs(corrX1-corrX0)
 class(diffCorr) <- c("similarity",class(diffCorr))
 
-TOMX <- TOMsimilarityFromExpr(X)
-class(TOMX) <- c("similarity",class(TOMX))
-dimnames(TOMX)[[1]] <- dimnames(corrX)[[1]]
-dimnames(TOMX)[[2]] <- dimnames(corrX)[[2]]
+# TOMX <- TOMsimilarityFromExpr(X)
+# class(TOMX) <- c("similarity",class(TOMX))
+# dimnames(TOMX)[[1]] <- dimnames(corrX)[[1]]
+# dimnames(TOMX)[[2]] <- dimnames(corrX)[[2]]
+# 
+# TOMX0 <- TOMsimilarityFromExpr(X0)
+# class(TOMX0) <- c("similarity",class(TOMX0))
+# dimnames(TOMX0)[[1]] <- dimnames(corrX)[[1]]
+# dimnames(TOMX0)[[2]] <- dimnames(corrX)[[2]]
+# 
+# TOMX1 <- TOMsimilarityFromExpr(X1)
+# class(TOMX1) <- c("similarity",class(TOMX1))
+# dimnames(TOMX1)[[1]] <- dimnames(corrX)[[1]]
+# dimnames(TOMX1)[[2]] <- dimnames(corrX)[[2]]
+# 
+# 
+# diffTOM <- abs(TOMX1 - TOMX0)
+# class(diffTOM) <- c("similarity",class(diffTOM))
+# dimnames(diffTOM)[[1]] <- dimnames(corrX)[[1]]
+# dimnames(diffTOM)[[2]] <- dimnames(corrX)[[2]]
 
-TOMX0 <- TOMsimilarityFromExpr(X0)
-class(TOMX0) <- c("similarity",class(TOMX0))
-dimnames(TOMX0)[[1]] <- dimnames(corrX)[[1]]
-dimnames(TOMX0)[[2]] <- dimnames(corrX)[[2]]
 
-TOMX1 <- TOMsimilarityFromExpr(X1)
-class(TOMX1) <- c("similarity",class(TOMX1))
-dimnames(TOMX1)[[1]] <- dimnames(corrX)[[1]]
-dimnames(TOMX1)[[2]] <- dimnames(corrX)[[2]]
-
-
-diffTOM <- abs(TOMX1 - TOMX0)
-class(diffTOM) <- c("similarity",class(diffTOM))
-dimnames(diffTOM)[[1]] <- dimnames(corrX)[[1]]
-dimnames(diffTOM)[[2]] <- dimnames(corrX)[[2]]
-
-
-alpha <- 1.5
+alpha <- 2
 Scorr <- abs(corrX0 + corrX1 - alpha * corrX)
 class(Scorr) <- c("similarity", class(Scorr))
 
-Stom <- abs(TOMX0 + TOMX1 - alpha * TOMX)
-class(Stom) <- c("similarity", class(Stom))
+# Stom <- abs(TOMX0 + TOMX1 - alpha * TOMX)
+# class(Stom) <- c("similarity", class(Stom))
 
 fisherScore <- fisherZ(n0 = n0,corrX0, n1 = n1, corrX1)
 

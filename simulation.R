@@ -20,13 +20,13 @@ source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/pack
 source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/functions.R")
 
 parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
-                            p = c(500, 1000),
-                            SNR = c(1),
-                            n = c(100,200,400), # this is the total train + test sample size
-                            nActive = c(10, 50, 100), # must be even because its being split among two modules
+                            p = c(1000),
+                            SNR = c(0.5, 2),
+                            n = c(400), # this is the total train + test sample size
+                            nActive = c(20,50,100), # must be even because its being split among two modules
                             #n0 = 200,
                             cluster_distance = c("corr"),
-                            Ecluster_distance = c("diffcorr","fisherScore"),
+                            Ecluster_distance = c("fisherScore"),
                             rhoOther = 0.6,
                             betaMean = 4,
                             betaE = 5,
@@ -37,7 +37,7 @@ parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
                             clustMethod = "hclust",
                             #cutMethod = "gap",
                             cutMethod = "dynamic",
-                            method = "complete",
+                            method = "average",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
 parametersDf <- transform(parametersDf, n0 = n/2)
