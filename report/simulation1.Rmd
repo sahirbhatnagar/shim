@@ -1,0 +1,506 @@
+---
+title: Simulation study 1 - May 17, 2016
+output:
+  html_document:
+    fig_height: 8
+    fig_width: 11
+    code_folding: hide
+    toc: false
+    toc_float: false
+---
+
+
+```{r setup, echo=FALSE,warning=FALSE,message=FALSE,cache=FALSE, results='hide'}
+options(width=60, digits=2)
+#set.seed(45)
+library(knitr)
+options(decorate.contr.Treatment = "")
+opts_chunk$set(echo = FALSE, tidy = TRUE, cache = FALSE, warning = FALSE, 
+               message = FALSE)
+opts_template$set(
+    fig.large = list(fig.width = 7, fig.height = 5, fig.align = 'center', 
+                     fig.pos = 'H'),
+    fig.small = list(fig.width = 6, fig.height = 4, fig.align = 'center', 
+                     fig.pos = 'H'),
+    fig.full = list(fig.width = 11, fig.height = 8, fig.align = 'center', 
+                    fig.pos = 'H')
+)
+# for captions to be evaluated after R objects are available 
+opts_knit$set(eval.after = 'fig.cap') 
+#knitr::read_chunk("~/git_repositories/eclust/report/simulationWGCNAReport.R")
+knitr::read_chunk("~/git_repositories/eclust/analysis.R")
+#knitr::read_chunk(paste(Sys.getenv("HOME"), "eclust/bin/simulation/simDataWGCNA.R", sep = "/"))
+```
+
+```{r functions-packages, results='hide', message=FALSE, warning=FALSE}
+source("~/git_repositories/eclust/functions.R")
+source("~/git_repositories/eclust/packages.R")
+```
+
+```{r data, results='hide', message=FALSE}
+
+```
+
+```{r correlation-data-example}
+parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
+                            p = c(500, 1000),
+                            SNR = c(1),
+                            n = c(100,200,400), # this is the total train + test sample size
+                            nActive = c(10, 50, 100), 
+                            #n0 = 200,
+                            nBlocks = 5,
+                            cluster_distance = c("corr"),
+                            Ecluster_distance = c("diffcorr","fisherScore"),
+                            rhoOther = 0.6,
+                            betaMean = 4,
+                            betaE = 5,
+                            alphaMean = 2,
+                            includeInteraction = TRUE,
+                            includeStability = TRUE,
+                            distanceMethod = "euclidean",
+                            clustMethod = "hclust",
+                            #cutMethod = "gap",
+                            cutMethod = "dynamic",
+                            method = "average",
+                            K.max = 10, B = 5, stringsAsFactors = FALSE)
+
+parametersDf <- transform(parametersDf, n0 = n/2, blockSize = p/nBlocks)
+nSimScenarios <- nrow(parametersDf)
+parameterIndex <- 3
+
+simulationParameters <- parametersDf[parameterIndex,, drop = F]
+
+p <- simulationParameters[,"p"];
+n <- simulationParameters[,"n"];
+n0 <- simulationParameters[,"n0"];
+SNR <- simulationParameters[,"SNR"]
+n1 <- n - n0
+cluster_distance <- simulationParameters[,"cluster_distance"]
+Ecluster_distance <- simulationParameters[,"Ecluster_distance"]
+rhoOther <- simulationParameters[,"rhoOther"];
+nBlocks <- simulationParameters[,"nBlocks"];
+blockSize <- simulationParameters[,"blockSize"];
+betaMean <- simulationParameters[,"betaMean"];
+betaE <- simulationParameters[,"betaE"]
+alphaMean <- simulationParameters[,"alphaMean"];
+rho <- simulationParameters[,"rho"];
+nActive <- simulationParameters[,"nActive"];
+includeInteraction <- simulationParameters[,"includeInteraction"]
+includeStability <- simulationParameters[,"includeStability"]
+distanceMethod <- simulationParameters[,"distanceMethod"]
+clustMethod <- simulationParameters[,"clustMethod"]
+cutMethod <- simulationParameters[,"cutMethod"]
+method <- simulationParameters[,"method"]
+K.max <- simulationParameters[,"K.max"]
+B <- simulationParameters[,"B"]
+
+X <- mapply(generate_blocks,
+            rho_E0 = c(0, rep(rhoOther,nBlocks-1)),
+            rho_E1 = c(rho,  rep(rhoOther,nBlocks-1)),
+            MoreArgs = list(n = n, n0 = n0, block_size = blockSize), SIMPLIFY = F) %>% 
+  do.call(cbind, . ) %>% 
+  magrittr::set_colnames(paste0("Gene", 1:p)) %>% 
+  magrittr::set_rownames(paste0("Subject",1:n))
+
+betaMainEffect <- vector("double", length = p)
+betaMainInteractions <- vector("double", length = p)
+
+# the first nActive in the 1st block are active
+betaMainEffect[1:(nActive)] <- runif(
+  nActive, betaMean - 0.1, betaMean + 0.1)
+
+betaMainInteractions[which(betaMainEffect!=0)] <- runif(nActive, alphaMean - 0.1, alphaMean + 0.1)
+
+beta <- c(betaMainEffect,
+          betaE,
+          betaMainInteractions)
+
+result <- generate_data(p = p, n = n, n0 = n0, X = X,
+                        beta = beta, include_interaction = includeInteraction,
+                        cluster_distance = cluster_distance,
+                        EclustAddDistance = Ecluster_distance,
+                        signal_to_noise_ratio = SNR,
+                        distanceMethod = distanceMethod,
+                        clustMethod = clustMethod,
+                        cutMethod = cutMethod,
+                        method = method,
+                        K.max = K.max, B = B)
+```
+
+
+## Heatmaps of Correlations {.tabset}
+ 
+
+###  All
+
+```{r heat-corr-all}
+pheatmap(result$corr_train_all,
+         show_rownames = F, show_colnames = F,
+         clustering_method = "average",
+         color = viridis(100),
+         annotation_names_row = FALSE,
+         annotation_names_col = FALSE,
+         drop_levels = FALSE,
+         annotation_legend = FALSE)
+```
+
+
+###  E=0
+
+```{r heat-corr-e0}
+pheatmap(result$corr_train_e0,
+         show_rownames = F, show_colnames = F,
+         clustering_method = "average",
+         color = viridis(100),
+         annotation_names_row = FALSE,
+         annotation_names_col = FALSE,
+         drop_levels = FALSE,
+         annotation_legend = FALSE)
+```
+
+
+###  E=1
+
+```{r heat-corr-e1}
+pheatmap(result$corr_train_e1,
+         show_rownames = F, show_colnames = F,
+         clustering_method = "average",
+         color = viridis(100),
+         annotation_names_row = FALSE,
+         annotation_names_col = FALSE,
+         drop_levels = FALSE,
+         annotation_legend = FALSE)
+```
+
+
+###  E=1 - E=0
+
+```{r heat-corr-diff}
+pheatmap(result$corr_train_diff,
+         show_rownames = F, show_colnames = F,
+         clustering_method = "average",
+         color = viridis(100),
+         annotation_names_row = FALSE,
+         annotation_names_col = FALSE,
+         drop_levels = FALSE,
+         annotation_legend = FALSE)
+```
+
+### $S = |\rho_{E=0} + \rho_{E=1} - 2 \rho|$
+
+```{r cor-scor}
+pheatmap(result$corScor,
+         show_rownames = F, show_colnames = F,
+         clustering_method = "average",
+         color = viridis(100),
+         annotation_names_row = FALSE,
+         annotation_names_col = FALSE,
+         drop_levels = FALSE,
+         annotation_legend = FALSE)
+```
+
+
+### Fisher's Z Statistic
+
+```{r fishers-zstat}
+pheatmap(result$fisherScore,
+         show_rownames = F, show_colnames = F,
+         clustering_method = "average",
+         color = viridis(100),
+         annotation_names_row = FALSE,
+         annotation_names_col = FALSE,
+         drop_levels = FALSE,
+         annotation_legend = FALSE)
+```
+
+
+ 
+# Simulation Scenario 1
+
+This is similar to the one presented in the protocol. We restrict ourselves to only fitting interaction models. The Eclust method is now an addon method in the sense that it also contains the clusters derived from the correlation matrix without considering the environment. We use the first 2 PC's when summarizing a cluster, and fit the model that contains both PCs as well as their interactions with E. 
+
+We vary the:
+
+1. correlation parameter of the first block of genes for the exposed subject (`rho`)
+2. the number of variables (`p`)
+3. the sample size (`n`)
+4. the number of active main effect genes (`nActive`), note that if the main effect is nonzero then it's interaction is automatically also included as associated with the response
+5. The matrix used to create environment clusters (`Ecluster_distance`)
+
+We generate original predictors $X_j, j=1, \ldots, p$ from a multivariate normal distribution. The correlation between predictors has a block diagonal structure such that within a block, the correlation between $X_j$ and $X_{j'}$ is $\rho_E$ for $j \neq j'$, where $\rho_E$ depends on exposure status. Let $Y^* = \beta_E E + \sum_j \beta_j X_j + \alpha_{jE} X_j E$. We generate a continuous response $Y = Y^* + k \cdot \varepsilon$ where the error term $\varepsilon$ is generated from a standard normal distribution, and $k$ is chosen such that the signal-to-noise ratio $\left(Var(Y^*)/Var(\varepsilon)\right)$ is 1. Currently, only the differentially correlated block contains the active set.
+
+Recall that the method is the general approach (univariate, penalization, clustering then regression, or environment clustering). The model is what was used to get the coefficient estimates (linear model, lasso, shim which is the strong heredity interaction model). For example, you will notice in the MSE plot, `avg_shim` has two error bars. One corresponds to using average clusters as predictors, and the other corresponds to using average environment clusters as predictors. 
+
+1. `rho`: the correlation for the exposed subjects for the differentially correlated block
+2. `rhoOther`: correlation for all other blocks.
+3. `betaMean`: the active main effect coefficients are generated from a Uniform(3.9,4.1) distribution
+4. `betaE`: coefficient of binary environment variable
+5. `alphaMean`: the interaction effect coefficients are generated from a Uniform(1.9,2.1) distribution
+
+```{r results='asis', eval=T}
+DT::datatable(parametersDf)
+```
+
+Currently we have results for about 50 simulations for each combination of p, rho, N, nActive and Ecluster similarity matrix.
+ 
+```{r}
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("diffcorr","fisherScore"))
+```
+ 
+ 
+ 
+## True Positive Rate vs. Number of non-zero fitted coefficients {.tabset}
+ 
+### Fisher Scoring
+
+```{r true-positive-s-hat-fisher, eval=T}
+tp <- DT.long[measure %in% c("TPR","Shat")] %>%
+  tidyr::spread(measure, value) %>%
+  tidyr::unite(name, summary, model)
+tp[,`:=`(method=factor(method, levels = levels),name = factor(name, levels = levels.name, labels = labels.name) )]
+
+# params_plots <- expand.grid(n = c(100, 200, 400),
+#               nActive = c(10, 50, 100),
+#               eclust_distance = c("fisherScore"))
+
+tpr_shat <- mapply(knitr::knit_expand,
+                   file = "tpr_shat_template.Rmd",
+                     eclust_distance = c("fisherScore"))
+```
+
+`r knitr::knit(text = unlist(tpr_shat))` 
+
+### Difference of Correlations
+
+```{r true-positive-s-hat-diffcorr, eval=T}
+tp <- DT.long[measure %in% c("TPR","Shat")] %>%
+  tidyr::spread(measure, value) %>%
+  tidyr::unite(name, summary, model)
+tp[,`:=`(method=factor(method, levels = levels),name = factor(name, levels = levels.name, labels = labels.name) )]
+
+# params_plots <- expand.grid(n = c(100, 200, 400),
+#               nActive = c(10, 50, 100),
+#               eclust_distance = c("diffcorr"))
+
+# tpr_shat <- mapply(knitr::knit_expand,
+#                    file = "tpr_shat_template.Rmd",
+#                    n = params_plots$n,
+#                    nActive = params_plots$nActive,
+#                    eclust_distance = params_plots$eclust_distance)
+
+tpr_shat2 <- mapply(knitr::knit_expand,
+                   file = "tpr_shat_template.Rmd",
+                     eclust_distance = c("diffcorr"))
+```
+
+
+
+`r knitr::knit(text = unlist(tpr_shat2))` 
+
+
+## Test Set MSE Fisher Scoring {.tabset}
+
+
+```{r mse-fisher, eval=T}
+
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("fisherScore"))
+
+mse <- mapply(knitr::knit_expand,
+                   file = "mse_template.Rmd",
+                   n = params_plots$n,
+                   nActive = params_plots$nActive,
+                   eclust_distance = params_plots$eclust_distance)
+
+
+```
+
+
+`r knitr::knit(text = unlist(mse))` 
+
+
+## Test Set MSE Difference of Correlations {.tabset}
+
+
+```{r mse-diffcorr, eval=T}
+
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("diffcorr"))
+
+mse2 <- mapply(knitr::knit_expand,
+                   file = "mse_template.Rmd",
+                   n = params_plots$n,
+                   nActive = params_plots$nActive,
+                   eclust_distance = params_plots$eclust_distance)
+
+
+```
+
+
+`r knitr::knit(text = unlist(mse2))` 
+
+ 
+ 
+## Jaccard Index Fisher Scoring {.tabset}
+
+
+```{r jacc-fisher, eval=T}
+
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("fisherScore"))
+
+jacc <- mapply(knitr::knit_expand,
+                   file = "jacc_template.Rmd",
+                   n = params_plots$n,
+                   nActive = params_plots$nActive,
+                   eclust_distance = params_plots$eclust_distance)
+
+```
+
+
+`r knitr::knit(text = unlist(jacc))` 
+
+
+## Jaccard Index Difference of Correlations {.tabset}
+
+
+```{r jacc-diffcorr, eval=T}
+
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("diffcorr"))
+
+jacc2 <- mapply(knitr::knit_expand,
+                   file = "jacc_template.Rmd",
+                   n = params_plots$n,
+                   nActive = params_plots$nActive,
+                   eclust_distance = params_plots$eclust_distance)
+
+
+```
+
+
+`r knitr::knit(text = unlist(jacc2))` 
+ 
+ 
+ 
+ 
+ 
+## Spearman Correlation Fisher Scoring {.tabset}
+
+
+```{r spearman-fisher, eval=T}
+
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("fisherScore"))
+
+spearman <- mapply(knitr::knit_expand,
+                   file = "spearman_template.Rmd",
+                   n = params_plots$n,
+                   nActive = params_plots$nActive,
+                   eclust_distance = params_plots$eclust_distance)
+
+```
+
+
+`r knitr::knit(text = unlist(spearman))` 
+
+
+## Spearman Difference of Correlations {.tabset}
+
+
+```{r spearman-diffcorr, eval=T}
+
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("diffcorr"))
+
+spearman2 <- mapply(knitr::knit_expand,
+                   file = "spearman_template.Rmd",
+                   n = params_plots$n,
+                   nActive = params_plots$nActive,
+                   eclust_distance = params_plots$eclust_distance)
+
+
+```
+
+
+`r knitr::knit(text = unlist(spearman2))` 
+ 
+ 
+ 
+ 
+## Pearson Correlation Fisher Scoring {.tabset}
+
+
+```{r pearson-fisher, eval=T}
+
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("fisherScore"))
+
+pearson <- mapply(knitr::knit_expand,
+                   file = "pearson_template.Rmd",
+                   n = params_plots$n,
+                   nActive = params_plots$nActive,
+                   eclust_distance = params_plots$eclust_distance)
+
+```
+
+
+`r knitr::knit(text = unlist(pearson))` 
+
+
+## Pearson Correlation Difference of Correlations {.tabset}
+
+
+```{r pearson-diffcorr, eval=T}
+
+params_plots <- expand.grid(n = c(100, 200, 400),
+              nActive = c(10, 50, 100),
+              eclust_distance = c("diffcorr"))
+
+pearson2 <- mapply(knitr::knit_expand,
+                   file = "pearson_template.Rmd",
+                   n = params_plots$n,
+                   nActive = params_plots$nActive,
+                   eclust_distance = params_plots$eclust_distance)
+
+
+```
+
+
+`r knitr::knit(text = unlist(pearson2))` 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

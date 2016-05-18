@@ -1,0 +1,31 @@
+<!--** Number of Active Predictors = {{nActive}},  Sample Size = {{n}}, **-->
+
+### nActive = {{nActive}} Sample Size = {{n}} 
+
+```{r {{n}}-{{nActive}}-{{eclust_distance}}pearson, opts.label = 'fig.full', eval=TRUE}
+global_labeller <- labeller(
+  .default = label_both
+)
+
+pd <- position_dodge(width = 0.7) # move them .05 to the left and right
+
+ggplot(DT.summary[measure=="pearson"][n=={{n}}][nActive=={{nActive}}][Ecluster_distance %in% deparse(substitute({{eclust_distance}}))],
+  aes(x = name, y = mean, colour = method)) +
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.3,size=1, position=pd) +
+  geom_point(position=pd, size=3)+
+  guides(color=guide_legend(title="method"))+
+  xlab("model")+
+  ylab("Pearson correlation")+ 
+  facet_grid(p~rho, scales="fixed", labeller = global_labeller)+
+  theme_bw()+
+  theme(legend.position = "top")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
+        axis.text.y  = element_text(size=15),
+        axis.title.x = element_text(face="bold", colour="#990000", size=15),
+        axis.title.y = element_text(face="bold", colour="#990000", size=20),
+        title = element_text(size=16),legend.text = element_text(colour="blue", size = 16),
+        strip.text = element_text(size=20))+
+  theme(legend.key.width=unit(1, "inches"))
+```
+
+

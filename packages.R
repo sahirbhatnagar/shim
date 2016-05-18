@@ -34,7 +34,7 @@ pckg = try(require(WGCNA))
 if(!pckg) {
   cat("Installing 'WGCNA' from CRAN\n")
   getPckg("WGCNA")
-  require(WGCNA)
+  require(WGCNA, quietly = TRUE)
 }
 
 pckg = try(require(glmnet))
@@ -140,5 +140,26 @@ if(!pckg) {
   cat("Installing 'factoextra' from CRAN\n")
   getPckg("factoextra")
   require(factoextra)
+}
+
+pckg = try(require(viridis))
+if(!pckg) {
+  cat("Installing 'viridis' from CRAN\n")
+  getPckg("viridis")
+  require(viridis)
+}
+
+pckg = try(require(pheatmap))
+if(!pckg) {
+  cat("Installing 'pheatmap' from CRAN\n")
+  getPckg("pheatmap")
+  require(pheatmap)
+}
+
+pckg = try(require(DT))
+if(!pckg) {
+  cat("Installing 'DT' from CRAN\n")
+  getPckg("DT")
+  require(DT)
 }
 

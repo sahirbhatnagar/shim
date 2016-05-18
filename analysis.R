@@ -7,23 +7,23 @@
 
 # note that some of the stability measures are NA in the Eclust, because both mclusters got 0 coefficients, therefore
 # the intersect and union command give NAs
-## ---- data ----
-rm(list = ls())
+
+#rm(list = ls())
 #source(paste(Sys.getenv("HOME"),"eclust/bin/simulation/sim_functions.R", sep = "/"))
 source("packages.R")
 source("functions.R")
 
+## ---- data ----
+
 # this contains all the simulation results
 #col.names <- as.character(fread(paste(Sys.getenv("HOME"),"eclust/bin/simulation/colnames", sep = "/"), header = F))
-col.names <- as.character(fread("colnames", header = F))
+col.names <- as.character(fread("~/git_repositories/eclust/colnames", header = F))
 
 # DT <- fread(paste(Sys.getenv("HOME"),"eclust/simulation/simulation1", sep = "/"), stringsAsFactors = FALSE) %>%
 #   setnames(col.names)
 
-DT <- fread("sim1-results", stringsAsFactors = FALSE) %>%
+DT <- fread("~/git_repositories/eclust/sim1-results", stringsAsFactors = FALSE) %>%
   setnames(col.names)
-
-DT
 
 DT[, `:=`(simulation = 1:nrow(DT))]
 
@@ -39,42 +39,24 @@ DT.long$method %>% table
 DT.long$model %>% table
 DT.long$summary %>% table
 
-# levels <- c("uni", "pen", "group", "clust",
-#             "Eclust")
 levels <- c("uni", "pen", "clust", "Eclust")
 
 DT.long[, `:=`(method = factor(method, levels = levels))]
-
 
 # this takes the mean by method across all simulations in a given method
 DT.summary <- DT.long %>%
   tidyr::unite(name, summary, model) %>%
   summarySE(measurevar = "value", 
-            groupvars = c("rho","p","n","nActive","Ecluster_distance","blockSize",
+            groupvars = c("rho","p","n","nActive","Ecluster_distance",
                           "measure","method","name"), 
             na.rm = TRUE) %>%
   as.data.table
 
 DT.summary$name %>%  unique
 
-# levels.name <- c("na_lm",
-#                  "na_ridge", "na_lasso", "na_scad", "na_elasticnet", "na_mcp",
-#                  "na_gglasso",
-#                  "avg_lm", "avg_lasso", "avg_elasticnet",
-#                  "pc_lm", "pc_lasso", "pc_elasticnet",
-#                  "spc_lm", "spc_lasso", "spc_elasticnet")
-
 levels.name <- c("na_lm", "na_elasticnet", "na_lasso","avg_elasticnet",
                  "avg_lasso", "avg_shim","pc_elasticnet",
                  "pc_lasso", "pc_shim")
-
-
-# labels.name <- c("lm",
-#                  "ridge", "lasso", "scad", "elasticnet", "mcp",
-#                  "group lasso",
-#                  "avg_lm", "avg_lasso", "avg_elasticnet",
-#                  "pc_lm", "pc_lasso", "pc_elasticnet",
-#                  "spc_lm", "spc_lasso", "spc_elasticnet")
 
 labels.name <- c("lm", "elasticnet", "lasso","avg_elasticnet",
                  "avg_lasso", "avg_shim","pc_elasticnet",
@@ -82,7 +64,21 @@ labels.name <- c("lm", "elasticnet", "lasso","avg_elasticnet",
 DT.summary[,`:=`(name = factor(name, levels = levels.name, labels = labels.name))]
 
 DT.summary$name %>% table
-# TPR vs Shat group size vs rho (USED IN PROTOCOL) -------------------------------------------------------------
+
+
+# these are the variables that are changing
+DT.summary[, table(rho)]
+DT.summary[, table(p)]
+DT.summary[, table(n)]
+DT.summary[, table(nActive)]
+DT.summary[, table(Ecluster_distance)]
+
+# this shows that blocksize and p are giving the same information
+# because I set the number of blocks fixed at 5
+# DT.summary[, table(blockSize,p)]
+
+
+# TPR vs Shat -------------------------------------------------------------
 
 ## ---- tpr-vs-shat ----
 p <- DT.long[measure %in% c("TPR","Shat")] %>%
@@ -90,36 +86,46 @@ p <- DT.long[measure %in% c("TPR","Shat")] %>%
   tidyr::unite(name, summary, model)
 p[,`:=`(method=factor(method, levels = levels),name = factor(name, levels = levels.name, labels = labels.name) )]
 
-p %>%
+
+lab_rho <- 
+
+global_labeller <- labeller(
+  .default = label_both
+)
+
+p[Ecluster_distance %in% "fisherScore"] %>%
   ggplot(aes(x = Shat, y = TPR, color=method)) +
-  geom_point(size=2.5, aes(shape=method)) +
+  geom_point(size=1.5, aes(shape=method)) +
   #geom_rug()+
-  facet_grid(nActive~rho) +
+  facet_grid(n+p~rho+nActive, labeller = global_labeller) +
   #facet_grid(name~size+rho)+
   #background_grid(major = "xy", minor = "xy")+
   theme_bw()+
   ylab("true positive rate")+
   xlab("number of non-zero estimated coefficients")+
-  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
-        axis.text.y  = element_text(size=15),
+  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=13),
+        axis.text.y  = element_text(size=13),
         axis.title.x = element_text(face="bold", colour="#990000", size=15),
-        axis.title.y = element_text(face="bold", colour="#990000", size=20),
-        title = element_text(size=16),legend.text = element_text(colour="blue", size = 16),
-        strip.text = element_text(size=20))+
+        axis.title.y = element_text(face="bold", colour="#990000", size=15),
+        title = element_text(size=13),legend.text = element_text(colour="blue", size = 14),
+        strip.text = element_text(size=11))+
   theme(legend.key.width=unit(1, "inches"))+
   theme(legend.position = "top")
 #ggsave(paste(Sys.getenv("HOME"),"eclust/simulation/simulation1/plots/TPR_vs_Shat.png", sep = "/"))
 
 
-# MSE (USED IN PROTOCOL)---------------------------------------------------------------------
+
+
+# MSE ---------------------------------------------------------------------
+
 # pdf("protocol_simulation/plots/mse.pdf",width = 11, height = 8.5 )
 
-## ---- mse ----
+## ---- mse-rho-p- ----
+
+# here we fix, n, nActive, Ecluster_distance
 pd <- position_dodge(width = 0.7) # move them .05 to the left and right
 
-
-ggplot(#DT.summary[measure=="mse"][name %in% c("lm", "lasso", "elasticnet", "group lasso", "avg_lasso","avg_shim")][rho %in% c(0.10,0.35)],
-  DT.summary[measure=="mse"],
+ggplot(DT.summary[measure=="mse"][Ecluster_distance=="fisherScore"],
   aes(x = name, y = mean, colour = method)) +
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.3,size=1, position=pd) +
   geom_point(position=pd, size=3)+
@@ -127,7 +133,7 @@ ggplot(#DT.summary[measure=="mse"][name %in% c("lm", "lasso", "elasticnet", "gro
   xlab("model")+
   ylab("test set mean squared error")+
   #ylab(TeX("average MSE (1000 simulations)"))+
-  facet_grid(nActive~n, scales="fixed")+
+  facet_grid(nActive+p~rho+n, scales="fixed")+
   theme_bw()+
   theme(legend.position = "top")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
@@ -172,7 +178,7 @@ ggplot(DT.summary[measure=="mse"][name %in% c("lm", "lasso", "elasticnet", "grou
 #DT.summary[is.na(mean)]
 
 pd <- position_dodge(width = 0.7) # move them .05 to the left and right
-ggplot(DT.summary[measure=="jacc"],
+ggplot(DT.summary[measure=="jacc"][n==100][nActive==100][Ecluster_distance=="diffcorr"],
        aes(x = name, y = mean, colour = method)) +
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.3,size=1, position=pd) +
   geom_point(position=pd, size=3)+
@@ -180,7 +186,7 @@ ggplot(DT.summary[measure=="jacc"],
   xlab("model")+
   ylab("Jaccard index")+
   #ylab(TeX("average MSE (1000 simulations)"))+
-  facet_grid(SNR~rho, scales="fixed")+
+  facet_grid(p~rho, scales="fixed")+
   theme_bw()+
   theme(legend.position = "top")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
@@ -197,7 +203,7 @@ ggplot(DT.summary[measure=="jacc"],
 
 ## ---- spearman ----
 pd <- position_dodge(width = 0.7) # move them .05 to the left and right
-ggplot(DT.summary[measure=="spearman"],
+ggplot(DT.summary[measure=="spearman"][n==100][nActive==100][Ecluster_distance=="diffcorr"],
        aes(x = name, y = mean, colour = method)) +
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.3,size=1, position=pd) +
   geom_point(position=pd, size=3)+
@@ -205,7 +211,7 @@ ggplot(DT.summary[measure=="spearman"],
   xlab("model")+
   ylab("Spearman correlation")+
   #ylab(TeX("average MSE (1000 simulations)"))+
-  facet_grid(SNR~rho, scales="fixed")+
+  facet_grid(p~rho, scales="fixed")+
   theme_bw()+
   theme(legend.position = "top")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),

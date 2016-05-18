@@ -488,8 +488,8 @@ clusterSimilarity <- function(x,
                                   hc,
                                   distM = as.matrix(distance),
                                   #cutHeight = 0.995,
-                                  deepSplit = 1,
-                                  pamRespectsDendro = FALSE,
+                                  deepSplit = 0,
+                                  pamRespectsDendro = T,
                                   minClusterSize = 20)
                               } else {
                                 hcMod <- hc
@@ -498,8 +498,8 @@ clusterSimilarity <- function(x,
                                   hcMod,
                                   distM = as.matrix(distance),
                                   #cutHeight = 0.995,
-                                  deepSplit = 1,
-                                  pamRespectsDendro = FALSE,
+                                  deepSplit = 0,
+                                  pamRespectsDendro = T,
                                   minClusterSize = 20)
                               }
                             },
