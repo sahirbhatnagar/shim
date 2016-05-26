@@ -40,6 +40,7 @@ if(!pckg) {
   getPckg("WGCNA")
   require(WGCNA)
 }
+allowWGCNAThreads()
 
 pckg = try(require(glmnet))
 if(!pckg) {
@@ -198,4 +199,11 @@ if(!pckg) {
   cat("Installing 'R.matlab' from CRAN\n")
   getPckg("R.matlab")
   require(R.matlab)
+}
+
+pckg = try(require(zoo))
+if(!pckg) {
+  cat("Installing 'zoo' from CRAN\n")
+  getPckg("zoo")
+  require(zoo)
 }

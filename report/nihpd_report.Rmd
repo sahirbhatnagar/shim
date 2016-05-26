@@ -1,0 +1,98 @@
+---
+title: NIHPD Analysis
+output:
+  html_document:
+    fig_height: 8
+    fig_width: 11
+    code_folding: hide
+    toc: false
+    toc_float: false
+---
+
+
+```{r setup, echo=FALSE,warning=FALSE,message=FALSE,cache=FALSE, results='hide'}
+options(width=60, digits=2)
+#set.seed(45)
+library(knitr)
+options(decorate.contr.Treatment = "")
+opts_chunk$set(echo = FALSE, tidy = TRUE, cache = FALSE, warning = FALSE, 
+               message = FALSE)
+opts_template$set(
+    fig.large = list(fig.width = 7, fig.height = 5, fig.align = 'center', 
+                     fig.pos = 'H'),
+    fig.small = list(fig.width = 6, fig.height = 4, fig.align = 'center', 
+                     fig.pos = 'H'),
+    fig.full = list(fig.width = 11, fig.height = 8, fig.align = 'center', 
+                    fig.pos = 'H')
+)
+# for captions to be evaluated after R objects are available 
+opts_knit$set(eval.after = 'fig.cap') 
+# knitr::read_chunk("~/git_repositories/eclust/analysis.R")
+knitr::read_chunk(paste(Sys.getenv("HOME"), "eclust/rda/nihpd_git/analysis.R", sep = "/"))
+```
+
+```{r functions-packages, results='hide', message=FALSE, warning=FALSE}
+source(paste(Sys.getenv("HOME"), "eclust/rda/nihpd_git/functions.R", sep = "/"))
+source(paste(Sys.getenv("HOME"), "eclust/rda/nihpd_git/packages.R", sep = "/"))
+source(paste(Sys.getenv("HOME"), "eclust/rda/nihpd_git/data_cleaning.R", sep = "/"))
+
+```
+
+```{r test-stat, results='hide', eval=TRUE, message=FALSE, cache=TRUE}
+```
+
+```{r data, results='hide', eval=TRUE, message=FALSE, cache=FALSE}
+```
+
+
+## Heatmaps of TOM {.tabset}
+ 
+
+###  $TOM_{All}$
+
+`r nrow(X_all_reduced)` subjects 
+
+```{r heat-tom-all}
+pheatmap::pheatmap(TOM_all, 
+                   color = viridis(100), 
+                   clustering_method = "average",
+                   show_rownames = F, 
+                   show_colnames = F)
+```
+
+
+###  $TOM_{E=0}$ 
+
+`r nrow(X_unexposed_reduced)` subjects aged between 4.8 and 11.3. These are cutoffs used in the Bhuda paper.
+
+```{r heat-tom-e0}
+pheatmap::pheatmap(TOM_unexposed, 
+                   color = viridis(100), 
+                   clustering_method = "average",
+                   show_rownames = F, 
+                   show_colnames = F)
+```
+
+###  $TOM_{E=1}$
+
+`r nrow(X_exposed_reduced)` subjects aged between 11.3 and 23
+
+
+```{r heat-tom-e1}
+pheatmap::pheatmap(TOM_exposed, 
+                   color = viridis(100), 
+                   clustering_method = "average",
+                   show_rownames = F, 
+                   show_colnames = F)
+```
+
+### $S = |\TOM_{E=1} - TOM_{E=0}|$
+
+
+```{r heat-tom-diff}
+pheatmap::pheatmap(TOM_diff, 
+                   color = viridis(100), 
+                   clustering_method = "average",
+                   show_rownames = F, 
+                   show_colnames = F)
+```
