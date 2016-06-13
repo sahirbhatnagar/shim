@@ -154,6 +154,11 @@ setcolorder(DT_with_pheno, c(setdiff(colnames(DT_with_pheno), brain_probes), bra
 DT_with_pheno[, Subject_Gender := factor(Subject_Gender, levels = c("Male","Female"))]
 DT_with_pheno[, Site_Location := factor(Site_Location)]
 DT_with_pheno[, "Site_Location", with = F] %>% str
+
+# convert age_binary into a numeric so that the fitting functions work
+DT_with_pheno[, E := as.numeric(age_binary)-1]
+DT_with_pheno[, table(E, age_binary)]
+# DT_with_pheno[, age_binary ]
 # DT_with_pheno[, table(income_binary, useNA = "always")]
 # DT_with_pheno[, table(income_binary2, useNA = "always")]
 # DT_with_pheno[!is.na(WASI_Full_Scale_IQ), .N]
