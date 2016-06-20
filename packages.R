@@ -207,3 +207,12 @@ if(!pckg) {
   getPckg("zoo")
   require(zoo)
 }
+
+pckg = try(require(RcppMLPACK))
+if(!pckg) {
+  cat("Installing 'RcppMLPACK' from CRAN\n")
+  getPckg("RcppMLPACK")
+  require(RcppMLPACK)
+}
+
+

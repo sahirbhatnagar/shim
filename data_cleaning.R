@@ -25,7 +25,9 @@ DT[,`:=`(age=age/365.25)]
 # categorize the age as per Cereb.Cortex paper by Budha
 DT[, fivenum(age)]
 DT[, age_binary := cut(age, c(4.8, 11.3, Inf))]
+DT[, age_binary2 := cut(age, c(4.8, 8.4, 11.3, 14.7 ,Inf))]
 DT[, table(age_binary)]
+DT[, table(age_binary2)]
 DT[,`:=`(freq=.N), by = ID]
 DT[, table(freq, useNA = "always")]
 DT[,1:4, with=F]
@@ -35,7 +37,7 @@ brain_probes <- grep("V\\d*", colnames(DT),  value = TRUE)
 # length(brain_probes)
 # setdiff(colnames(DT), brain_probes)
 
-setcolorder(DT, c("ID","age","age_binary","F","M","freq", brain_probes))
+setcolorder(DT, c("ID","age","age_binary","age_binary2","F","M","freq", brain_probes))
 
 # data for the first timepoint (this means that its the first obseration for that person)
 DT1 <- DT[DT[unique(DT), , mult = "first", which = TRUE]]
@@ -113,6 +115,7 @@ pheno[, xtabs(~Household_Income_Level + income_binary2)]
 # data for the first timepoint of each subject
 pheno1 <- pheno[pheno[unique(pheno), , mult = "first", which = TRUE]]
 pheno1[, table(income_binary, useNA = "always")]
+pheno1[, table(income_binary2, useNA = "always")]
 
 # ll <- DT[,1:4,with=F]
 
@@ -156,8 +159,19 @@ DT_with_pheno[, Site_Location := factor(Site_Location)]
 DT_with_pheno[, "Site_Location", with = F] %>% str
 
 # convert age_binary into a numeric so that the fitting functions work
-DT_with_pheno[, E := as.numeric(age_binary)-1]
+DT_with_pheno[, E := as.numeric(age_binary) - 1]
+DT_with_pheno[, E2 := as.numeric(age_binary2) - 1]
+
+DT_with_pheno[, income_binary := as.numeric(income_binary) - 1]
+DT_with_pheno[, income_binary2 := as.numeric(income_binary2) - 1]
+
 DT_with_pheno[, table(E, age_binary)]
+DT_with_pheno[, table(E2, age_binary2)]
+DT_with_pheno[E2 %in% 1:2, E2:=NA]
+DT_with_pheno[E2 %in% 3, E2:=1]
+DT_with_pheno[, table(E2, age_binary2, useNA = "always")]
+
+rm(DT)
 # DT_with_pheno[, age_binary ]
 # DT_with_pheno[, table(income_binary, useNA = "always")]
 # DT_with_pheno[, table(income_binary2, useNA = "always")]

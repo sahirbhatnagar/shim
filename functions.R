@@ -1171,6 +1171,143 @@ uniFit <- function(train,
   }
 }
 
+# for real data, because the uniFit function requires the colnames to be 
+# Gene1, Gene2, .... Im making this function more flexible
+uniFitRda <- function(train,
+                      test,
+                      covariate_names,
+                      s0,
+                      percent = 0.05,
+                      stability = F,
+                      include_E = F,
+                      include_interaction = F,
+                      filter_var = F,
+                      p,
+                      true_beta) {
+  
+  # train: training data, response column should be called "Y"
+  #        and the covariates should be labelled Gene1, Gene2,...
+  # test: test data, response column should be called "Y"
+  #        and the covariates should be labelled Gene1, Gene2,...
+  # s0: vector of active betas
+  # percent: percentage threshold of highest significant genes
+  # note that if youre fitting interactions, the percent should be such that
+  # the 2*percent*p is still less than the sample size, else the model wont have any degrees of freedom
+  # stability: logical indicating if you just need coefficient values
+  # for calculating a stability criterion, or if you need all mse, r2, ect.
+  # calculations done
+  # train = result[["DT_train"]] ; test = result[["DT_test"]] ; percent = 0.05 ; stability = F;
+  # include_E = T; include_interaction = T; filter_var=F; p = 1000; s0 = result[["S0"]]
+  # true_beta = result[["beta_truth"]]
+  
+  if (include_E == F & include_interaction == T) stop("include_E needs to be T if you want to include interactions")
+  
+  # this is used to create univariate filter. If interaction is true, then we filter on the interaction term
+  # and the model used to calculate the interaction p-value is Y ~ Gene + E + Gene:E
+  # else we just filter on univariate p-value (Y~Gene)
+  res <- ldply(covariate_names, function(i) {
+    
+    #i="Gene500"
+    fit <- lm(as.formula(paste("Y ~",i, if (include_E) "+E", if (include_interaction) paste0("+",i,":E"))),data = train)
+    #fit %>% summary
+    coef.index <- if (include_interaction) paste0(i,":E") else i
+    
+    data.frame(pvalue = as.numeric(pt(abs(coef(fit)[coef.index]/vcov(fit)[coef.index,coef.index] ^ 0.5),
+                                      df = fit$df.residual, lower.tail = F)*2),
+               test.stat = as.numeric(coef(fit)[coef.index]/vcov(fit)[coef.index,coef.index] ^ 0.5),
+               'mean' = mean(train[,i]),
+               'sd' = sd(train[,i]))
+  })
+  
+  rownames(res) <- if (include_interaction) paste0(covariate_names,":E") else paste0(covariate_names, 1:p)
+  # nobs <- nrow(train)
+  top.percent <- ceiling(percent*p)
+  
+  uni.S.hat <- if (filter_var) rownames(res[order(res$sd, decreasing = T)[1:top.percent],]) else rownames(res[order(res$pvalue)[1:top.percent],])
+  # extract gene names if there is interaction, else just use gene names. this is for the prediction step below
+  # and fitting the multivariate model.
+  gene.names <- if (include_interaction) stringr::str_sub(string = uni.S.hat, end = -3) else uni.S.hat
+  
+  # when fitting the multivariate model with interactions, we must also include main effects
+  lm.model <- lm(as.formula(paste("Y ~",paste0(uni.S.hat,collapse = "+"),
+                                  if (include_interaction) paste("+",
+                                                                 paste0(gene.names, collapse = "+"),"+E"))),
+                 data = train)
+  #lm.model %>% summary
+  
+  lm.oracle <- lm(as.formula(paste("Y ~",paste0(s0,collapse = "+"))), data = train)
+  #lm.oracle %>% summary()
+  coefs <- if (include_interaction)
+    data.table::data.table(Gene = c(paste0(covariate_names,1:p),"E",rownames(res)),
+                           coef.est = rep(0,2*length(rownames(res)) + 1)) else
+                             data.table::data.table(Gene = rownames(res),
+                                                    coef.est = rep(0,length(rownames(res))))
+  
+  coefs[Gene %in% c(uni.S.hat, gene.names, if (include_interaction) "E"), coef.est := coef(lm.model)[-1]]
+  #coefs[coef.est!=0]
+  #  return(coefs)
+  #} else {
+  #summary(lm.model)
+  
+  if (stability) {
+    return(coefs)
+  } else {
+    lm.pred <- predict.lm(lm.model, newdata = test[,c(gene.names, if (include_interaction) "E")])
+    lm.pred.oracle <- predict.lm(lm.oracle, newdata = test[,s0])
+    
+    y_test <- test[ , "Y"]
+    
+    # Mean Squared Error
+    uni.mse <- crossprod(lm.pred - y_test)/length(y_test)
+    uni.mse.oracle <- crossprod(lm.pred.oracle - y_test)/length(y_test)
+    
+    # mse.null
+    mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
+    
+    # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
+    uni.r2 <- (mse_null - uni.mse)/mse_null
+    
+    uni.adj.r2 <- 1 - (1 - uni.r2)*(length(y_test) - 1)/(length(y_test) - length(uni.S.hat) - 1)
+    
+    # model error
+    identical(true_beta %>% rownames(),coefs[["Gene"]])
+    uni.model.error <- {(true_beta - coefs[["coef.est"]]) %>% t} %*% WGCNA::cor(test[,coefs$Gene]) %*% (true_beta - coefs[["coef.est"]])
+    
+    # crossprod above gives same result as
+    # sum((lm.pred - DT.test[,"V1"])^2)/nrow(DT.test)
+    
+    #uni.S.hat %in% S0
+    # True Positive Rate
+    uni.TPR <- length(intersect(c(gene.names,uni.S.hat), s0))/length(s0)
+    
+    # True negatives
+    trueNegs <- setdiff(colnames(train), s0)
+    
+    # these are the terms which the model identified as zero
+    modelIdentifyZero <- setdiff(colnames(train),uni.S.hat)
+    
+    # how many of the terms identified by the model as zero, were actually zero
+    sum(modelIdentifyZero %in% trueNegs)
+    
+    # False Positive Rate = FP/(FP + TN)
+    uni.FPR <- sum(uni.S.hat %ni% s0)/(sum(uni.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs))
+    
+    
+    ls <- list(uni.mse = as.numeric(uni.mse), uni.r2 = as.numeric(uni.r2),
+               uni.adj.r2 = as.numeric(uni.adj.r2), uni.S.hat = length(uni.S.hat),
+               uni.TPR = uni.TPR, uni.FPR = uni.FPR, uni.relative.mse = uni.mse/uni.mse.oracle, uni.model.error = uni.model.error)
+    names(ls) <- c(paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_mse"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_r2"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_relmse"),
+                   paste0("uni",ifelse(filter_var,"_na","_na"),ifelse(include_E,"_lm","_lm"),ifelse(include_interaction,"_yes","_no"),"_modelerror"))
+    return(ls)
+  }
+}
+
 clust_fun <- function(x_train,
                       x_test,
                       y_train,
@@ -1189,15 +1326,15 @@ clust_fun <- function(x_train,
                       filter_var = F,
                       clust_type = c("clust","Eclust","Addon")){
   
-  # result[["clustersAddon"]] %>% print(nrows=Inf)
-  # result[["clustersAddon"]][, table(cluster, module)]
-  # result %>% names
-  # stability = F; gene_groups = result[["clustersAddon"]];
-  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
-  # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  # filter = F; filter_var = F; include_E = T; include_interaction = T;
-  # s0 = result[["S0"]]; p = p ;
-  # model = "shim"; summary = "pc"; topgenes = NULL; clust_type="Addon"
+#   result[["clustersAddon"]] %>% print(nrows=Inf)
+#   result[["clustersAddon"]][, table(cluster, module)]
+#   result %>% names
+#   stability = F; gene_groups = result[["clustersAddon"]];
+#   x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+#   y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+#   filter = F; filter_var = F; include_E = T; include_interaction = T;
+#   s0 = result[["S0"]]; p = p ;
+#   model = "lasso"; summary = "pc"; topgenes = NULL; clust_type="Addon"
   
   clust_type <- match.arg(clust_type)
   summary <- match.arg(summary)
