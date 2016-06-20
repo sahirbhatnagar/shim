@@ -24,7 +24,7 @@ col.names <- as.character(fread("~/git_repositories/eclust/colnames", header = F
 DT <- fread("~/git_repositories/eclust/sim2-results", stringsAsFactors = FALSE) %>%
   setnames(col.names)
 
-DT <- fread("~/git_repositories/eclust/sim2-results-v2", stringsAsFactors = FALSE) %>%
+DT <- fread("~/git_repositories/eclust/sim2-results-v3", stringsAsFactors = FALSE) %>%
   setnames(col.names)
 
 DT[, `:=`(simulation = 1:nrow(DT))]
@@ -45,12 +45,16 @@ levels <- c("uni", "pen", "clust", "Eclust")
 
 DT.long[, `:=`(method = factor(method, levels = levels))]
 
+DT.long[, table(measure)]
+DT.long[measure=="FPR"][, hist(value)]
+DT.long[measure=="TPR"][, hist(value)]
+
 
 # this takes the mean by method across all simulations in a given method
 DT.summary <- DT.long %>%
   tidyr::unite(name, summary, model) %>%
   summarySE(measurevar = "value", 
-            groupvars = c("rho","p","SNR","n","nActive","Ecluster_distance",
+            groupvars = c("rho","p","SNR","n","nActive","Ecluster_distance","betaMean",
                           "measure","method","name"), 
             na.rm = TRUE) %>%
   as.data.table
@@ -62,6 +66,7 @@ DT.summary[, table(n)]
 DT.summary[, table(nActive)]
 DT.summary[, table(Ecluster_distance)]
 DT.summary[, table(SNR)]
+DT.summary[, table(betaMean)]
 
 levels.name <- c("na_lm", "na_elasticnet", "na_lasso","avg_elasticnet",
                  "avg_lasso", "avg_shim","pc_elasticnet",
@@ -92,6 +97,34 @@ p %>%
   theme_bw()+
   ylab("true positive rate")+
   xlab("number of non-zero estimated coefficients")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
+        axis.text.y  = element_text(size=15),
+        axis.title.x = element_text(face="bold", colour="#990000", size=15),
+        axis.title.y = element_text(face="bold", colour="#990000", size=20),
+        title = element_text(size=16),legend.text = element_text(colour="blue", size = 16),
+        strip.text = element_text(size=20))+
+  theme(legend.key.width=unit(1, "inches"))+
+  theme(legend.position = "top")
+#ggsave(paste(Sys.getenv("HOME"),"eclust/simulation/simulation1/plots/TPR_vs_Shat.png", sep = "/"))
+
+# TPR vs FPR group size vs rho (USED IN PROTOCOL) -------------------------------------------------------------
+
+## ---- tpr-vs-fpr ----
+p <- DT.long[measure %in% c("TPR","FPR")] %>%
+  tidyr::spread(measure, value) %>%
+  tidyr::unite(name, summary, model)
+p[,`:=`(method=factor(method, levels = levels),name = factor(name, levels = levels.name, labels = labels.name) )]
+
+p[name %in% c("lasso","elasticnet", "avg_elasticnet", "avg_shim")] %>%
+  ggplot(aes(x = FPR, y = TPR, color=method)) +
+  geom_jitter(size=2.5, aes(shape=name)) +
+  #geom_rug()+
+  facet_grid(betaMean~rho) +
+  #facet_grid(name~size+rho)+
+  #background_grid(major = "xy", minor = "xy")+
+  theme_bw()+
+  ylab("true positive rate")+
+  xlab("false positive rate")+
   theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
         axis.text.y  = element_text(size=15),
         axis.title.x = element_text(face="bold", colour="#990000", size=15),
