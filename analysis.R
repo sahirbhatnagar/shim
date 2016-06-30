@@ -2,9 +2,9 @@
 # R source code file for analyzing NIHPD data
 # Created by Sahir, May 24
 # Updated:
-# NOTE: This directory is more upto data than bouchard/scripts/ccareport
-# I am now using version control in bouchard/cca/
-# because it was getting too messy in ccareport
+# NOTE: 
+# 
+# 
 ##################################
 
 rm(list=ls())
@@ -139,7 +139,7 @@ filtered_probes <- uni_results[with(uni_results, sd > quantile(sd, 0.939)),]$pro
 #      xlim=c(0,4000))
 # abline(a=0, b=alpha/length(resFilt$pvalue), col="red3", lwd=2)
 
-## ---- kmeans ----
+## ---- bootSVD ----
 
 # devtools::install_github('aaronjfisher/bootSVD')
 # library(bootSVD)
@@ -153,22 +153,6 @@ filtered_probes <- uni_results[with(uni_results, sd > quantile(sd, 0.939)),]$pro
 # pc$v %>% dim
 # kclustPC <- mlKmeans(t(pc$v), 40)
 # WGCNA::randIndex(table(kclustPC$result, kclustData$result))
-
-# this is the cortical thickness data for the 1st timepoint only
-# all the data for all timepoints is in dat$Thick.81924
-thicknessMat <- DT_with_pheno[, brain_probes, with = F] %>% as.matrix()
-dim(thicknessMat)
-str(thicknessMat)
-kclustData <- mlKmeans(thicknessMat, 50)
-
-table(kclustData$result)
-
-# these contain the brain probes in their respective kmeans clusters
-# subjects are rows, columns are probes
-clusters <- lapply(by(t(thicknessMat),kclustData$result,identity), function(i) t(as.matrix(i)))
-lapply(clusters, dim)
-
-plot(kclustData$result)
 
 ## ---- KS-filter ----
 
@@ -207,7 +191,29 @@ lm(y ~ ., dat) %>% summary()
 phenotypeVariable <- "WASI_Full_Scale_IQ" 
 exposureVariable <- "E"
 
-DT_with_pheno[!is.na(phenotypeVariable)][, table(get(exposureVariable), useNA = "always")]
+# this is the cortical thickness data for the 1st timepoint only
+# all the data for all timepoints is in dat$Thick.81924
+# DT_with_pheno[!is.na(phenotypeVariable)][!is.na(exposureVariable)] %>% dim
+thicknessMat <- DT_with_pheno[!is.na(get(phenotypeVariable))][!is.na(get(exposureVariable))][, brain_probes, with = F] %>% as.matrix()
+dim(thicknessMat)
+str(thicknessMat)
+kclustData <- mlKmeans(thicknessMat, 50)
+
+# c1 <- mlKmeans(thicknessMat, 50)
+# c2 <- mlKmeans(thicknessMat, 50)
+# WGCNA::randIndex(table(c1$result, c2$result))
+
+table(kclustData$result)
+
+# these contain the brain probes in their respective kmeans clusters
+# subjects are rows, columns are probes
+clusters <- lapply(by(t(thicknessMat),kclustData$result,identity), function(i) t(as.matrix(i)))
+lapply(clusters, dim)
+
+# clusters[[49]] %>% dimnames
+# brain_probes
+# plot(kclustData$result)
+# DT_with_pheno[!is.na(phenotypeVariable)][, table(get(exposureVariable), useNA = "always")]
 
 idAll <- as.character(DT_with_pheno[!is.na(phenotypeVariable)][["Subject_ID"]])
 idExposed <- as.character(DT_with_pheno[!is.na(phenotypeVariable)][get(exposureVariable)==1][["Subject_ID"]])

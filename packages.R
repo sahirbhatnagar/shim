@@ -215,4 +215,10 @@ if(!pckg) {
   require(RcppMLPACK)
 }
 
+pckg = try(require(pls))
+if(!pckg) {
+  cat("Installing 'pls' from CRAN\n")
+  getPckg("pls")
+  require(pls)
+}
 
