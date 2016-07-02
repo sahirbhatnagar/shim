@@ -80,7 +80,7 @@ E <- DT_with_pheno[!is.na(get(phenotypeVariable))][!is.na(get(exposureVariable))
 # This is where the loop begins -------------------------------------------
 # loop over each element in 'clusters'
 
-clustKmeans <- function(data, 
+cluster_kmeans <- function(data, 
                         response, 
                         exposure, 
                         train_index, 
@@ -365,7 +365,7 @@ clustKmeans <- function(data,
 }
 
 
-# pl <- lapply(clusters[c(4,5)], function(i) clustKmeans(data = i, 
+# pl <- lapply(clusters[c(4,5)], function(i) cluster_kmeans(data = i, 
 #                                                     exposure = E,
 #                                                     response = Y,
 #                                                     min_cluster_size = 50,
@@ -381,7 +381,7 @@ clustKmeans <- function(data,
 #                                                     nPC = 1))
 
 doMC::registerDoMC(cores = 30)
-pp <- mclapply(clusters, function(i) clustKmeans(data = i, 
+pp <- mclapply(clusters, function(i) cluster_kmeans(data = i, 
                                                  exposure = E,
                                                  response = Y,
                                                  min_cluster_size = 50,
@@ -397,7 +397,7 @@ pp <- mclapply(clusters, function(i) clustKmeans(data = i,
                                                  nPC = 1),
                mc.cores = 30)
 
-
+save(pp, file = "PC_NIHPD_based_on_all_data_converted_to_50_kmeans_clusters.RData")
 
 # pp$`0`$clustersAddon$PLS
 # pp$`44`$clustersAddon$varExplained %>% plot
@@ -408,14 +408,11 @@ pp <- mclapply(clusters, function(i) clustKmeans(data = i,
 # to combine all the principal components
 pcTrain <- do.call(cbind, lapply(pp, function(i) i[["clustersAddon"]][["PC"]]))
 avgTrain <- do.call(cbind, lapply(pp, function(i) i[["clustersAddon"]][["averageExpr"]]))
+colnames(pcTrain) <- gsub("\\.","_",colnames(pcTrain))
+colnames(pcTrain) <- paste0("PC",colnames(pcTrain))
 datt <- cbind(pcTrain, Y = Y[trainIndex])
 colnames(datt)
 str(datt)
-pp[[1]][["clustersAddon"]]
-
-
-# colnames(pcTrain) <- gsub("\\.","_",colnames(pcTrain))
-# colnames(pcTrain) <- paste0("PC",colnames(pcTrain))
 
 dim(pcTrain)
 pcTest <- do.call(cbind, lapply(pp, function(i) i[["clustersAddon"]][["PCTest"]]))
@@ -433,11 +430,15 @@ library(ComplexHeatmap)
 ht1 = Heatmap(t(pcTrain[which(pp[[1]][["etrain"]]==0),]), 
               name = "E=0",
               col = viridis(10), 
-              column_title = "E = 0 : Age [4.8, 11.3]")
+              # column_title = "E = 0 : Age [4.8, 11.3]",
+              column_title = "Income_Level: 1-7",
+              show_row_names = FALSE)
 ht2 = Heatmap(t(pcTrain[which(pp[[1]][["etrain"]]==1),]), 
               name = "E=1",
               col = viridis(10), 
-              column_title = "E = 1 : Age [11.3, 18]")
+              # column_title = "E = 1 : Age [11.3, 18]",
+              column_title = "Income_Level: 8-10",
+              show_row_names = FALSE)
 ht1 + ht2
 
 
@@ -499,6 +500,78 @@ crossprod(as.matrix(Y[testIndex]) - predict(cv.fit2, newx = thicknessMat[testInd
 
 
 
+# Create Interaction Data for cv.shim ----------------------------------------
+
+prepare_data <- function(data, response = "Y", exposure = "E", probe_names) {
+  
+  # data = cbind(pcTrain, Y = Y[trainIndex], E = E[trainIndex])
+  
+    
+  # ===========================================================
+    
+  # Check for sensible dataset
+  ## Make sure you have response, exposure.
+  if (!(response %in% colnames(data))) stop(sprintf("response argument specified as %s but this column not found in 'data' data.frame", response))
+  if (!(exposure %in% colnames(data))) stop(sprintf("exposure argument specified as %s but this column not found in 'data' data.frame", exposure))
+  if (!missing(probe_names)) {
+    if (!(probe_names %in% colnames(data))) stop(sprintf("probe_names argument specified as %s but this column not found in 'data' data.frame", probe_names))
+  }
+  
+  # if missing main_effect_names, assume everything except response and exposure 
+  # are main effects
+  if (missing(probe_names)) {
+    probe_names <- setdiff(colnames(data), c(response, exposure))
+  }
+  
+  # rename response to be Y and exposure to be E
+  colnames(data)[which(colnames(data) == response)] <- "Y"
+  colnames(data)[which(colnames(data) == exposure)] <- "E"
+  
+  x_mat <- model.matrix(as.formula(paste0("~(", paste0(probe_names, collapse="+"), ")*E - 1")), data = data)
+  
+  
+  # reformulate(paste0("~(", paste0(colnames(pcTrain)[1:5], collapse="+"), ")*E"))
+  
+  
+  interaction_names <- grep(":", colnames(x_mat), value = T)
+  main_effect_names <- setdiff(colnames(x_mat), interaction_names)
+  
+  return(list(X = x_mat, Y = data[["Y"]], E = data[["E"]], 
+              main_effect_names = main_effect_names, 
+              interaction_names = interaction_names))
+  # x_mat
+  
+  
+}
+
+kl <- prepare_data(data = cbind(pcTrain, pheno = Y[trainIndex], income = E[trainIndex]),
+                   response = "pheno", exposure = "income")
+
+kl$X %>% dim()
+kl$main_effect_names
+kl$interaction_names
+
+cv.fit2 <- cv.glmnet(x = kl$X, y = kl$Y, alpha = 0.5)
+plot(cv.fit2)
+as.matrix(coef(cv.fit2, s = "lambda.1se"))[which(as.matrix(coef(cv.fit2, s = "lambda.1se"))!=0),,drop=F]
+as.matrix(coef(cv.fit2, s = "lambda.min"))[which(as.matrix(coef(cv.fit2, s = "lambda.min"))!=0),,drop=F]
+
+library(eclust)
+library(doMC)
+registerDoMC(cores = 10)
+system.time(cv_shim <- cv.shim(x =kl$X, y = kl$Y,
+                   main.effect.names = kl$main_effect_names,
+                   interaction.names = kl$interaction_names,
+                   parallel = TRUE, verbose = TRUE,
+                   type.measure = c("mse"), 
+                   nfolds = 10))
+
+library(ggplot2)
+plot(cv_shim)
+as.matrix(coef(cv_shim$shim.fit, s = "lambda.1se"))[which(as.matrix(coef(cv_fit$shim.fit, s = "lambda.1se"))!=0),,drop=F]
+
+
+coef(cv_shim$shim.fit, s = "lambda.1se")
 
 
 

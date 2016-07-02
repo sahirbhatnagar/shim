@@ -12,3 +12,4 @@ WholeGenomeSampleSheet*
 data/*
 nihpd_report_cache
 nihpd_report_files
+*.RData
