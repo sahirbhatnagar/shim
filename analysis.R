@@ -1,0 +1,260 @@
+##################################
+# R source code file for data manipulation. This script
+# imports the expr. and meth data along with annotations
+# run filter_cca.R after running this code to filter the expression
+# and methylation data and get the canonical variables (X_1 w_1 ...)
+# canonical vectors are the weights (w_1...)
+# Created by Sahir, March 21
+# Updated:
+# NOTE: This directory is more upto data than bouchard/scripts/ccareport
+# I am now using version control in bouchard/cca/
+# because it was getting too messy in ccareport
+##################################
+
+rm(list=ls())
+setwd("~/eclust/rda/bouchard_git")
+source("functions.R")
+source("packages.R")
+source("data_cleaning.R")
+
+# KS-Filter ----------------------------------------------------------------
+
+source("https://raw.githubusercontent.com/sahirbhatnagar/eclust/master/k_filter.R")
+
+# I saved this result in KSobject.RData
+# system.time(
+# obj <- k.filter(x=t(placentaALL),
+#                 y=DT.pheno.placenta$`imc z-score`))
+# save(obj, file = "KSobject.RData")
+
+load("KSobject.RData")
+
+# indices of probes to keep after applying KS filter
+keepCG <- order(obj$k.rank)[1:10000]
+
+# dat <- data.frame(x=t(placentaALL[order(obj$k.rank)[8],,drop=F]), y=DT.pheno.placenta$`imc z-score`)
+# lm(y ~ ., dat) %>% summary()
+
+dimnames(placentaALL)
+placentaALLreduced <- placentaALL[keepCG,]
+dimnames(placentaALLreduced)
+placentaGDreduced <- placentaGD[keepCG,]
+placentaNGDreduced <- placentaNGD[keepCG,]
+
+
+## ---- corScor-without-KS-filter ----
+# require(doMC)
+# registerDoMC(cores = 3)
+# cor_scor_placenta <- bigcorPar(data.all = t(placentaALL),
+#                                data.e0 = t(placentaNGD),
+#                                data.e1 = t(placentaGD),
+#                                alpha = 2, threshold = 1.5, nblocks = 1000,
+#                                ncore = 3)
+# save(cor_scor_placenta, file = "cor_scor_placenta.RData")
+# I saved the results of the above calculation in a RData file
+load("cor_scor_placenta.RData")
+
+cor_scor_placenta$score %>% hist
+probes_placenta <- unique(c(cor_scor_placenta$gene1, cor_scor_placenta$gene2))
+
+head(placentaALL)
+corr_all <- placentaALL[probes_placenta,] %>% t %>% cor
+class(corr_all) <- c("correlation", class(corr_all))
+png("plots/corr_all.png")
+plot(corr_all)
+dev.off()
+
+corr_gd <- placentaGD[probes_placenta,] %>% t %>% cor
+class(corr_gd) <- c("correlation", class(corr_gd))
+png("plots/corr_gd.png")
+plot(corr_gd)
+dev.off()
+
+corr_ngd <- placentaNGD[probes_placenta,] %>% t %>% cor
+class(corr_ngd) <- c("correlation", class(corr_ngd))
+png("plots/corr_ngd.png")
+plot(corr_ngd)
+dev.off()
+
+
+corScor_filtered <- abs(corr_gd + corr_ngd - 2*corr_all)
+png("plots/corr_scor_filtered.png")
+plot(corScor_filtered)
+dev.off()
+
+
+
+## ---- corScor-with-KS-filter ----
+require(doMC)
+registerDoMC(cores = 10)
+cor_scor_placenta_KS <- bigcorPar(data.all = t(placentaALLreduced),
+                               data.e0 = t(placentaNGDreduced),
+                               data.e1 = t(placentaGDreduced),
+                               alpha = 2, threshold = 1, nblocks = 100,
+                               ncore = 10)
+
+cor_scor_placenta_KS
+cor_scor_placenta_KS$score %>% hist
+probes_placenta <- unique(c(cor_scor_placenta$gene1, cor_scor_placenta$gene2))
+
+
+corr_all <- placentaALL[probes_placenta,] %>% t %>% cor
+class(corr_all) <- c("correlation", class(corr_all))
+png("plots/corr_all.png")
+plot(corr_all)
+dev.off()
+
+corr_gd <- placentaGD[probes_placenta,] %>% t %>% cor
+class(corr_gd) <- c("correlation", class(corr_gd))
+png("plots/corr_gd.png")
+plot(corr_gd)
+dev.off()
+
+corr_ngd <- placentaNGD[probes_placenta,] %>% t %>% cor
+class(corr_ngd) <- c("correlation", class(corr_ngd))
+png("plots/corr_ngd.png")
+plot(corr_ngd)
+dev.off()
+
+
+corScor_filtered <- abs(corr_gd + corr_ngd - 2*corr_all)
+png("plots/corr_scor_filtered.png")
+plot(corScor_filtered)
+dev.off()
+
+
+
+
+## ---- list-of-cg-sites ----
+
+
+write.table(DT.placenta[probes_placenta,c("rn","nearestGeneSymbol","CHR"), with=F],file="probes_placenta.txt", quote = F, row.names = F)
+colnames(DT.placenta)
+
+
+cor_scor <- as.data.table(cor_scor_placenta)
+cor_scor_m <- melt(cor_scor, measure.vars = c("gene1","gene2"))
+setkey(cor_scor_m, "value")
+unique(cor_scor_m)
+cor_scor_unique <- unique(cor_scor_m)
+cor_scor_unique %>% str
+cor_scor_unique[,score := as.numeric(score)]
+
+
+t1 <- DT.placenta[probes_placenta,c("rn","nearestGeneSymbol","CHR"), with=F]
+setkey(t1, "rn")
+
+t_final <- t1[cor_scor_unique[, c("score","value"), with = F]]
+
+write.table(t_final,file="probes_placenta_with_score.txt", quote = F, row.names = F)
+
+as.data.table(placentaALL)
+
+write.table(DT.placenta[,c("rn","nearestGeneSymbol","CHR" ), with=F],
+            file = "probes_placenta_used_in_correlations.txt",
+            quote=F, row.names = F)
+
+
+
+
+# Fisher ------------------------------------------------------------------
+
+require(doMC)
+registerDoMC(cores = 10)
+fisher_placenta_KS <- fisherZBig(data.all = t(placentaALLreduced),
+                               data.e0 = t(placentaNGDreduced),
+                               data.e1 = t(placentaGDreduced),
+                               n0 = 8, n1 = 20,
+                               threshold = 4.5, nblocks = 1000,
+                               ncore = 10)
+fisher_placenta_KS[,score:=as.numeric(score)]
+
+probes_placenta <- unique(c(fisher_placenta_KS$gene1, fisher_placenta_KS$gene2))
+
+dimnames(placentaALLreduced)
+placentaALLreducedFisher <- placentaALLreduced[probes_placenta,]
+dimnames(placentaALLreducedFisher)
+placentaGDreducedFisher <- placentaGDreduced[probes_placenta,]
+placentaNGDreducedFisher <- placentaNGDreduced[probes_placenta,]
+
+
+dim(corr_all)
+corr_all <- placentaALLreducedFisher %>% t %>% cor
+class(corr_all) <- c("correlation", class(corr_all))
+
+hc <- hclust(as.dist(1 - corr_all), method = "average")
+png("plots/corr_all_KS_fisher.png")
+plot(corr_all, cluster_rows = hc, cluster_cols = hc)
+dev.off()
+
+corr_gd <- placentaGDreducedFisher %>% t %>% cor
+class(corr_gd) <- c("correlation", class(corr_gd))
+hc <- hclust(as.dist(1 - corr_gd), method = "average")
+png("plots/corr_gd_KS_fisher.png")
+plot(corr_gd, cluster_rows = hc, cluster_cols = hc)
+dev.off()
+
+corr_ngd <- placentaNGDreducedFisher %>% t %>% cor
+class(corr_ngd) <- c("correlation", class(corr_ngd))
+hc <- hclust(as.dist(1 - corr_ngd), method = "average")
+png("plots/corr_ngd_KS_fisher.png")
+plot(corr_ngd, cluster_rows = hc, cluster_cols = hc)
+dev.off()
+
+
+
+                
+
+## ---- rand-Index ----
+
+
+p = length(probes_placenta)
+res <- vector("list",3)
+cor.matrix.x0 <- corFast(t(placentaNGD[probes_placenta,]))
+cor.matrix.x1 <- corFast(t(placentaGD[probes_placenta,]))
+corr <- corFast(t(placentaALL[probes_placenta,]))
+
+res <- lapply(c("corr", "corr0","corr1"), function(i) {
+  
+  distance <- switch(i,
+                     corr = corr,
+                     corr0 = cor.matrix.x0,
+                     corr1 = cor.matrix.x1,
+                     diffcorr = diff.corr,
+                     difftom = diff.tom,
+                     tom0 = tom.matrix.x0,
+                     tom1 = tom.matrix.x1,
+                     tom = tom)
+  
+  cl <- hclust(as.dist(if (i %in% c("diffcorr","difftom")) distance else 1-distance), method = "ward.D2")
+  cuttree <- dynamicTreeCut::cutreeDynamic(cl,
+                                           distM = if (i %in% c("diffcorr","difftom")) distance else 1-distance,
+                                           deepSplit = 1)
+  # check if all cluster groups are 0 which means no cluster assignment and everyone is in their own group
+  clusters <- data.table(cpg = colnames(distance), cluster = if (all(cuttree==0)) 1:p else cuttree)
+  setkey(clusters,"cpg")
+  setnames(clusters, "cluster", i)
+  clusters
+})
+
+Venn <- res[[1]][res[[2]]][res[[3]]]
+
+
+library(mclust)
+
+adjustedRandIndex(Venn$corr, Venn$corr0)
+adjustedRandIndex(Venn$corr, Venn$corr1)
+adjustedRandIndex(Venn$corr1, Venn$corr0)
+
+
+
+
+
+## ---- eclust ----
+
+sigProbes <- read.table("/mnt/GREENWOOD_BACKUP/share/sy/interactions/coexpression/bouchard/probes_placenta_with_score.txt",
+                        header = T, stringsAsFactors = FALSE)
+
+DT <- placentaALL[sigProbes$rn[sigProbes$rn %in% rownames(placentaALL)],] %>%
+  
+  sigProbes$rn[sigProbes$rn %in% rownames(placentaALL)]
