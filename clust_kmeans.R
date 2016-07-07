@@ -28,7 +28,7 @@ exposureVariable <- "income_binary2"
 # all the data for all timepoints is in dat$Thick.81924
 thicknessMat <- DT_with_pheno[!is.na(get(phenotypeVariable))][!is.na(get(exposureVariable))][, brain_probes, with = F] %>% as.matrix()
 
-DT_with_pheno[!is.na(get(phenotypeVariable))][!is.na(get(exposureVariable))][, brain_probes, with = F] %>% as.matrix() %>% dim
+# DT_with_pheno[!is.na(get(phenotypeVariable))][!is.na(get(exposureVariable))][, brain_probes, with = F] %>% as.matrix() %>% dim
 
 kclustData <- mlKmeans(thicknessMat, 50)
 
@@ -406,6 +406,7 @@ save(pp, file = "PC_NIHPD_based_on_all_data_converted_to_50_kmeans_clusters.RDat
 # pheatmap::pheatmap(pp$`44`$clustersAddon$PC[which(pp$`44`$etrain==1),])
 
 # to combine all the principal components
+load("PC_NIHPD_based_on_all_data_converted_to_50_kmeans_clusters.RData")
 pcTrain <- do.call(cbind, lapply(pp, function(i) i[["clustersAddon"]][["PC"]]))
 avgTrain <- do.call(cbind, lapply(pp, function(i) i[["clustersAddon"]][["averageExpr"]]))
 colnames(pcTrain) <- gsub("\\.","_",colnames(pcTrain))
@@ -427,15 +428,25 @@ do.call(c, lapply(pp, function(i) i[["clustersAddon"]][["nclusters"]])) %>% plot
 do.call(c, lapply(pp, function(i) i[["clustersAddon"]][["varExplained"]])) %>% plot
 
 library(ComplexHeatmap)
+require(circlize)
+pcTrain %>% dim
+max(pcTrain);min(pcTrain)
+apply(pcTrain, 2, max) %>% as.numeric() %>% max
+apply(pcTrain, 2, min) %>% as.numeric() %>% min
+
+
+cm <- colorRamp2(seq(min(pcTrain), max(pcTrain), length.out = 50), viridis(50))
 ht1 = Heatmap(t(pcTrain[which(pp[[1]][["etrain"]]==0),]), 
               name = "E=0",
-              col = viridis(10), 
+              # col = viridis(100),
+              col = cm,
               # column_title = "E = 0 : Age [4.8, 11.3]",
               column_title = "Income_Level: 1-7",
               show_row_names = FALSE)
 ht2 = Heatmap(t(pcTrain[which(pp[[1]][["etrain"]]==1),]), 
               name = "E=1",
-              col = viridis(10), 
+              # col = viridis(100), 
+              col = cm,
               # column_title = "E = 1 : Age [11.3, 18]",
               column_title = "Income_Level: 8-10",
               show_row_names = FALSE)
