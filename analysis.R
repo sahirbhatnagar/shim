@@ -96,11 +96,15 @@ load("uni_results.RData")
 #      xlab=expression(theta), ylab="number of rejections")
 
 
+uni_results[, cv:=sd/mean, by = probe]
+uni_results[,plot(cv)]
+
 theta = seq(from=0, to=0.99, by=0.02)
 filterChoices = data.frame(
   `mean` = uni_results$mean,
   `geneID` = 1:nrow(uni_results),
-  `sd` = uni_results$sd
+  `sd` = uni_results$sd,
+  `cv` = uni_results$cv
 )
 rejChoices = sapply(filterChoices, function(f)
   filtered_R(alpha=0.1, filter=f, test=uni_results$pvalue, theta=theta, method="BH"))
@@ -110,14 +114,15 @@ myColours = brewer.pal(ncol(filterChoices), "Set1")
 matplot(theta, rejChoices, type="l", lty=1, col=myColours, lwd=2,
         xlab=expression(theta), ylab="number of rejections")
 legend("topleft", legend=colnames(filterChoices), fill=myColours)
+abline(v = theta[order(rejChoices[,"mean"], decreasing = TRUE)][1], lty=2)
 
+theta[order(rejChoices[,"mean"], decreasing = TRUE)]
+quantile(uni_results$mean)
+thetaThreshold = theta[order(rejChoices[,"mean"], decreasing = TRUE)][1]
+filtered_probes <- uni_results[with(uni_results, mean > quantile(mean, thetaThreshold)),]$probe
+# filtered_probes <- uni_results[with(uni_results, sd > quantile(sd, 0.939)),]$probe
 
-theta[order(rejChoices[,"sd"], decreasing = TRUE)]
-quantile(uni_results$sd)
-thetaThreshold = theta[order(rejChoices[,"sd"], decreasing = TRUE)][2]
-filtered_probes <- uni_results[with(uni_results, mean > quantile(mean, 0.939)),]$probe
-filtered_probes <- uni_results[with(uni_results, sd > quantile(sd, 0.939)),]$probe
-
+# pass = with(uni_results, mean > quantile(mean, thetaThreshold))
 # h1 = hist(uni_results$pvalue[!pass], breaks=50, plot=FALSE)
 # h2 = hist(uni_results$pvalue[pass], breaks=50, plot=FALSE)
 # colori <- c(`do not pass`="khaki", `pass`="powderblue")
