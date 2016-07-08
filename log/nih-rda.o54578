@@ -1,0 +1,2017 @@
+==========================================================================
+*
+*  Package WGCNA 1.49 loaded.
+*
+*    Important note: It appears that your system supports multi-threading,
+*    but it is not enabled within WGCNA in R. 
+*    To allow multi-threading within WGCNA with all available cores, use 
+*
+*          allowWGCNAThreads()
+*
+*    within R. Use disableWGCNAThreads() to disable threading if necessary.
+*    Alternatively, set the following environment variable on your system:
+*
+*          ALLOW_WGCNA_THREADS=<number_of_processors>
+*
+*    for example 
+*
+*          ALLOW_WGCNA_THREADS=40
+*
+*    To set the environment variable in linux bash shell, type 
+*
+*           export ALLOW_WGCNA_THREADS=40
+*
+*     before running R. Other operating systems or shells will
+*     have a similar command to achieve the same aim.
+*
+==========================================================================
+
+
+Allowing multi-threading with up to 40 threads.
+List of 10
+ $ Thick.81924     : num [1:679, 1:81924] 4.46 4 3.93 4.25 3.68 ...
+  ..- attr(*, "Csingle")= logi TRUE
+ $ subj            : num [1:679, 1] 1001 1002 1003 1004 1007 ...
+ $ age             : num [1:679, 1] 3591 3847 4944 3886 1781 ...
+ $ gender          :List of 679
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Male"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  ..$ :List of 1
+  .. ..$ : chr [1, 1] "Female"
+  .. [list output truncated]
+ $ site            : num [1:679, 1] 4 6 1 5 2 3 6 1 4 5 ...
+ $ Thick.AAL       : num [1:679, 1:78] 4.12 3.75 4.02 3.39 3.59 ...
+ $ gen             :List of 2
+  ..$ names :List of 2
+  .. ..$ :List of 1
+  .. .. ..$ : chr [1, 1] "Female"
+  .. ..$ :List of 1
+  .. .. ..$ : chr [1, 1] "Male"
+  ..$ matrix: num [1:679, 1:2] 0 1 0 1 1 0 0 0 0 0 ...
+  ..- attr(*, "class")= chr "term"
+ $ gender.double   : num [1:679, 1:2] 0 1 0 1 1 0 0 0 0 0 ...
+ $ Matrix.All.81924: num [1:679, 1:81928] 1001 1002 1003 1004 1007 ...
+  ..- attr(*, "Csingle")= logi TRUE
+ $ Matrix.All.AAL  : num [1:679, 1:82] 1001 1002 1003 1004 1007 ...
+ - attr(*, "header")=List of 3
+  ..$ description: chr "MATLAB 5.0 MAT-file, Platform: PCWIN64, Created on: Fri Jun 27 11:39:13 2014                                        "
+  ..$ version    : chr "5"
+  ..$ endian     : chr "little"
+Classes 'data.table' and 'data.frame':	357 obs. of  1 variable:
+ $ Site_Location: Factor w/ 6 levels "1","2","3","4",..: 4 6 1 5 4 2 2 3 6 5 ...
+ - attr(*, ".internal.selfref")=<externalptr> 
+[1] "V5"  "V6"  "V7"  "V9"  "V10" "V13"
+[1]   275 42600
+
+   0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15 
+ 800  222  569  915  378  612  453  338  384  376 1304  262 4081  242  328  385 
+  16   17   18   19   20   21   22   23   24   25   26   27   28   29   30   31 
+ 348  448  306 5106 1861 1092  297  410 1439  774  234  262 2357  750  256  669 
+  32   33   34   35   36   37   38   39   40   41   42   43   44   45   46   47 
+ 378 2238  455  519  459  542  297  521  380  345  257 1125 4119  405  473 1050 
+  48   49 
+ 253  526 
+$`0`
+[1] 275 800
+
+$`1`
+[1] 275 222
+
+$`2`
+[1] 275 569
+
+$`3`
+[1] 275 915
+
+$`4`
+[1] 275 378
+
+$`5`
+[1] 275 612
+
+$`6`
+[1] 275 453
+
+$`7`
+[1] 275 338
+
+$`8`
+[1] 275 384
+
+$`9`
+[1] 275 376
+
+$`10`
+[1]  275 1304
+
+$`11`
+[1] 275 262
+
+$`12`
+[1]  275 4081
+
+$`13`
+[1] 275 242
+
+$`14`
+[1] 275 328
+
+$`15`
+[1] 275 385
+
+$`16`
+[1] 275 348
+
+$`17`
+[1] 275 448
+
+$`18`
+[1] 275 306
+
+$`19`
+[1]  275 5106
+
+$`20`
+[1]  275 1861
+
+$`21`
+[1]  275 1092
+
+$`22`
+[1] 275 297
+
+$`23`
+[1] 275 410
+
+$`24`
+[1]  275 1439
+
+$`25`
+[1] 275 774
+
+$`26`
+[1] 275 234
+
+$`27`
+[1] 275 262
+
+$`28`
+[1]  275 2357
+
+$`29`
+[1] 275 750
+
+$`30`
+[1] 275 256
+
+$`31`
+[1] 275 669
+
+$`32`
+[1] 275 378
+
+$`33`
+[1]  275 2238
+
+$`34`
+[1] 275 455
+
+$`35`
+[1] 275 519
+
+$`36`
+[1] 275 459
+
+$`37`
+[1] 275 542
+
+$`38`
+[1] 275 297
+
+$`39`
+[1] 275 521
+
+$`40`
+[1] 275 380
+
+$`41`
+[1] 275 345
+
+$`42`
+[1] 275 257
+
+$`43`
+[1]  275 1125
+
+$`44`
+[1]  275 4119
+
+$`45`
+[1] 275 405
+
+$`46`
+[1] 275 473
+
+$`47`
+[1]  275 1050
+
+$`48`
+[1] 275 253
+
+$`49`
+[1] 275 526
+
+$`0`
+[1] TRUE
+
+$`1`
+[1] TRUE
+
+$`2`
+[1] TRUE
+
+$`3`
+[1] TRUE
+
+$`4`
+[1] TRUE
+
+$`5`
+[1] TRUE
+
+$`6`
+[1] TRUE
+
+$`7`
+[1] TRUE
+
+$`8`
+[1] TRUE
+
+$`9`
+[1] TRUE
+
+$`10`
+[1] TRUE
+
+$`11`
+[1] TRUE
+
+$`12`
+[1] TRUE
+
+$`13`
+[1] TRUE
+
+$`14`
+[1] TRUE
+
+$`15`
+[1] TRUE
+
+$`16`
+[1] TRUE
+
+$`17`
+[1] TRUE
+
+$`18`
+[1] TRUE
+
+$`19`
+[1] TRUE
+
+$`20`
+[1] TRUE
+
+$`21`
+[1] TRUE
+
+$`22`
+[1] TRUE
+
+$`23`
+[1] TRUE
+
+$`24`
+[1] TRUE
+
+$`25`
+[1] TRUE
+
+$`26`
+[1] TRUE
+
+$`27`
+[1] TRUE
+
+$`28`
+[1] TRUE
+
+$`29`
+[1] TRUE
+
+$`30`
+[1] TRUE
+
+$`31`
+[1] TRUE
+
+$`32`
+[1] TRUE
+
+$`33`
+[1] TRUE
+
+$`34`
+[1] TRUE
+
+$`35`
+[1] TRUE
+
+$`36`
+[1] TRUE
+
+$`37`
+[1] TRUE
+
+$`38`
+[1] TRUE
+
+$`39`
+[1] TRUE
+
+$`40`
+[1] TRUE
+
+$`41`
+[1] TRUE
+
+$`42`
+[1] TRUE
+
+$`43`
+[1] TRUE
+
+$`44`
+[1] TRUE
+
+$`45`
+[1] TRUE
+
+$`46`
+[1] TRUE
+
+$`47`
+[1] TRUE
+
+$`48`
+[1] TRUE
+
+$`49`
+[1] TRUE
+
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.742  ===>  99% of the (truncated) height range in dendro.
+TOM calculation: adjacency..
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+..will use 40 parallel threads.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+ ..done.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 0.829  ===>  99% of the (truncated) height range in dendro.
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 0.88  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..connectivity..
+..matrix multiplication..
+..done.
+ ..done.
+ ..cutHeight not given, setting it to 0.851  ===>  99% of the (truncated) height range in dendro.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+ ..done.
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..normalization..
+..done.
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.808  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.875  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.925  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ ..done.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+..normalization..
+..done.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 0.952  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.872  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 1.56  ===>  99% of the (truncated) height range in dendro.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+..normalization..
+..done.
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 1.61  ===>  99% of the (truncated) height range in dendro.
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 0.699  ===>  99% of the (truncated) height range in dendro.
+..connectivity..
+..matrix multiplication..
+ ..done.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.828  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 0.818  ===>  99% of the (truncated) height range in dendro.
+..connectivity..
+..matrix multiplication..
+..normalization..
+..normalization..
+..done.
+..done.
+ ..cutHeight not given, setting it to 0.773  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.978  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.903  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.986  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.62  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.855  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 1.75  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.985  ===>  99% of the (truncated) height range in dendro.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.927  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+..normalization..
+..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 1.46  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ ..cutHeight not given, setting it to 1.24  ===>  99% of the (truncated) height range in dendro.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..done.
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.839  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.989  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.807  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.96  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 1.55  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.817  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ ..cutHeight not given, setting it to 1.51  ===>  99% of the (truncated) height range in dendro.
+ Fraction of slow calculations: 0.000000
+ ..done.
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.906  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.19  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 1.84  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.903  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.982  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.934  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.45  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.886  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.08  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.969  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.46  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.899  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.38  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.987  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 2.24  ===>  99% of the (truncated) height range in dendro.
+..connectivity..
+..matrix multiplication..
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.9  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.11  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.987  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.993  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 1.66  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.957  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 3.17  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.96  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.834  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.871  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.42  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.945  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.4  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.796  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.56  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.992  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 2.82  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.987  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 2.01  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.943  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 2.22  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.985  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.02  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.86  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.834  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.68  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.961  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.916  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.784  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.08  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.766  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.22  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.852  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.27  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.851  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.689  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.815  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.752  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.939  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.26  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 1.79  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.987  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.53  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.882  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.65  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.862  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.08  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.977  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.21  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.992  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.44  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.982  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will use 40 parallel threads.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 1.21  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.362  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.395  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.387  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.529  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 0.524  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 19.6  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 19.7  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.469  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 0.434  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 36.9  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 34.4  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 23.9  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.389  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.375  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.581  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 18.6  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 28.3  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 21.5  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.526  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 30.3  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.613  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 54.7  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 44.2  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.491  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.404  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 22.5  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.837  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 30.5  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.404  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 30.8  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.374  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 0.632  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.857  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 26.6  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 0.49  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 28.5  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 48.5  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 0.707  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.497  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 24.2  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+ ..cutHeight not given, setting it to 0.574  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 36.7  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.45  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 23.9  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.568  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 32.2  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.47  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 27.4  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 52.5  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.448  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 35.7  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.731  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 59.2  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.64  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 39.6  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.504  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 19.5  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.482  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 34.5  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.514  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 29.9  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.393  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 33.9  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 77.4  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.695  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 68.7  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.553  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 36.2  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.672  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 38.5  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.459  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 24.3  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 107  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.584  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 25.6  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.353  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 21  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.341  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 31.1  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.418  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 30.8  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.386  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 22.2  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.399  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 20.9  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.482  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 39.8  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 122  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.785  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 55.7  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.475  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 67.4  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.424  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 29.9  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.679  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 30  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.804  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 77.2  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.627  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 30.2  ===>  99% of the (truncated) height range in dendro.
+ ..done.
