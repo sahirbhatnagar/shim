@@ -192,3 +192,17 @@ if(!pckg) {
   getPckg("viridis")
   require(viridis)
 }
+
+pckg = try(require(RcppMLPACK))
+if(!pckg) {
+  cat("Installing 'RcppMLPACK' from CRAN\n")
+  getPckg("RcppMLPACK")
+  require(RcppMLPACK)
+}
+
+pckg = try(require(zoo))
+if(!pckg) {
+  cat("Installing 'zoo' from CRAN\n")
+  getPckg("zoo")
+  require(zoo)
+}

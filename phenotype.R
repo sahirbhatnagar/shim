@@ -150,8 +150,8 @@ DT.pheno.placenta <- DT.pheno.placenta[,c("Sample_Name","IDNEW", "IDZPREG","age 
 #                                             "Sample_ID","i.ID","case", "Age_gestationnel", "Sexe"), with=F]
 
 
-
-
+# write.csv(DT.pheno.placenta[, c("Sample_Name","IDNEW", "IDZPREG", "Sample_ID","i.ID","case", "Sexe"), with=F ],
+#             file = "gd_ngd.csv", quote = F, row.names = F)
 
 
 

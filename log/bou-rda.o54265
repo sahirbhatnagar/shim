@@ -1,0 +1,822 @@
+==========================================================================
+*
+*  Package WGCNA 1.49 loaded.
+*
+*    Important note: It appears that your system supports multi-threading,
+*    but it is not enabled within WGCNA in R. 
+*    To allow multi-threading within WGCNA with all available cores, use 
+*
+*          allowWGCNAThreads()
+*
+*    within R. Use disableWGCNAThreads() to disable threading if necessary.
+*    Alternatively, set the following environment variable on your system:
+*
+*          ALLOW_WGCNA_THREADS=<number_of_processors>
+*
+*    for example 
+*
+*          ALLOW_WGCNA_THREADS=40
+*
+*    To set the environment variable in linux bash shell, type 
+*
+*           export ALLOW_WGCNA_THREADS=40
+*
+*     before running R. Other operating systems or shells will
+*     have a similar command to achieve the same aim.
+*
+==========================================================================
+
+
+ num [1:89] 6 8 9 10 11 14 15 16 22 26 ...
+Classes 'data.table' and 'data.frame':	48 obs. of  13 variables:
+ $ Sample_Name     : chr  NA NA NA "LBO001" ...
+ $ IDNEW           : chr  NA NA NA "6142077035_C" ...
+ $ IDZPREG         : int  31 172 222 4 7 8 16 20 32 35 ...
+ $ age (mois)      : num  NA 73 NA NA NA 83 NA NA 84 76 ...
+ $ poids z-score   : num  NA 0.3 NA NA NA -0.8 NA NA -0.9 -1.6 ...
+ $ imc             : num  NA 15 NA NA NA 14 NA NA 15 14 ...
+ $ imc z-score     : num  NA -0.37 NA NA NA -0.94 NA NA -0.02 -0.55 ...
+ $ commentaire     : chr  NA "HF" NA NA ...
+ $ Sample_ID       : chr  "31F" "172F" "222F" "4F" ...
+ $ i.ID            : chr  "5975819019_R01C01" "5975819045_R05C02" "5975819046_R02C01" "5975819035_R02C01" ...
+ $ case            : Factor w/ 2 levels "NGT","DG": 1 1 1 2 2 2 2 2 2 2 ...
+ $ Age_gestationnel: num  40.1 41.4 39.7 41.4 36.1 ...
+ $ Sexe            : Factor w/ 2 levels "f","m": 2 2 1 2 2 1 2 1 1 1 ...
+ - attr(*, "sorted")= chr "Sample_Name"
+ - attr(*, ".internal.selfref")=<externalptr> 
+$`0`
+[1]   28 1278
+
+$`1`
+[1]   28 4716
+
+$`2`
+[1]   28 1472
+
+$`3`
+[1]   28 1324
+
+$`4`
+[1]   28 1251
+
+$`5`
+[1]    28 15638
+
+$`6`
+[1]   28 1562
+
+$`7`
+[1]   28 3631
+
+$`8`
+[1]    28 12952
+
+$`9`
+[1]   28 1888
+
+$`10`
+[1]   28 7773
+
+$`11`
+[1]   28 1849
+
+$`12`
+[1]   28 1108
+
+$`13`
+[1]   28 3909
+
+$`14`
+[1]   28 2427
+
+$`15`
+[1]   28 4681
+
+$`16`
+[1]   28 5435
+
+$`17`
+[1]   28 1222
+
+$`18`
+[1]   28 2895
+
+$`19`
+[1]   28 5933
+
+$`20`
+[1]   28 4490
+
+$`21`
+[1]   28 6201
+
+$`22`
+[1]   28 4617
+
+$`23`
+[1]   28 2624
+
+$`24`
+[1]   28 4537
+
+$`25`
+[1]   28 3876
+
+$`26`
+[1]   28 1694
+
+$`27`
+[1]   28 1514
+
+$`28`
+[1]   28 1828
+
+$`29`
+[1]   28 1788
+
+$`30`
+[1]    28 12433
+
+$`31`
+[1]   28 8128
+
+$`32`
+[1]   28 1562
+
+$`33`
+[1]   28 2120
+
+$`34`
+[1]   28 1271
+
+$`35`
+[1]   28 1273
+
+$`36`
+[1]   28 4786
+
+$`37`
+[1]    28 20052
+
+$`38`
+[1]   28 1798
+
+$`39`
+[1]   28 5883
+
+$`40`
+[1]   28 2434
+
+$`41`
+[1]   28 5148
+
+$`42`
+[1]   28 1284
+
+$`43`
+[1]   28 8036
+
+$`44`
+[1]   28 1778
+
+$`45`
+[1]    28 11129
+
+$`46`
+[1]   28 1074
+
+$`47`
+[1]   28 2599
+
+$`48`
+[1]   28 1432
+
+$`49`
+[1]    28 19460
+
+ [1]  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+TOM calculation: adjacency..
+..will not use multithreading.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+ Fraction of slow calculations: 0.000000
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will not use multithreading.
+TOM calculation: adjacency..
+..will not use multithreading.
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will not use multithreading.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+..normalization..
+TOM calculation: adjacency..
+..will not use multithreading.
+..done.
+ ..cutHeight not given, setting it to 0.997  ===>  99% of the (truncated) height range in dendro.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..normalization..
+..done.
+ Fraction of slow calculations: 0.000000
+..normalization..
+..done.
+..normalization..
+..done.
+..normalization..
+..done.
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 0.998  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.997  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.996  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.997  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..done.
+ ..done.
+ ..done.
+ ..done.
+..normalization..
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..done.
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.997  ===>  99% of the (truncated) height range in dendro.
+TOM calculation: adjacency..
+..will not use multithreading.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 0.998  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+ ..done.
+..connectivity..
+..matrix multiplication..
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..normalization..
+TOM calculation: adjacency..
+..will not use multithreading.
+..done.
+..connectivity..
+..connectivity..
+..matrix multiplication..
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 0.998  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.997  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+ ..done.
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+..normalization..
+..connectivity..
+..matrix multiplication..
+..done.
+..normalization..
+..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..normalization..
+..done.
+..matrix multiplication..
+ Fraction of slow calculations: 0.000000
+..normalization..
+..done.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+ ..cutHeight not given, setting it to 2.48  ===>  99% of the (truncated) height range in dendro.
+..done.
+..normalization..
+..done.
+ ..done.
+ ..cutHeight not given, setting it to 0.998  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 2.69  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+ ..done.
+ ..cutHeight not given, setting it to 2.09  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 1.8  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 2.97  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.996  ===>  99% of the (truncated) height range in dendro.
+TOM calculation: adjacency..
+..will not use multithreading.
+ ..done.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+ ..cutHeight not given, setting it to 1.89  ===>  99% of the (truncated) height range in dendro.
+..connectivity..
+..matrix multiplication..
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 2.13  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.996  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.997  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 0.998  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 3.36  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 2.74  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.999  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.993  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 0.999  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.994  ===>  99% of the (truncated) height range in dendro.
+ ..cutHeight not given, setting it to 0.994  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 5.75  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.998  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..normalization..
+..done.
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 6.4  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 0.998  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 7.99  ===>  99% of the (truncated) height range in dendro.
+..normalization..
+..done.
+ ..done.
+..normalization..
+..done.
+..normalization..
+..done.
+..normalization..
+..done.
+..normalization..
+..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 7.62  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.998  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 4.11  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 12.3  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 3.23  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 9.48  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 11.4  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 3.52  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.999  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 5.48  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.997  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+ ..cutHeight not given, setting it to 4.93  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 4.99  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 6.07  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.997  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 9.76  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 8.81  ===>  99% of the (truncated) height range in dendro.
+ ..done.

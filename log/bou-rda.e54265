@@ -1,0 +1,433 @@
+Loading required package: magrittr
+Loading required package: data.table
+Loading required package: plyr
+Loading required package: dplyr
+
+Attaching package: 'dplyr'
+
+The following objects are masked from 'package:plyr':
+
+    arrange, count, desc, failwith, id, mutate, rename, summarise,
+    summarize
+
+The following objects are masked from 'package:data.table':
+
+    between, last
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+Loading required package: WGCNA
+Loading required package: dynamicTreeCut
+Loading required package: fastcluster
+
+Attaching package: 'fastcluster'
+
+The following object is masked from 'package:stats':
+
+    hclust
+
+Loading required package: DBI
+
+
+Attaching package: 'WGCNA'
+
+The following object is masked from 'package:stats':
+
+    cor
+
+Loading required package: glmnet
+Loading required package: Matrix
+Loading required package: foreach
+Loaded glmnet 2.0-2
+
+Loading required package: gglasso
+Loading required package: grpreg
+
+Attaching package: 'grpreg'
+
+The following object is masked from 'package:dplyr':
+
+    select
+
+Loading required package: ncvreg
+Loading required package: PMA
+Loading required package: impute
+Loading required package: eclust
+
+Attaching package: 'eclust'
+
+The following object is masked from 'package:glmnet':
+
+    cvcompute
+
+Loading required package: doMC
+Loading required package: iterators
+Loading required package: parallel
+Loading required package: cluster
+Loading required package: stringr
+Loading required package: ggplot2
+Loading required package: latex2exp
+Loading required package: factoextra
+Loading required package: FDb.InfiniumMethylation.hg19
+Loading required package: GenomicFeatures
+Loading required package: BiocGenerics
+
+Attaching package: 'BiocGenerics'
+
+The following objects are masked from 'package:parallel':
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following object is masked from 'package:Matrix':
+
+    as.vector
+
+The following objects are masked from 'package:dplyr':
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from 'package:stats':
+
+    IQR, mad, xtabs
+
+The following objects are masked from 'package:base':
+
+    Filter, Find, Map, Position, Reduce, anyDuplicated, append,
+    as.data.frame, as.vector, cbind, colnames, do.call, duplicated,
+    eval, evalq, get, grep, grepl, intersect, is.unsorted, lapply,
+    lengths, mapply, match, mget, order, paste, pmax, pmax.int, pmin,
+    pmin.int, rank, rbind, rownames, sapply, setdiff, sort, table,
+    tapply, union, unique, unlist, unsplit
+
+Loading required package: S4Vectors
+Loading required package: stats4
+
+Attaching package: 'S4Vectors'
+
+The following object is masked from 'package:dplyr':
+
+    rename
+
+The following object is masked from 'package:plyr':
+
+    rename
+
+Loading required package: IRanges
+
+Attaching package: 'IRanges'
+
+The following object is masked from 'package:Matrix':
+
+    expand
+
+The following objects are masked from 'package:dplyr':
+
+    collapse, desc, slice
+
+The following object is masked from 'package:plyr':
+
+    desc
+
+The following object is masked from 'package:data.table':
+
+    shift
+
+Loading required package: GenomeInfoDb
+Loading required package: GenomicRanges
+Loading required package: AnnotationDbi
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: 'AnnotationDbi'
+
+The following object is masked from 'package:grpreg':
+
+    select
+
+The following object is masked from 'package:dplyr':
+
+    select
+
+Loading required package: TxDb.Hsapiens.UCSC.hg19.knownGene
+Loading required package: org.Hs.eg.db
+
+Loading required package: genefilter
+
+Attaching package: 'genefilter'
+
+The following object is masked from 'package:ncvreg':
+
+    AUC
+
+The following object is masked from 'package:base':
+
+    anyNA
+
+Loading required package: bouchard
+Loading required package: readxl
+Loading required package: bit64
+Loading required package: bit
+Attaching package bit
+package:bit (c) 2008-2012 Jens Oehlschlaegel (GPL-2)
+creators: bit bitwhich
+coercion: as.logical as.integer as.bit as.bitwhich which
+operator: ! & | xor != ==
+querying: print length any all min max range sum summary
+bit access: length<- [ [<- [[ [[<-
+for more help type ?bit
+
+Attaching package: 'bit'
+
+The following object is masked from 'package:data.table':
+
+    setattr
+
+The following object is masked from 'package:base':
+
+    xor
+
+Attaching package bit64
+package:bit64 (c) 2011-2012 Jens Oehlschlaegel (GPL-2 with commercial restrictions)
+creators: integer64 seq :
+coercion: as.integer64 as.vector as.logical as.integer as.double as.character as.bin
+logical operator: ! & | xor != == < <= >= >
+arithmetic operator: + - * / %/% %% ^
+math: sign abs sqrt log log2 log10
+math: floor ceiling trunc round
+querying: is.integer64 is.vector [is.atomic} [length] is.na format print
+aggregation: any all min max range sum prod
+cumulation: diff cummin cummax cumsum cumprod
+access: length<- [ [<- [[ [[<-
+combine: c rep cbind rbind as.data.frame
+for more help type ?bit64
+
+Attaching package: 'bit64'
+
+The following object is masked from 'package:bit':
+
+    still.identical
+
+The following object is masked from 'package:Biobase':
+
+    cache
+
+The following objects are masked from 'package:GenomicRanges':
+
+    match, order, rank
+
+The following objects are masked from 'package:IRanges':
+
+    %in%, match, order, rank
+
+The following objects are masked from 'package:S4Vectors':
+
+    %in%, match, rank
+
+The following objects are masked from 'package:BiocGenerics':
+
+    match, order, rank
+
+The following objects are masked from 'package:base':
+
+    %in%, :, is.double, match, order, rank
+
+Loading required package: pheatmap
+Loading required package: viridis
+Loading required package: RcppMLPACK
+Loading required package: zoo
+
+Attaching package: 'zoo'
+
+The following objects are masked from 'package:base':
+
+    as.Date, as.Date.numeric
+
+Fetching coordinates for hg19...
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+There are 2 clusters derived from the tom similarity matrix
+There are 6 clusters derived from the difftom environment similarity matrix
+There are a total of 8 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+There are 1222 clusters derived from the tom similarity matrix
+There are 6 clusters derived from the difftom environment similarity matrix
+There are a total of 1228 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 1324 clusters derived from the tom similarity matrix
+There are 13 clusters derived from the difftom environment similarity matrix
+There are a total of 1337 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 1251 clusters derived from the tom similarity matrix
+There are 9 clusters derived from the difftom environment similarity matrix
+There are a total of 1260 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 2 clusters derived from the tom similarity matrix
+There are 7 clusters derived from the difftom environment similarity matrix
+There are a total of 9 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of environment clusters based on difftom
+There are 2 clusters derived from the tom similarity matrix
+There are 14 clusters derived from the difftom environment similarity matrix
+There are a total of 16 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+There are 3 clusters derived from the tom similarity matrix
+There are 10 clusters derived from the difftom environment similarity matrix
+There are a total of 13 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+There are 1849 clusters derived from the tom similarity matrix
+There are 8 clusters derived from the difftom environment similarity matrix
+There are a total of 1857 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 3 clusters derived from the tom similarity matrix
+There are 15 clusters derived from the difftom environment similarity matrix
+There are a total of 18 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+Calculating number of environment clusters based on difftom
+There are 3 clusters derived from the tom similarity matrix
+There are 5 clusters derived from the difftom environment similarity matrix
+There are a total of 8 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+There are 4 clusters derived from the tom similarity matrix
+There are 11 clusters derived from the difftom environment similarity matrix
+There are a total of 15 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+There are 2 clusters derived from the tom similarity matrix
+There are 6 clusters derived from the difftom environment similarity matrix
+There are a total of 8 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 3 clusters derived from the tom similarity matrix
+There are 5 clusters derived from the difftom environment similarity matrix
+There are a total of 8 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+There are 6 clusters derived from the tom similarity matrix
+There are 18 clusters derived from the difftom environment similarity matrix
+There are a total of 24 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 3 clusters derived from the tom similarity matrix
+There are 6 clusters derived from the difftom environment similarity matrix
+There are a total of 9 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 4 clusters derived from the tom similarity matrix
+There are 41 clusters derived from the difftom environment similarity matrix
+There are a total of 45 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of clusters based on tom using hclust with average
+                  linkage and the dynamic method to determine the number of clusters
+There are 2 clusters derived from the tom similarity matrix
+There are 10 clusters derived from the difftom environment similarity matrix
+There are a total of 12 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 2 clusters derived from the tom similarity matrix
+There are 5 clusters derived from the difftom environment similarity matrix
+There are a total of 7 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 5 clusters derived from the tom similarity matrix
+There are 34 clusters derived from the difftom environment similarity matrix
+There are a total of 39 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+There are 9 clusters derived from the tom similarity matrix
+There are 20 clusters derived from the difftom environment similarity matrix
+There are a total of 29 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+There are 7 clusters derived from the tom similarity matrix
+There are 21 clusters derived from the difftom environment similarity matrix
+There are a total of 28 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 8 clusters derived from the tom similarity matrix
+There are 31 clusters derived from the difftom environment similarity matrix
+There are a total of 39 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 10 clusters derived from the tom similarity matrix
+There are 21 clusters derived from the difftom environment similarity matrix
+There are a total of 31 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+Calculating number of environment clusters based on difftom
+There are 6 clusters derived from the tom similarity matrix
+There are 15 clusters derived from the difftom environment similarity matrix
+There are a total of 21 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
+There are 7 clusters derived from the tom similarity matrix
+There are 33 clusters derived from the difftom environment similarity matrix
+There are a total of 40 clusters derived from the tom
+                  similarity matrix and the difftom environment similarity matrix
