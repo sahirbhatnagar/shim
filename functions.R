@@ -2592,3 +2592,47 @@ cluster_kmeans <- function(data,
               clustersAll = PC_and_avg_All, 
               etrain = etrain))
 }
+
+
+prepare_data <- function(data, response = "Y", exposure = "E", probe_names) {
+  
+  # data = cbind(pcTrain, Y = Y[trainIndex], E = E[trainIndex])
+  
+  
+  # ===========================================================
+  
+  # Check for sensible dataset
+  ## Make sure you have response, exposure.
+  if (!(response %in% colnames(data))) stop(sprintf("response argument specified as %s but this column not found in 'data' data.frame", response))
+  if (!(exposure %in% colnames(data))) stop(sprintf("exposure argument specified as %s but this column not found in 'data' data.frame", exposure))
+  if (!missing(probe_names)) {
+    if (!(probe_names %in% colnames(data))) stop(sprintf("probe_names argument specified as %s but this column not found in 'data' data.frame", probe_names))
+  }
+  
+  # if missing main_effect_names, assume everything except response and exposure 
+  # are main effects
+  if (missing(probe_names)) {
+    probe_names <- setdiff(colnames(data), c(response, exposure))
+  }
+  
+  # rename response to be Y and exposure to be E
+  colnames(data)[which(colnames(data) == response)] <- "Y"
+  colnames(data)[which(colnames(data) == exposure)] <- "E"
+  
+  x_mat <- model.matrix(as.formula(paste0("~(", paste0(probe_names, collapse="+"), ")*E - 1")), data = data)
+  
+  
+  # reformulate(paste0("~(", paste0(colnames(pcTrain)[1:5], collapse="+"), ")*E"))
+  
+  
+  interaction_names <- grep(":", colnames(x_mat), value = T)
+  main_effect_names <- setdiff(colnames(x_mat), interaction_names)
+  
+  return(list(X = x_mat, Y = data[["Y"]], E = data[["E"]], 
+              main_effect_names = main_effect_names, 
+              interaction_names = interaction_names))
+  # x_mat
+  
+  
+}
+

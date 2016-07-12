@@ -1,0 +1,75 @@
+==========================================================================
+*
+*  Package WGCNA 1.49 loaded.
+*
+*    Important note: It appears that your system supports multi-threading,
+*    but it is not enabled within WGCNA in R. 
+*    To allow multi-threading within WGCNA with all available cores, use 
+*
+*          allowWGCNAThreads()
+*
+*    within R. Use disableWGCNAThreads() to disable threading if necessary.
+*    Alternatively, set the following environment variable on your system:
+*
+*          ALLOW_WGCNA_THREADS=<number_of_processors>
+*
+*    for example 
+*
+*          ALLOW_WGCNA_THREADS=40
+*
+*    To set the environment variable in linux bash shell, type 
+*
+*           export ALLOW_WGCNA_THREADS=40
+*
+*     before running R. Other operating systems or shells will
+*     have a similar command to achieve the same aim.
+*
+==========================================================================
+
+
+ num [1:89] 6 8 9 10 11 14 15 16 22 26 ...
+Classes 'data.table' and 'data.frame':	48 obs. of  13 variables:
+ $ Sample_Name     : chr  NA NA NA "LBO001" ...
+ $ IDNEW           : chr  NA NA NA "6142077035_C" ...
+ $ IDZPREG         : int  31 172 222 4 7 8 16 20 32 35 ...
+ $ age (mois)      : num  NA 73 NA NA NA 83 NA NA 84 76 ...
+ $ poids z-score   : num  NA 0.3 NA NA NA -0.8 NA NA -0.9 -1.6 ...
+ $ imc             : num  NA 15 NA NA NA 14 NA NA 15 14 ...
+ $ imc z-score     : num  NA -0.37 NA NA NA -0.94 NA NA -0.02 -0.55 ...
+ $ commentaire     : chr  NA "HF" NA NA ...
+ $ Sample_ID       : chr  "31F" "172F" "222F" "4F" ...
+ $ i.ID            : chr  "5975819019_R01C01" "5975819045_R05C02" "5975819046_R02C01" "5975819035_R02C01" ...
+ $ case            : Factor w/ 2 levels "NGT","DG": 1 1 1 2 2 2 2 2 2 2 ...
+ $ Age_gestationnel: num  40.1 41.4 39.7 41.4 36.1 ...
+ $ Sexe            : Factor w/ 2 levels "f","m": 2 2 1 2 2 1 2 1 1 1 ...
+ - attr(*, "sorted")= chr "Sample_Name"
+ - attr(*, ".internal.selfref")=<externalptr> 
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 0.996  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+TOM calculation: adjacency..
+..will not use multithreading.
+ Fraction of slow calculations: 0.000000
+..connectivity..
+..matrix multiplication..
+..normalization..
+..done.
+ ..cutHeight not given, setting it to 6.69  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 1.02  ===>  99% of the (truncated) height range in dendro.
+ ..done.
+ ..cutHeight not given, setting it to 153  ===>  99% of the (truncated) height range in dendro.
+ ..done.
