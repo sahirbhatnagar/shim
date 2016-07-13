@@ -10,7 +10,7 @@
 # 
 ##################################
 
-
+# rm(list=ls())
 source("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/functions.R")
 source("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/packages.R")
 source("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/data_cleaning.R")
@@ -83,11 +83,11 @@ pp <- cluster_kmeans(data = t(placentaALL[filterd_probes,]),
                      distance_method = "euclidean",
                      eclust_add = TRUE,
                      eclust_distance = "difftom",
-                     nPC = 1)
+                     nPC = 2)
 
 
 save(pp, file = paste0(
-  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git",tempfile(tmpdir = ""),"PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData"
+  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git",tempfile(tmpdir = ""),"2_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData"
   )
 )
 
@@ -104,11 +104,11 @@ pp2 <- cluster_kmeans(data = t(placentaALL[filterd_probes,]),
                      distance_method = "euclidean",
                      eclust_add = TRUE,
                      eclust_distance = "fisherScore",
-                     nPC = 1)
+                     nPC = 2)
 
 
 save(pp2, file = paste0(
-  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git",tempfile(tmpdir = ""),"PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData"
+  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git",tempfile(tmpdir = ""),"2_PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData"
 )
 )
 
@@ -255,97 +255,97 @@ save(pp2, file = paste0(
 # Sd filter - 10K probes --------------------------------------------------
 
 
-load("file1813f434eddPC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData")
-load("file18134f428062PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData")
-pp <- pp2
-
-# to combine all the principal components
-pcTrain <- pp$clustersAddon$PC
-avgTrain <- pp$clustersAddon$averageExpr
-
-pp$clustersAddon$varExplained %>% plot
-
-colnames(pcTrain) <- gsub("\\.","_",colnames(pcTrain))
-colnames(pcTrain) <- paste0("PC",colnames(pcTrain))
-datt <- cbind(pcTrain, Y = Y[trainIndex], age = DT.pheno.placenta$Age_gestationnel, sex = DT.pheno.placenta$Sexe)
-colnames(datt)
-str(datt)
-
-
-max_heat <- max(c(max(pcTrain[which(pp$etrain==0),]),max(pcTrain[which(pp$etrain==1),])))
-min_heat <- min(c(min(pcTrain[which(pp$etrain==0),]),min(pcTrain[which(pp$etrain==1),])))
-
-pheatmap::pheatmap(t(pcTrain[which(pp$etrain==0),]),
-                   clustering_method = "average",
-                   color = viridis(100),
-                   breaks = seq(min_heat, max_heat, length.out = 101))
-pheatmap::pheatmap(t(pcTrain[which(pp$etrain==1),]),
-                   clustering_method = "average",
-                   color = viridis(100),
-                   breaks = seq(min_heat, max_heat, length.out = 101))
-
-
-library(ComplexHeatmap)
-require(circlize)
-
-cm <- colorRamp2(seq(min(pcTrain), max(pcTrain), length.out = 100), viridis(100))
-ht1 = Heatmap(t(pcTrain[which(pp$etrain==0),]), 
-              name = "E=0",
-              # col = viridis(10), 
-              col = cm,
-              # column_title = "E = 0 : Age [4.8, 11.3]",
-              # column_title = "Income_Level: 1-7",
-              column_title = "NGD",
-              show_row_names = FALSE)
-ht2 = Heatmap(t(pcTrain[which(pp$etrain==1),]), 
-              name = "E=1",
-              # col = viridis(10), 
-              col = cm,
-              # column_title = "E = 1 : Age [11.3, 18]",
-              # column_title = "Income_Level: 8-10",
-              column_title = "GD",
-              show_row_names = FALSE)
-ht1 + ht2
-
-
-cv.fit <- cv.glmnet(x = as.matrix(pcTrain), y = Y[trainIndex], alpha = 0.5, standardize = T, intercept=T)
-# cv.fit <- cv.glmnet(x = as.matrix(avgTrain), y = Y[trainIndex], alpha = 0.5)
-
-plot(cv.fit)
-as.matrix(coef(cv.fit, s = "lambda.1se"))[which(as.matrix(coef(cv.fit, s = "lambda.1se"))!=0),,drop=F]
-as.matrix(coef(cv.fit, s = "lambda.min"))[which(as.matrix(coef(cv.fit, s = "lambda.min"))!=0),,drop=F]
-
-kl <- prepare_data(data = cbind(pcTrain, pheno = Y[trainIndex], 
-                                income = E[trainIndex],
-                                age = DT.pheno.placenta$Age_gestationnel, 
-                                sex = DT.pheno.placenta$Sexe),
-                   response = "pheno", exposure = "income")
-
-kl$X %>% dim()
-kl$main_effect_names
-kl$interaction_names
-
-library(eclust)
-library(doMC)
-registerDoMC(cores = 10)
-system.time(shim <- shim(x =kl$X, y = kl$Y,
-                               main.effect.names = kl$main_effect_names,
-                               interaction.names = kl$interaction_names,
-                               verbose = TRUE))
-
-system.time(cv_shim <- cv.shim(x =kl$X, y = kl$Y,
-                               main.effect.names = kl$main_effect_names,
-                               interaction.names = kl$interaction_names,
-                               parallel = TRUE, verbose = TRUE,
-                               type.measure = c("mse"), 
-                               nfolds = 10))
-plot(cv_shim)
-coef(cv_shim)
-cv_shim$shim.fit
-
-
-cv.fit2 <- cv.glmnet(x = kl$X, y = kl$Y, alpha = 0.5)
-plot(cv.fit2)
-as.matrix(coef(cv.fit2, s = "lambda.1se"))[which(as.matrix(coef(cv.fit2, s = "lambda.1se"))!=0),,drop=F]
-as.matrix(coef(cv.fit2, s = "lambda.min"))[which(as.matrix(coef(cv.fit2, s = "lambda.min"))!=0),,drop=F]
+# load("file1813f434eddPC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData")
+# load("file18134f428062PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData")
+# pp <- pp2
+# 
+# # to combine all the principal components
+# pcTrain <- pp$clustersAddon$PC
+# avgTrain <- pp$clustersAddon$averageExpr
+# 
+# pp$clustersAddon$varExplained %>% plot
+# 
+# colnames(pcTrain) <- gsub("\\.","_",colnames(pcTrain))
+# colnames(pcTrain) <- paste0("PC",colnames(pcTrain))
+# datt <- cbind(pcTrain, Y = Y[trainIndex], age = DT.pheno.placenta$Age_gestationnel, sex = DT.pheno.placenta$Sexe)
+# colnames(datt)
+# str(datt)
+# 
+# 
+# max_heat <- max(c(max(pcTrain[which(pp$etrain==0),]),max(pcTrain[which(pp$etrain==1),])))
+# min_heat <- min(c(min(pcTrain[which(pp$etrain==0),]),min(pcTrain[which(pp$etrain==1),])))
+# 
+# pheatmap::pheatmap(t(pcTrain[which(pp$etrain==0),]),
+#                    clustering_method = "average",
+#                    color = viridis(100),
+#                    breaks = seq(min_heat, max_heat, length.out = 101))
+# pheatmap::pheatmap(t(pcTrain[which(pp$etrain==1),]),
+#                    clustering_method = "average",
+#                    color = viridis(100),
+#                    breaks = seq(min_heat, max_heat, length.out = 101))
+# 
+# 
+# library(ComplexHeatmap)
+# require(circlize)
+# 
+# cm <- colorRamp2(seq(min(pcTrain), max(pcTrain), length.out = 100), viridis(100))
+# ht1 = Heatmap(t(pcTrain[which(pp$etrain==0),]), 
+#               name = "E=0",
+#               # col = viridis(10), 
+#               col = cm,
+#               # column_title = "E = 0 : Age [4.8, 11.3]",
+#               # column_title = "Income_Level: 1-7",
+#               column_title = "NGD",
+#               show_row_names = FALSE)
+# ht2 = Heatmap(t(pcTrain[which(pp$etrain==1),]), 
+#               name = "E=1",
+#               # col = viridis(10), 
+#               col = cm,
+#               # column_title = "E = 1 : Age [11.3, 18]",
+#               # column_title = "Income_Level: 8-10",
+#               column_title = "GD",
+#               show_row_names = FALSE)
+# ht1 + ht2
+# 
+# 
+# cv.fit <- cv.glmnet(x = as.matrix(pcTrain), y = Y[trainIndex], alpha = 0.5, standardize = T, intercept=T)
+# # cv.fit <- cv.glmnet(x = as.matrix(avgTrain), y = Y[trainIndex], alpha = 0.5)
+# 
+# plot(cv.fit)
+# as.matrix(coef(cv.fit, s = "lambda.1se"))[which(as.matrix(coef(cv.fit, s = "lambda.1se"))!=0),,drop=F]
+# as.matrix(coef(cv.fit, s = "lambda.min"))[which(as.matrix(coef(cv.fit, s = "lambda.min"))!=0),,drop=F]
+# 
+# kl <- prepare_data(data = cbind(pcTrain, pheno = Y[trainIndex], 
+#                                 income = E[trainIndex],
+#                                 age = DT.pheno.placenta$Age_gestationnel, 
+#                                 sex = DT.pheno.placenta$Sexe),
+#                    response = "pheno", exposure = "income")
+# 
+# kl$X %>% dim()
+# kl$main_effect_names
+# kl$interaction_names
+# 
+# library(eclust)
+# library(doMC)
+# registerDoMC(cores = 10)
+# system.time(shim <- shim(x =kl$X, y = kl$Y,
+#                                main.effect.names = kl$main_effect_names,
+#                                interaction.names = kl$interaction_names,
+#                                verbose = TRUE))
+# 
+# system.time(cv_shim <- cv.shim(x =kl$X, y = kl$Y,
+#                                main.effect.names = kl$main_effect_names,
+#                                interaction.names = kl$interaction_names,
+#                                parallel = TRUE, verbose = TRUE,
+#                                type.measure = c("mse"), 
+#                                nfolds = 10))
+# plot(cv_shim)
+# coef(cv_shim)
+# cv_shim$shim.fit
+# 
+# 
+# cv.fit2 <- cv.glmnet(x = kl$X, y = kl$Y, alpha = 0.5)
+# plot(cv.fit2)
+# as.matrix(coef(cv.fit2, s = "lambda.1se"))[which(as.matrix(coef(cv.fit2, s = "lambda.1se"))!=0),,drop=F]
+# as.matrix(coef(cv.fit2, s = "lambda.min"))[which(as.matrix(coef(cv.fit2, s = "lambda.min"))!=0),,drop=F]
 
