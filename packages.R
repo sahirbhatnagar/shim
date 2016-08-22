@@ -1,6 +1,18 @@
 ## ---- required-packages ----
 
 getPckg <- function(pckg) install.packages(pckg, repos = "http://cran.r-project.org")
+getPckgBioc <- function(pckg) biocLite(pkgs = pckg)
+
+
+pckg = try(require(devtools))
+if(!pckg) {
+  cat("Installing 'devtools' from CRAN\n")
+  getPckg("devtools")
+  require(devtools)
+}
+
+install_github('sahirbhatnagar/eclust')
+
 
 pckg = try(require(magrittr))
 if(!pckg) {
@@ -28,6 +40,50 @@ if(!pckg) {
   cat("Installing 'dplyr' from CRAN\n")
   getPckg("dplyr")
   require(dplyr)
+}
+
+source("https://bioconductor.org/biocLite.R")
+
+pckg = try(require(Biobase))
+if(!pckg) {
+  cat("Installing 'Biobase' from Bioconductor\n")
+  getPckgBioc("Biobase")
+  require(Biobase)
+}
+
+pckg = try(require(IRanges))
+if(!pckg) {
+  cat("Installing 'IRanges' from Bioconductor\n")
+  getPckgBioc("IRanges")
+  require(IRanges)
+}
+
+pckg = try(require(AnnotationDbi))
+if(!pckg) {
+  cat("Installing 'AnnotationDbi' from Bioconductor\n")
+  getPckgBioc("AnnotationDbi")
+  require(AnnotationDbi)
+}
+
+pckg = try(require(impute))
+if(!pckg) {
+  cat("Installing 'impute' from Bioconductor\n")
+  getPckgBioc("impute")
+  require(impute)
+}
+
+pckg = try(require(preprocessCore))
+if(!pckg) {
+  cat("Installing 'preprocessCore' from Bioconductor\n")
+  getPckgBioc("preprocessCore")
+  require(preprocessCore)
+}
+
+pckg = try(require(GO.db))
+if(!pckg) {
+  cat("Installing 'GO.db' from Bioconductor\n")
+  getPckgBioc("GO.db")
+  require(GO.db)
 }
 
 pckg = try(require(WGCNA))

@@ -10,26 +10,26 @@
 # In all fitting models, we are fitting interactions
 ##################################
 
-# rm(list=ls())
-# source("packages.R")
-# source("functions.R")
+rm(list=ls())
+source("packages.R")
+source("functions.R")
 
 options(digits = 4, scipen = 999)
 
-source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/packages.R")
-source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/functions.R")
+# source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/packages.R")
+# source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/functions.R")
 
-parametersDf <- expand.grid(rho = c(0.2,0.50,0.90),
-                            p = c(1000),
+parametersDf <- expand.grid(rho = c(0.2,0.90),
+                            p = c(3000),
                             SNR = c(1),
                             n = c(400), # this is the total train + test sample size
-                            nActive = c(100), # must be even because its being split among two modules
+                            nActive = c(300), # must be even because its being split among two modules
                             #n0 = 200,
                             cluster_distance = c("tom"),
                             Ecluster_distance = c("difftom"),
                             rhoOther = 0.6,
-                            betaMean = c(0.1,0.5,1,2),
-                            betaE = 1,
+                            betaMean = c(1),
+                            betaE = 2,
                             includeInteraction = TRUE,
                             includeStability = TRUE,
                             distanceMethod = "euclidean",
