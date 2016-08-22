@@ -206,3 +206,24 @@ if(!pckg) {
   getPckg("zoo")
   require(zoo)
 }
+
+pckg = try(require(tidyr))
+if(!pckg) {
+  cat("Installing 'tidyr' from CRAN\n")
+  getPckg("tidyr")
+  require(tidyr)
+}
+
+pckg = try(require(earth))
+if(!pckg) {
+  cat("Installing 'earth' from CRAN\n")
+  getPckg("earth")
+  require(earth)
+}
+
+pckg = try(require(caret))
+if(!pckg) {
+  cat("Installing 'caret' from CRAN\n")
+  getPckg("caret")
+  require(caret)
+}

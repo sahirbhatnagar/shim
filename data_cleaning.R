@@ -42,7 +42,7 @@ DT.raw.placenta[, "sd_methylation" := rowSds(DT.raw.placenta[,which(colnames(DT.
 DT.placenta <- cg.annotate(DT.raw.placenta[mean_methylation>=0.1 & mean_methylation <= 0.9])
 
 # load phenotype
-source("phenotype.R")
+source("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/phenotype.R")
 
 # ID of GD cases
 GD <- DT.pheno.placenta[!is.na(`imc z-score`)][case == "DG"]$i.ID

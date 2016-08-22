@@ -87,7 +87,7 @@ pp <- cluster_kmeans(data = t(placentaALL[filterd_probes,]),
 
 
 save(pp, file = paste0(
-  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git",tempfile(tmpdir = ""),"2_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData"
+  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git",tempfile(tmpdir = ""),"_2_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData"
   )
 )
 
@@ -108,7 +108,7 @@ pp2 <- cluster_kmeans(data = t(placentaALL[filterd_probes,]),
 
 
 save(pp2, file = paste0(
-  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git",tempfile(tmpdir = ""),"2_PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData"
+  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git",tempfile(tmpdir = ""),"_2_PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData"
 )
 )
 
@@ -252,34 +252,84 @@ save(pp2, file = paste0(
 
 
 
-# Sd filter - 10K probes --------------------------------------------------
 
 
-# load("file1813f434eddPC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData")
-# load("file18134f428062PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData")
-# pp <- pp2
+# # Sd filter - 10K probes --------------------------------------------------
+# 
+# # plot var explained ----
+# 
+# # load("file1813f434eddPC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData")
+# # load("file18134f428062PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData")
+# 
+# rm(pp, pp2)
+# 
+# load("file97672a4c93c72_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData")
+# load("file97674b79bc052_PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData")
 # 
 # # to combine all the principal components
-# pcTrain <- pp$clustersAddon$PC
-# avgTrain <- pp$clustersAddon$averageExpr
+# pcTrain_TOM <- pp$clustersAddon$PC
+# dim(pcTrain_TOM)
+# head(pcTrain_TOM)
+# avgTrain_TOM <- pp$clustersAddon$averageExpr
 # 
-# pp$clustersAddon$varExplained %>% plot
+# # to combine all the principal components
+# pcTrain_corr <- pp2$clustersAddon$PC
+# dim(pcTrain_corr)
+# head(pcTrain_corr)
+# avgTrain_corr <- pp2$clustersAddon$averageExpr
 # 
-# colnames(pcTrain) <- gsub("\\.","_",colnames(pcTrain))
-# colnames(pcTrain) <- paste0("PC",colnames(pcTrain))
-# datt <- cbind(pcTrain, Y = Y[trainIndex], age = DT.pheno.placenta$Age_gestationnel, sex = DT.pheno.placenta$Sexe)
+# varexp_PC1_TOM <- pp$clustersAddon$varExplained[seq(1, length(pp$clustersAddon$varExplained), by = 2)]
+# varexp_PC2_TOM <- pp$clustersAddon$varExplained[seq(2, length(pp$clustersAddon$varExplained), by = 2)]
+# 
+# varexp_PC1_corr <- pp2$clustersAddon$varExplained[seq(1, length(pp2$clustersAddon$varExplained), by = 2)]
+# varexp_PC2_corr <- pp2$clustersAddon$varExplained[seq(2, length(pp2$clustersAddon$varExplained), by = 2)]
+# 
+# 
+# dTOM <- data.frame(index = seq_len(length(varexp_PC1_TOM)), varexp_PC1_TOM, varexp_PC2_TOM) %>% 
+#   gather(type, value, -index) %>% 
+#   separate(type, c("measure", "PC", "type"))
+# dcorr <- data.frame(index = seq_len(length(varexp_PC1_corr)), varexp_PC1_corr, varexp_PC2_corr) %>% 
+#   gather(type, value, -index) %>% 
+#   separate(type, c("measure", "PC", "type"))
+# 
+# var_expl_data <- rbind(dTOM, dcorr)
+# 
+# p <- ggplot(var_expl_data, aes(x = index, y = value, color = PC))
+# p + geom_point(size=2) + facet_wrap(~type) + ylab("variance explained") + theme_bw()
+# 
+# # plot(seq_len(length(var_exp_pc1)), var_exp_pc1, pch = 19, col = "red", 
+# #      ylim = c(0, max(var_exp_pc1, var_exp_pc2)),
+# #      xlab = "cluster index", ylab = "variance explained")
+# # points(seq_len(length(var_exp_pc1)), var_exp_pc2, pch = 19, col = "blue")
+# # legend("topright", c("PC1", "PC2"), col = c("red","blue"),
+# #        pch = c(19,19), bg = "gray90")
+# 
+# colnames(pcTrain_TOM) <- gsub("\\.","_",colnames(pcTrain_TOM))
+# # colnames(pcTrain_TOM) <- paste0("PC",colnames(pcTrain_TOM))
+# datt <- cbind(pcTrain_TOM, Y = Y[trainIndex], age = DT.pheno.placenta$Age_gestationnel, sex = DT.pheno.placenta$Sexe)
 # colnames(datt)
 # str(datt)
 # 
 # 
-# max_heat <- max(c(max(pcTrain[which(pp$etrain==0),]),max(pcTrain[which(pp$etrain==1),])))
-# min_heat <- min(c(min(pcTrain[which(pp$etrain==0),]),min(pcTrain[which(pp$etrain==1),])))
 # 
-# pheatmap::pheatmap(t(pcTrain[which(pp$etrain==0),]),
+# # sent to Celia July 13
+# bouchard_2PC_10K_probes_TOM_DIFFTOM <- cbind(pcTrain_TOM, 
+#                                             bmizscore = Y[trainIndex], 
+#                                             gdstatus = E[trainIndex])
+# 
+# write.csv(bouchard_2PC_10K_probes_TOM_DIFFTOM, file = "bouchard_2PC_10K_TOM_DIFFTOM.csv", 
+#           quote = FALSE,row.names = FALSE)
+# head(bouchard_2PC_10K_probes_TOM_DIFFTOM)
+# 
+# 
+# max_heat <- max(c(max(pcTrain_TOM[which(pp$etrain==0),]),max(pcTrain_TOM[which(pp$etrain==1),])))
+# min_heat <- min(c(min(pcTrain_TOM[which(pp$etrain==0),]),min(pcTrain_TOM[which(pp$etrain==1),])))
+# 
+# pheatmap::pheatmap(t(pcTrain_TOM[which(pp$etrain==0),]),
 #                    clustering_method = "average",
 #                    color = viridis(100),
 #                    breaks = seq(min_heat, max_heat, length.out = 101))
-# pheatmap::pheatmap(t(pcTrain[which(pp$etrain==1),]),
+# pheatmap::pheatmap(t(pcTrain_TOM[which(pp$etrain==1),]),
 #                    clustering_method = "average",
 #                    color = viridis(100),
 #                    breaks = seq(min_heat, max_heat, length.out = 101))
@@ -288,8 +338,8 @@ save(pp2, file = paste0(
 # library(ComplexHeatmap)
 # require(circlize)
 # 
-# cm <- colorRamp2(seq(min(pcTrain), max(pcTrain), length.out = 100), viridis(100))
-# ht1 = Heatmap(t(pcTrain[which(pp$etrain==0),]), 
+# cm <- colorRamp2(seq(min_heat, max_heat, length.out = 100), viridis(100))
+# ht1 = Heatmap(t(pcTrain_TOM[which(pp$etrain==0),]), 
 #               name = "E=0",
 #               # col = viridis(10), 
 #               col = cm,
@@ -297,7 +347,7 @@ save(pp2, file = paste0(
 #               # column_title = "Income_Level: 1-7",
 #               column_title = "NGD",
 #               show_row_names = FALSE)
-# ht2 = Heatmap(t(pcTrain[which(pp$etrain==1),]), 
+# ht2 = Heatmap(t(pcTrain_TOM[which(pp$etrain==1),]), 
 #               name = "E=1",
 #               # col = viridis(10), 
 #               col = cm,
@@ -308,17 +358,19 @@ save(pp2, file = paste0(
 # ht1 + ht2
 # 
 # 
-# cv.fit <- cv.glmnet(x = as.matrix(pcTrain), y = Y[trainIndex], alpha = 0.5, standardize = T, intercept=T)
+# cv.fit <- cv.glmnet(x = as.matrix(pcTrain_TOM), y = Y[trainIndex], alpha = 0.5, standardize = T, intercept=T)
 # # cv.fit <- cv.glmnet(x = as.matrix(avgTrain), y = Y[trainIndex], alpha = 0.5)
 # 
 # plot(cv.fit)
 # as.matrix(coef(cv.fit, s = "lambda.1se"))[which(as.matrix(coef(cv.fit, s = "lambda.1se"))!=0),,drop=F]
 # as.matrix(coef(cv.fit, s = "lambda.min"))[which(as.matrix(coef(cv.fit, s = "lambda.min"))!=0),,drop=F]
 # 
-# kl <- prepare_data(data = cbind(pcTrain, pheno = Y[trainIndex], 
-#                                 income = E[trainIndex],
-#                                 age = DT.pheno.placenta$Age_gestationnel, 
-#                                 sex = DT.pheno.placenta$Sexe),
+# kl <- prepare_data(data = cbind(pcTrain_TOM, pheno = Y[trainIndex], 
+#                                 income = E[trainIndex]
+# #                                 ,
+# #                                 age = DT.pheno.placenta$Age_gestationnel, 
+# #                                 sex = DT.pheno.placenta$Sexe
+#                                 ),
 #                    response = "pheno", exposure = "income")
 # 
 # kl$X %>% dim()
@@ -348,4 +400,207 @@ save(pp2, file = paste0(
 # plot(cv.fit2)
 # as.matrix(coef(cv.fit2, s = "lambda.1se"))[which(as.matrix(coef(cv.fit2, s = "lambda.1se"))!=0),,drop=F]
 # as.matrix(coef(cv.fit2, s = "lambda.min"))[which(as.matrix(coef(cv.fit2, s = "lambda.min"))!=0),,drop=F]
+# 
 
+
+# MARS --------------------------------------------------------------------
+
+# this loads an object called pp
+load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/file19e17f13c434_2_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData")
+# this loads an object called pp2
+load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/file19e150ebfb6e_2_PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData")
+
+# to combine all the principal components
+pcTrain_TOM <- pp$clustersAddon$PC
+pp$clustersAll$nclusters
+pp$clustersAddon$nclusters
+
+
+dim(pcTrain_TOM)
+head(pcTrain_TOM)
+avgTrain_TOM <- pp$clustersAddon$averageExpr
+
+# to combine all the principal components
+pcTrain_corr <- pp2$clustersAddon$PC
+dim(pcTrain_corr)
+head(pcTrain_corr)
+avgTrain_corr <- pp2$clustersAddon$averageExpr
+
+varexp_PC1_TOM <- pp$clustersAddon$varExplained[seq(1, length(pp$clustersAddon$varExplained), by = 2)]
+varexp_PC2_TOM <- pp$clustersAddon$varExplained[seq(2, length(pp$clustersAddon$varExplained), by = 2)]
+
+varexp_PC1_corr <- pp2$clustersAddon$varExplained[seq(1, length(pp2$clustersAddon$varExplained), by = 2)]
+varexp_PC2_corr <- pp2$clustersAddon$varExplained[seq(2, length(pp2$clustersAddon$varExplained), by = 2)]
+
+
+dTOM <- data.frame(index = seq_len(length(varexp_PC1_TOM)), varexp_PC1_TOM, varexp_PC2_TOM) %>% 
+  gather(type, value, -index) %>% 
+  separate(type, c("measure", "PC", "type"))
+dcorr <- data.frame(index = seq_len(length(varexp_PC1_corr)), varexp_PC1_corr, varexp_PC2_corr) %>% 
+  gather(type, value, -index) %>% 
+  separate(type, c("measure", "PC", "type"))
+
+var_expl_data <- rbind(dTOM, dcorr)
+
+p <- ggplot(var_expl_data, aes(x = index, y = value, color = PC))
+p + geom_point(size=2) + facet_wrap(~type) + ylab("variance explained") + theme_bw()
+
+max_heat <- max(c(max(pcTrain_TOM[which(pp$etrain==0),]),max(pcTrain_TOM[which(pp$etrain==1),])))
+min_heat <- min(c(min(pcTrain_TOM[which(pp$etrain==0),]),min(pcTrain_TOM[which(pp$etrain==1),])))
+
+library(ComplexHeatmap)
+require(circlize)
+
+cm <- colorRamp2(seq(min_heat, max_heat, length.out = 100), viridis(100))
+ht1 = Heatmap(t(pcTrain_TOM[which(pp$etrain==0),]), 
+              name = "E=0",
+              # col = viridis(10), 
+              col = cm,
+              # column_title = "E = 0 : Age [4.8, 11.3]",
+              # column_title = "Income_Level: 1-7",
+              column_title = "NGD",
+              show_row_names = FALSE)
+ht2 = Heatmap(t(pcTrain_TOM[which(pp$etrain==1),]), 
+              name = "E=1",
+              # col = viridis(10), 
+              col = cm,
+              # column_title = "E = 1 : Age [11.3, 18]",
+              # column_title = "Income_Level: 8-10",
+              column_title = "GD",
+              show_row_names = FALSE)
+ht1 + ht2
+
+
+
+kl <- prepare_data(data = cbind(pcTrain_TOM, pheno = Y[trainIndex], 
+                                income = E[trainIndex]),
+                   response = "pheno", exposure = "income")
+
+kl$X %>% dim
+kl$X[,1:155] %>% head
+
+
+fit.earth <- earth::earth(x = kl$X[,1:154], y = kl$Y, pmethod = "forward", keepxy = TRUE, degree = 2, nfold = 10, trace = 4)
+summary(fit.earth)
+plot(fit.earth)
+plotmo(fit.earth)
+predict(fit.earth, newdata = kl$X)
+evimp(fit.earth)
+
+
+# resamples()
+# 
+# head(predict(marsTuned, kl$X))
+# varImp(marsTuned)
+# 
+# earthPred <- predict(marsTuned, newdata = kl$X)
+## The function ' postResample ' can be used to get the test set
+## perforamnce values
+# postResample(pred = earthPred, obs = kl$X)
+
+
+fitControl <-  trainControl(method = "repeatedcv", 
+                            number = 10, 
+                            repeats = 3,
+                            verboseIter = TRUE)
+
+# Define the candidate models to test
+marsGrid <- expand.grid(.degree = 1:2, .nprune = 2:20)
+# Fix the seed so that the results can be reproduced
+set.seed(1056)
+marsTuned <- train(kl$X[,1:154], kl$Y,
+                   method = "earth",
+                   # Explicitly declare the candidate models to test
+                   tuneGrid = marsGrid,
+                   trControl = fitControl)
+marsTuned$finalModel$bx
+plot(marsTuned)
+plotmo(marsTuned)
+
+marsTuned$bestTune
+fit.earth <- earth::earth(x = kl$X[,1:154], y = kl$Y, 
+                          pmethod = "forward", keepxy = TRUE, degree = 2, nfold = 0, trace = 4)
+plotmo(fit.earth)
+
+set.seed(1056)
+earthFit <- train(x = kl$X[,1:154], y = kl$Y,
+                  method = "earth",
+                  tuneLength = 10,
+                  tuneGrid = marsGrid,
+                  trControl = fitControl)
+
+summary(earthFit)
+plot(earthFit)
+earthFit$results
+
+set.seed(1056)
+bagearthFit <- train(x = kl$X[,1:154], y = kl$Y,
+                  method = "bagEarth",
+                  tuneLength = 10,
+                  trControl = fitControl)
+
+plot(bagearthFit)
+
+set.seed(1056)
+lassoFit <- train(x = kl$X[,1:154], y = kl$Y,
+                  method = "glmnet",
+                  tuneLength = 10,
+                  trControl = fitControl)
+
+resamps <- resamples(list(MARS = earthFit,
+                          bagMARS = bagearthFit,
+                          GLMNET = lassoFit))
+
+set.seed(1056)
+relaxoFit <- train(x = kl$X[,1:154], y = kl$Y,
+                  method = "relaxo",
+                  tuneLength = 10,
+                  trControl = fitControl)
+
+set.seed(1056)
+rbfSVM <- train(x = kl$X[,1:154], y = kl$Y,
+                  method = "svmRadial",
+                  tuneLength = 10,
+                  trControl = fitControl)
+
+lassoFit
+resamps <- resamples(list(MARS = earthFit,
+                          bagMARS = bagearthFit,
+                          GLMNET = lassoFit,
+                          Relaxo = relaxoFit,
+                          # Ridge = ridgeFit,
+                          SVMrbf = rbfSVM))
+
+bwplot(resamps)
+summary(resamps)
+dotplot(resamps)
+splom(resamps)
+modelDifferences <- diff(resamps)
+?xyplot.resamples
+
+
+predictors(bagearthFit)
+predictors(earthFit)
+predictors(lassoFit)
+predictors(rbfSVM)
+
+trellis.par.set(caretTheme())
+plot(bagearthFit, type = c("g", "o"))
+
+
+plot(earthFit)
+summary(earthFit)
+earthFit$finalModel
+varImp(earthFit)
+str(earthFit)
+
+# or load pre-calculated results using:
+load(url("http://caret.r-forge.r-project.org/exampleModels.RData"))
+
+resamps <- resamples(list(CART = rpartFit,
+                          CondInfTree = ctreeFit,
+                          MARS = earthFit))
+
+bwplot(resamps)
+summary(resamps)
+dotplot(resamps)
