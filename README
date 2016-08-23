@@ -1,0 +1,1 @@
+sim-mammouth.sh and sim-hydra.sh are doing the same simulation, but on different clusters. This is to divide the total number of simulation runs on two clusters instead of just 1. 

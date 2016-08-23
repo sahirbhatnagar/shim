@@ -11,7 +11,7 @@ if(!pckg) {
   require(devtools)
 }
 
-install_github('sahirbhatnagar/eclust')
+# install_github('sahirbhatnagar/eclust')
 
 
 pckg = try(require(magrittr))
@@ -42,7 +42,7 @@ if(!pckg) {
   require(dplyr)
 }
 
-source("https://bioconductor.org/biocLite.R")
+source("http://bioconductor.org/biocLite.R")
 
 pckg = try(require(Biobase))
 if(!pckg) {

@@ -3,25 +3,29 @@
 # on Mamouth cluster
 # Git: this is on the eclust repo, sim2-modules-mammouth branch
 # Created by Sahir,  April 2, 2016
-# Updated: May 11, 2016
+# Updated: August 23, 2016
 # Notes:
 # This is a modified simulation and different from simulation1
 # Its based on code from Network analysis book by Horvath
 # In all fitting models, we are fitting interactions
+# I removed the univariate because it makes no sense, and hard
+# to figure out with a varying number of p
 ##################################
 
-rm(list=ls())
-source("packages.R")
-source("functions.R")
+# rm(list=ls())
+# source("packages.R")
+# source("functions.R")
 
 options(digits = 4, scipen = 999)
 
 # source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/packages.R")
 # source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/functions.R")
+source("/home/bhatnaga/coexpression/august2016simulation/linear/packages.R")
+source("/home/bhatnaga/coexpression/august2016simulation/linear/functions.R")
 
 parametersDf <- expand.grid(rho = c(0.2,0.90),
                             p = c(3000,5000),
-                            SNR = c(1),
+                            SNR = c(0.2,1,2),
                             n = c(400), # this is the total train + test sample size
                             # nActive = c(300), # must be even because its being split among two modules
                             #n0 = 200,
@@ -47,7 +51,7 @@ nSimScenarios <- nrow(parametersDf)
 # 108 simulation scenarios results in 5 qsubs
 # so the first command line argument which is parameterIndex below 
 # should be between 1 and 10 (inclusive) 
-SPLIT <- split(1:nSimScenarios, ceiling(seq_along(1:nSimScenarios)/23))
+SPLIT <- split(1:nSimScenarios, ceiling(seq_along(1:nSimScenarios)/24))
 
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
@@ -56,7 +60,7 @@ parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 simScenarioIndices <- SPLIT[[parameterIndex]]
 
 FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
-  # INDEX=1
+  # INDEX=8
   simulationParameters <- parametersDf[INDEX,, drop = F]
   
   print(simulationParameters)
@@ -185,67 +189,67 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   # result$clustersAll[module=="blue"]
   ## ---- univariate-pvalue -----
   
-  message("Starting univariate p-value with interaction")
-  
-  # filtering on univariate p-value, taking the lowet 5 percent and then running
-  # multiple linear regression on it
-  # the correlations are really messing up the oracle model which is why when
-  # you filter you get better fit
-  # stability = TRUE makes the function return coefficients only. use only for
-  # calculating stability measures
-  # output is in the following format: eg. uni_na_lm_yes_mse
-  # which represents method_clustermeasure_model_includeE_measure
-  
-  percent <- if (p > 1000) 0.005 else 0.01
-  uni_res <- uniFit(train = result[["DT_train"]], test = result[["DT_test"]],
-                    percent = percent, stability = F,
-                    include_E = T,
-                    include_interaction = includeInteraction,
-                    filter_var = F, p = p,
-                    s0 = result[["S0"]], true_beta = result[["beta_truth"]])
-  
-  if (includeStability) {
-    uni_stab <- mapply(uniFit,
-                       train = result[["DT_train_folds"]],
-                       MoreArgs = list(test = result[["DT_test"]],
-                                       s0 = result[["S0"]],
-                                       true_beta = result[["beta_truth"]],
-                                       stability = T,
-                                       include_E = T,
-                                       include_interaction = includeInteraction,
-                                       percent = percent,
-                                       filter_var = F,
-                                       p = p),
-                       SIMPLIFY = F)
-    
-    # Make the combinations of list elements
-    ll <- combn(uni_stab, 2, simplify = F)
-    
-    # Pairwise correlations of the model coefficients for each of the 10 CV folds
-    uni_mean_stab <- lapply(c("pearson","spearman"), function(i) {
-      res <- mean(sapply(ll,
-                         function(x) WGCNA::cor(x[[1]]$coef.est,
-                                                x[[2]]$coef.est,
-                                                method = i,use = 'pairwise.complete.obs')
-      ), na.rm = TRUE)
-      names(res) <- paste0("uni_na_lm_yes_",i)
-      return(res)
-    }
-    )
-    
-    # Jaccard index
-    uni_jacc <- mean(sapply(ll, function(x) {
-      A = x[[1]][coef.est != 0]$Gene
-      B = x[[2]][coef.est != 0]$Gene
-      if (length(A)==0 | length(B)==0) 0 else length(intersect(A,B))/length(union(A,B))
-    }
-    ), na.rm = TRUE)
-    
-  }
-  
-  message("done univariate p-value with interaction")
-  
-  uni_res
+  # message("Starting univariate p-value with interaction")
+  # 
+  # # filtering on univariate p-value, taking the lowet 5 percent and then running
+  # # multiple linear regression on it
+  # # the correlations are really messing up the oracle model which is why when
+  # # you filter you get better fit
+  # # stability = TRUE makes the function return coefficients only. use only for
+  # # calculating stability measures
+  # # output is in the following format: eg. uni_na_lm_yes_mse
+  # # which represents method_clustermeasure_model_includeE_measure
+  # 
+  # percent <- if (p > 1000) 0.005 else 0.01
+  # uni_res <- uniFit(train = result[["DT_train"]], test = result[["DT_test"]],
+  #                   percent = percent, stability = F,
+  #                   include_E = T,
+  #                   include_interaction = includeInteraction,
+  #                   filter_var = F, p = p,
+  #                   s0 = result[["S0"]], true_beta = result[["beta_truth"]])
+  # 
+  # if (includeStability) {
+  #   uni_stab <- mapply(uniFit,
+  #                      train = result[["DT_train_folds"]],
+  #                      MoreArgs = list(test = result[["DT_test"]],
+  #                                      s0 = result[["S0"]],
+  #                                      true_beta = result[["beta_truth"]],
+  #                                      stability = T,
+  #                                      include_E = T,
+  #                                      include_interaction = includeInteraction,
+  #                                      percent = percent,
+  #                                      filter_var = F,
+  #                                      p = p),
+  #                      SIMPLIFY = F)
+  #   
+  #   # Make the combinations of list elements
+  #   ll <- combn(uni_stab, 2, simplify = F)
+  #   
+  #   # Pairwise correlations of the model coefficients for each of the 10 CV folds
+  #   uni_mean_stab <- lapply(c("pearson","spearman"), function(i) {
+  #     res <- mean(sapply(ll,
+  #                        function(x) WGCNA::cor(x[[1]]$coef.est,
+  #                                               x[[2]]$coef.est,
+  #                                               method = i,use = 'pairwise.complete.obs')
+  #     ), na.rm = TRUE)
+  #     names(res) <- paste0("uni_na_lm_yes_",i)
+  #     return(res)
+  #   }
+  #   )
+  #   
+  #   # Jaccard index
+  #   uni_jacc <- mean(sapply(ll, function(x) {
+  #     A = x[[1]][coef.est != 0]$Gene
+  #     B = x[[2]][coef.est != 0]$Gene
+  #     if (length(A)==0 | length(B)==0) 0 else length(intersect(A,B))/length(union(A,B))
+  #   }
+  #   ), na.rm = TRUE)
+  #   
+  # }
+  # 
+  # message("done univariate p-value with interaction")
+  # 
+  # uni_res
   
   ## ---- cluster-and-regress----
   
@@ -552,11 +556,12 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   
   final_results <- if (includeStability) {
     c(simulationParameters,
-      uni_res,uni_mean_stab, "uni_jacc" = uni_jacc,
+      # uni_res,uni_mean_stab, "uni_jacc" = uni_jacc,
       clust_res,clust_mean_stab, clust_jacc,
       pen_res,pen_mean_stab, pen_jacc,
       Eclust_res,Eclust_mean_stab, Eclust_jacc) %>% unlist } else {
-        c(simulationParameters, uni_res,
+        c(simulationParameters, 
+          # uni_res,
           clust_res,
           pen_res,
           Eclust_res)  %>% unlist
@@ -565,16 +570,17 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   final_results %>% t %>% as.data.frame()
   
   
-  filename <- tempfile(pattern = paste0(sprintf("%s_%.2f_%1.0f_%.2f_%1.0f_%1.0f_%.2f",Ecluster_distance,rho,p,SNR, n, nActive, betaMean),"_"),
+  filename <- tempfile(pattern = paste0(sprintf("rho%.2f_p%1.0f_SNR%.2f_n%1.0f_s0%1.0f_beta%.2f_alpha%.2f",
+                                                rho,p,SNR, n, nActive, betaMean, alphaMean),"_"),
                        #tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"), "simulation1/", sep="/")
-                       tmpdir = "/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/results/")
+                       tmpdir = "/home/bhatnaga/coexpression/august2016simulation/results")
                        #tmpdir = "~/git_repositories/eclust/")
   write.table(final_results %>% t %>% as.data.frame(),
               file = filename,
               quote = F,
               row.names = F,
               col.names = F) 
-}, mc.cores = 23)
+}, mc.cores = 24)
 
 # write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
 #             #file = paste(Sys.getenv("PBS_O_WORKDIR"), "colnames.txt", sep="/"),
