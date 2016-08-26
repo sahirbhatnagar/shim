@@ -1,11 +1,13 @@
 #!/bin/bash
 #PBS -l nodes=1:ppn=1
-#PBS -l walltime=10:00:00
+#PBS -l walltime=15:00:00
 #PBS -o log/
 #PBS -e log/
-#PBS -N sim1
+#PBS -N sim3
 #PBS -m ea
-#PBS -t 1-50
+#PBS -l mem=12G
+#PBS -l vmem=12G
+#PBS -t 1-50%4
 
 cd $PBS_O_WORKDIR
 

@@ -10,6 +10,10 @@
 # In all fitting models, we are fitting interactions
 # I removed the univariate because it makes no sense, and hard
 # to figure out with a varying number of p
+# note that I scp the files locally from the sim2-modules-mammouth branch to mammouth using:
+# scp functions.R packages.R simulation.R simulation2.sh bhatnaga@cgreenwo-mp2.ccs.usherbrooke.ca:/home/bhatnaga/coexpression/august2016simulation/linear
+# qsub command run from /home/bhatnaga/coexpression/august2016simulation/linear on mammouth:
+# for i in 1 ; do qsub -v index=$i simulation2.sh ; done
 ##################################
 
 # rm(list=ls())
@@ -573,7 +577,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   filename <- tempfile(pattern = paste0(sprintf("rho%.2f_p%1.0f_SNR%.2f_n%1.0f_s0%1.0f_beta%.2f_alpha%.2f",
                                                 rho,p,SNR, n, nActive, betaMean, alphaMean),"_"),
                        #tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"), "simulation1/", sep="/")
-                       tmpdir = "/home/bhatnaga/coexpression/august2016simulation/results")
+                       tmpdir = "/home/bhatnaga/coexpression/august2016simulation/linear/results")
                        #tmpdir = "~/git_repositories/eclust/")
   write.table(final_results %>% t %>% as.data.frame(),
               file = filename,
