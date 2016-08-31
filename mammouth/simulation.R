@@ -64,7 +64,7 @@ parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 simScenarioIndices <- SPLIT[[parameterIndex]]
 
 FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
-  # INDEX=8
+  # INDEX=1
   simulationParameters <- parametersDf[INDEX,, drop = F]
   
   print(simulationParameters)
@@ -186,6 +186,19 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                           method = method,
                           K.max = K.max, B = B)
   
+  # since the above result is based on TOM and diffTOM, 
+  # we need to calculate also for clusters based on correlation matrix 
+  result_correlation <- generate_data(p = p, n = n, n0 = n0, X = X,
+                          beta = beta, include_interaction = includeInteraction,
+                          cluster_distance = "corr",
+                          EclustAddDistance = Ecluster_distance,
+                          signal_to_noise_ratio = SNR,
+                          distanceMethod = distanceMethod,
+                          clustMethod = clustMethod,
+                          cutMethod = cutMethod,
+                          method = method,
+                          K.max = K.max, B = B)
+  
   # result$clustersEclust[which(betaMainEffect!=0)][, table(module, cluster)]
   # result$clustersEclust[module=="yellow"]
   #
@@ -255,7 +268,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   # 
   # uni_res
   
-  ## ---- cluster-and-regress----
+  ## ---- cluster-and-regress-TOM----
   
   # we will treat the clusters as fixed i.e., even if we filter, or
   # do cross validation, the group labels are predetermined by the
@@ -359,6 +372,117 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   }
   
   print("done clust and regress interaction")
+  
+  
+  ## ---- cluster-and-regress-correlation----
+  
+  # we will treat the clusters as fixed i.e., even if we filter, or
+  # do cross validation, the group labels are predetermined by the
+  # above clustering procedure
+  # This method is based on clusters derived without accounting for the
+  # environment, AND using Correlations. 
+  
+  print("starting cluster and regress with interaction")
+  
+  clust_res_corr <- mapply(clust_fun,
+                      #summary = rep(c("pc","spc","avg"), each = 3),
+                      #model = rep(c("lm", "lasso","elasticnet"), 3),
+                      summary = rep(c("avg","pc"), each = 3),
+                      model = rep(c("lasso","elasticnet","shim"), 2),
+                      MoreArgs = list(x_train = result_correlation[["X_train"]],
+                                      x_test = result_correlation[["X_test"]],
+                                      y_train = result_correlation[["Y_train"]],
+                                      y_test = result_correlation[["Y_test"]],
+                                      stability = F,
+                                      filter = F,
+                                      filter_var = F,
+                                      include_E = T,
+                                      include_interaction = includeInteraction,
+                                      s0 = result_correlation[["S0"]],
+                                      p = p,
+                                      gene_groups = result_correlation[["clustersAll"]],
+                                      clust_type = "corrclust"),
+                      SIMPLIFY = F,
+                      USE.NAMES = F)
+  
+  # result %>% names
+  clust_res_corr %>% unlist
+  
+  if (includeStability) {
+    clust_stab_corr <- mapply(function(summary,
+                                  model) mapply(clust_fun,
+                                                x_train = result_correlation[["X_train_folds"]],
+                                                y_train = result_correlation[["Y_train_folds"]],
+                                                MoreArgs = list(stability = T,
+                                                                x_test = result_correlation[["X_test"]],
+                                                                summary = summary,
+                                                                model = model,
+                                                                filter = F,
+                                                                filter_var = F,
+                                                                include_E = T,
+                                                                include_interaction = includeInteraction,
+                                                                gene_groups = result_correlation[["clustersAll"]],
+                                                                p = p,
+                                                                clust_type = "corrclust"),
+                                                SIMPLIFY = F),
+                         #summary = rep(c("pc","spc","avg"), each = 3),
+                         #model = rep(c("lm", "lasso","elasticnet"), 3),
+                         summary = rep(c("avg","pc"), each = 3),
+                         model = rep(c("lasso","elasticnet","shim"), 2),
+                         SIMPLIFY = F,
+                         USE.NAMES = F)
+    
+    
+    # Make the combinations of list elements
+    ll_corr <- lapply(seq_along(clust_stab_corr), function(i) combn(clust_stab_corr[[i]], 2, simplify = F))
+    
+    
+    clust_labels_corr <- function(summary, model) {
+      paste0("corrclust",paste0("_",summary),paste0("_",model),"_","yes_")
+    }
+    
+    clust_labs_corr <- mapply(clust_labels_corr,
+                         #summary = rep(c("pc","spc","avg"), each = 3),
+                         #model = rep(c("lm", "lasso","elasticnet"), 3),
+                         summary = rep(c("avg","pc"), each = 3),
+                         model = rep(c("lasso","elasticnet","shim"), 2),
+                         USE.NAMES = F)
+    
+    
+    # Pairwise correlations of the model coefficients for each of the 10 CV folds
+    clust_mean_stab_corr <- lapply(seq_along(ll_corr), function(j) {
+      lapply(c("pearson","spearman"), function(i) {
+        res <- mean(sapply(ll_corr[[j]] , function(x) WGCNA::cor(x[[1]]$coef.est, x[[2]]$coef.est, method = i,
+                                                            use = 'pairwise.complete.obs')), na.rm = TRUE)
+        names(res) <- paste0(clust_labs_corr[[j]], i)
+        return(res)
+      }
+      )
+    }
+    )
+    
+    clust_mean_stab_corr %>% unlist
+    
+    # Jaccard index
+    clust_jacc_corr <- lapply(seq_along(ll_corr), function(j) {
+      res <- mean(sapply(ll_corr[[j]] , function(x) {
+        A = x[[1]][coef.est != 0]$Gene
+        B = x[[2]][coef.est != 0]$Gene
+        if (length(A)==0 | length(B)==0) 0 else length(intersect(A,B))/length(union(A,B))
+      }), na.rm = TRUE)
+      names(res) <- paste0(clust_labs_corr[[j]],"jacc")
+      return(res)
+    })
+    
+    clust_jacc_corr %>% unlist
+  }
+  
+  print("done clust and regress interaction with correlation matrix")
+  
+  
+  
+  
+  
   
   ## ---- Ecluster-and-regress----
   
@@ -467,6 +591,88 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   
   print("done Environment clust and regress with interaction")
   
+  ## ---- group-lasso ----
+  
+  group_pen_res <- mapply(group_pen_fun, model = c("gglasso"),
+                          MoreArgs = list(x_train = result[["X_train"]], 
+                                          x_test = result[["X_test"]], 
+                                          y_train = result[["Y_train"]], 
+                                          y_test = result[["Y_test"]], 
+                                          stability = F,
+                                          filter = F,
+                                          filter_var = F,
+                                          include_E = T,
+                                          include_interaction = includeInteraction,
+                                          s0 = result[["S0"]],
+                                          p = p,
+                                          true_beta = result[["beta_truth"]],
+                                          gene_groups = result[["clusters"]]),
+                          SIMPLIFY = F, 
+                          USE.NAMES = F)
+  
+  group_pen_res %>% unlist()
+  if (args[2]=="T") {
+    group_pen_stab <- mapply(function(model) mapply(group_pen_fun, 
+                                                    x_train = result[["X_train_folds"]], 
+                                                    y_train = result[["Y_train_folds"]], 
+                                                    MoreArgs = list(stability = T, 
+                                                                    model = model,
+                                                                    filter = F,
+                                                                    filter_var = F,
+                                                                    include_E = F, 
+                                                                    include_interaction = F,
+                                                                    s0 = result[["S0"]],
+                                                                    true_beta = result[["beta_truth"]],
+                                                                    gene_groups = result[["clusters"]],
+                                                                    p = 1000), 
+                                                    SIMPLIFY = F),
+                             model = c("gglasso"),
+                             SIMPLIFY = F, 
+                             USE.NAMES = F)
+    
+    
+    # Make the combinations of list elements
+    ll <- lapply(seq_along(group_pen_stab), function(i) combn(group_pen_stab[[i]], 2, simplify = F))
+    
+    
+    group_pen_labels <- function(model) {
+      paste0("group_pen",paste0("_",model),"_")
+    }
+    
+    group_pen_labs <- mapply(group_pen_labels, 
+                             model = c("gglasso"),
+                             USE.NAMES = F)
+    
+    
+    # Pairwise correlations of the model coefficients for each of the 10 CV folds 
+    group_pen_mean_stab <- lapply(seq_along(ll), function(j) {
+      lapply(c("pearson","spearman"), function(i) { 
+        res <- sapply(ll[[j]] , function(x) WGCNA::cor(x[[1]]$coef.est, x[[2]]$coef.est, method = i)) %>% mean
+        names(res) <- paste0(group_pen_labs[[j]], i)
+        return(res)
+      }
+      )
+    }
+    )
+    
+    group_pen_mean_stab %>% unlist
+    
+    # Jaccard index
+    group_pen_jacc <- lapply(seq_along(ll), function(j) {
+      res <- sapply(ll[[j]] , function(x) {  
+        A = x[[1]][coef.est != 0]$Gene
+        B = x[[2]][coef.est != 0]$Gene
+        length(intersect(A,B))/length(union(A,B))
+      }) %>% mean
+      names(res) <- paste0(group_pen_labs[[j]],"jacc")
+      return(res)
+    })
+    
+    group_pen_jacc %>% unlist
+  }
+  print("done group penalization no interaction")
+  
+  
   
   ## ---- penalization ----
   
@@ -562,11 +768,13 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
     c(simulationParameters,
       # uni_res,uni_mean_stab, "uni_jacc" = uni_jacc,
       clust_res,clust_mean_stab, clust_jacc,
+      clust_res_corr, clust_mean_stab_corr, clust_jacc_corr,
       pen_res,pen_mean_stab, pen_jacc,
       Eclust_res,Eclust_mean_stab, Eclust_jacc) %>% unlist } else {
         c(simulationParameters, 
           # uni_res,
           clust_res,
+          clust_res_corr,
           pen_res,
           Eclust_res)  %>% unlist
       }

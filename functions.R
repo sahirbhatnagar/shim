@@ -1187,7 +1187,7 @@ clust_fun <- function(x_train,
                       include_interaction = F,
                       p = 1000,
                       filter_var = F,
-                      clust_type = c("clust","Eclust","Addon")){
+                      clust_type = c("clust","Eclust","Addon","corrclust")){
 
   # result[["clustersAddon"]] %>% print(nrows=Inf)
   # result[["clustersAddon"]][, table(cluster, module)]
@@ -1571,7 +1571,7 @@ pen_fun <- function(x_train,
   )
 
   # here we give the coefficient stability on the individual genes
-  coefs <- coef(pen_model, s = "lambda.min") %>%
+  coefs <- coef(pen_model, s = "lambda.1se") %>%
     as.matrix %>%
     as.data.table(keep.rownames = TRUE) %>%
     magrittr::set_colnames(c("Gene","coef.est")) %>%
@@ -1587,14 +1587,14 @@ pen_fun <- function(x_train,
 
     pen.pred <- if (model %in% c("lasso","elasticnet","ridge")) {
       predict(pen_model, newx =  if (!include_E) as.matrix(x_test[,-grep("E", colnames(x_test))]) else
-        as.matrix(x_test), s = "lambda.min") } else if (model %in% c("scad","mcp")) {
+        as.matrix(x_test), s = "lambda.1se") } else if (model %in% c("scad","mcp")) {
           predict(pen_model, X =  if (!include_E) as.matrix(x_test[,-grep("E", colnames(x_test))]) else
             as.matrix(x_test),
             lambda = pen_model$lambda.min)
         }
 
     pen.pred.oracle <- if (model %in% c("lasso","elasticnet","ridge")) {
-      predict(pen_model_oracle, newx = x_test[,s0], s = "lambda.min") } else if (model %in% c("scad","mcp")) {
+      predict(pen_model_oracle, newx = x_test[,s0], s = "lambda.1se") } else if (model %in% c("scad","mcp")) {
         predict(pen_model_oracle, X = x_test[,s0],
                 lambda = pen_model_oracle$lambda.min)
       }
@@ -1692,9 +1692,9 @@ group_pen_fun <- function(x_train,
   #   cv.glasso <- gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]), y_train, group = gene_groups[cluster != 0]$cluster,
   #                           loss = "ls")
   #
-  #   coef.glasso <- coef(cv.glasso, s = "lambda.min") %>% as.data.table(keep.rownames = T)
+  #   coef.glasso <- coef(cv.glasso, s = "lambda.1se") %>% as.data.table(keep.rownames = T)
   #   setnames(coef.glasso, c("gene","coef"))
-  #   fit.glasso <- predict(cv.glasso, newx = as.matrix(DT.test[,clusters[cluster!=0]$gene]), s = "lambda.min")
+  #   fit.glasso <- predict(cv.glasso, newx = as.matrix(DT.test[,clusters[cluster!=0]$gene]), s = "lambda.1se")
   #
   #   # Mean Squared Error
   #   gglasso.mse <- crossprod(fit.glasso - DT.test[,"V1"])/nrow(DT.test)
@@ -1720,14 +1720,14 @@ group_pen_fun <- function(x_train,
   )
 
   # oracle penalization model
-  grp_pen_model_oracle <- switch(model,
-                                 gglasso =  gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0][gene %in% s0]$gene]),
-                                                                y_train,
-                                                                group = factor(gene_groups[cluster != 0][gene %in% s0]$cluster) %>% as.numeric,
-                                                                loss = "ls"))
+  # grp_pen_model_oracle <- switch(model,
+  #                                gglasso =  gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0][gene %in% s0]$gene]),
+  #                                                               y_train,
+  #                                                               group = factor(gene_groups[cluster != 0][gene %in% s0]$cluster) %>% as.numeric,
+  #                                                               loss = "ls"))
 
   # here we give the coefficient stability on the individual genes
-  coefs <- coef(grp_pen_model, s = "lambda.min") %>%
+  coefs <- coef(grp_pen_model, s = "lambda.1se") %>%
     as.matrix %>%
     as.data.table(keep.rownames = TRUE) %>%
     magrittr::set_colnames(c("Gene","coef.est")) %>%
@@ -1740,8 +1740,8 @@ group_pen_fun <- function(x_train,
     grp.pen.S.hat <- coefs[Gene != "E"][coef.est != 0] %>% magrittr::use_series("Gene") %>%
       gsub(":E","",.) %>% unique
 
-    grp.pen.pred <- predict(grp_pen_model, newx = as.matrix(x_test[,gene_groups[cluster !=0 ]$gene]), s = "lambda.min")
-    grp.pen.pred.oracle <- predict(grp_pen_model_oracle, newx = as.matrix(x_test[,s0]), s = "lambda.min")
+    grp.pen.pred <- predict(grp_pen_model, newx = as.matrix(x_test[,gene_groups[cluster !=0 ]$gene]), s = "lambda.1se")
+    # grp.pen.pred.oracle <- predict(grp_pen_model_oracle, newx = as.matrix(x_test[,s0]), s = "lambda.1se")
     # this is to make sure that the order of coefficients corresponds to that of the test data:
     # identical(coef(grp_pen_model)[-1,,drop=F] %>% rownames(),gene_groups[cluster !=0 ]$gene )
 
@@ -1749,7 +1749,7 @@ group_pen_fun <- function(x_train,
     grp.pen.mse <- crossprod(grp.pen.pred - y_test)/length(y_test)
 
     # Mean Squared Error Oracle
-    grp.pen.mse.oracle <- crossprod(grp.pen.pred.oracle - y_test)/length(y_test)
+    # grp.pen.mse.oracle <- crossprod(grp.pen.pred.oracle - y_test)/length(y_test)
 
     # mse.null
     mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
@@ -1777,11 +1777,13 @@ group_pen_fun <- function(x_train,
 
     grp.pen.model.error <- {(tmp$diff) %>% t} %*% WGCNA::cor(x_test[,tmp[["Gene"]]]) %*% (tmp$diff)
 
-    ls <- list(grp.pen.mse = as.numeric(grp.pen.mse), grp.pen.r2 = as.numeric(grp.pen.r2),
-               grp.pen.adj.r2 = as.numeric(grp.pen.adj.r2), grp.pen.S.hat = length(grp.pen.S.hat),
+    ls <- list(grp.pen.mse = as.numeric(grp.pen.mse), 
+               grp.pen.r2 = as.numeric(grp.pen.r2),
+               grp.pen.adj.r2 = as.numeric(grp.pen.adj.r2), 
+               grp.pen.S.hat = length(grp.pen.S.hat),
                grp.pen.TPR = grp.pen.TPR,
                grp.pen.FPR = grp.pen.FPR,
-               grp.pen.relative.mse = grp.pen.mse/grp.pen.mse.oracle,
+               # grp.pen.relative.mse = grp.pen.mse/grp.pen.mse.oracle,
                #grp.pen.relative.mse = NA,
                grp.pen.model.error = grp.pen.model.error)
     names(ls) <- c(paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_mse"),
@@ -1790,7 +1792,7 @@ group_pen_fun <- function(x_train,
                    paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_Shat"),
                    paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_TPR"),
                    paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_relmse"),
+                   # paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_relmse"),
                    paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_modelerror"))
     return(ls)
   }
