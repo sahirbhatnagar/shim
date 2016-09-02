@@ -3,7 +3,7 @@
 # on Mamouth cluster
 # Git: this is on the eclust repo, sim2-modules-mammouth branch
 # Created by Sahir,  April 2, 2016
-# Updated: August 23, 2016
+# Updated: Sept 1, 2016
 # Notes:
 # This is a modified simulation and different from simulation1
 # Its based on code from Network analysis book by Horvath
@@ -16,9 +16,9 @@
 # for i in 1 ; do qsub -v index=$i simulation2.sh ; done
 ##################################
 
-# rm(list=ls())
-# source("packages.R")
-# source("functions.R")
+rm(list=ls())
+source("packages.R")
+source("functions.R")
 
 options(digits = 4, scipen = 999)
 
@@ -28,13 +28,13 @@ source("/home/bhatnaga/coexpression/august2016simulation/linear/packages.R")
 source("/home/bhatnaga/coexpression/august2016simulation/linear/functions.R")
 
 parametersDf <- expand.grid(rho = c(0.2,0.90),
-                            p = c(3000,5000),
+                            p = c(500,3000,5000),
                             SNR = c(0.2,1,2),
                             n = c(400), # this is the total train + test sample size
                             # nActive = c(300), # must be even because its being split among two modules
                             #n0 = 200,
-                            cluster_distance = c("tom"),
-                            Ecluster_distance = c("difftom"),
+                            cluster_distance = c("tom","corr"),
+                            Ecluster_distance = c("difftom", "diffcorr"),
                             rhoOther = 0.6,
                             betaMean = c(1),
                             alphaMean = c(0.5,2),
@@ -45,7 +45,7 @@ parametersDf <- expand.grid(rho = c(0.2,0.90),
                             clustMethod = "hclust",
                             #cutMethod = "gap",
                             cutMethod = "dynamic",
-                            method = "average",
+                            agglomerationMethod = "average",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
 parametersDf <- transform(parametersDf, n0 = n/2, nActive = p*0.10)
@@ -59,12 +59,12 @@ SPLIT <- split(1:nSimScenarios, ceiling(seq_along(1:nSimScenarios)/24))
 
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
-# parameterIndex = 1
+parameterIndex = 3
 
 simScenarioIndices <- SPLIT[[parameterIndex]]
 
 FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
-  # INDEX=1
+  INDEX=63
   simulationParameters <- parametersDf[INDEX,, drop = F]
   
   print(simulationParameters)
@@ -90,7 +90,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   distanceMethod <- simulationParameters[,"distanceMethod"]
   clustMethod <- simulationParameters[,"clustMethod"]
   cutMethod <- simulationParameters[,"cutMethod"]
-  method <- simulationParameters[,"method"]
+  agglomerationMethod <- simulationParameters[,"agglomerationMethod"]
   K.max <- simulationParameters[,"K.max"]
   B <- simulationParameters[,"B"]
   
@@ -101,12 +101,12 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   # is present while in others it is absent.
   d0 <- simModule(n = n0, p = p, rho = c(0,0), exposed = FALSE,
                   modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
-                  minCor = 0.4,
+                  minCor = 0.01,
                   maxCor = 1,
-                  corPower = 0.3,
-                  #propNegativeCor = 0.1,
-                  backgroundNoise = 0.2,
-                  signed = TRUE,
+                  corPower = 1,
+                  propNegativeCor = 0.3,
+                  backgroundNoise = 0.5,
+                  signed = FALSE,
                   leaveOut = 1:4)
   
   d1 <- simModule(n = n1, p = p, rho = c(rho, rho), exposed = TRUE,
@@ -114,9 +114,9 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                   minCor = 0.4,
                   maxCor = 1,
                   corPower = 0.3,
-                  #propNegativeCor = 0.1,
-                  backgroundNoise = 0.2,
-                  signed = TRUE)
+                  propNegativeCor = 0.3,
+                  backgroundNoise = 0.5,
+                  signed = FALSE)
   
   # these should be the same. if they arent, its because I removed the red and
   # green modules from the E=0 group
@@ -135,7 +135,13 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
     magrittr::set_rownames(paste0("Subject",1:n))
   
   dim(X)
-  
+  # pheatmap(cor(X))
+  # pheatmap(cor(d1$datExpr))
+  # pheatmap(cor(d0$datExpr))
+  # pheatmap(cor(d1$datExpr)-cor(d0$datExpr))
+  # pheatmap(WGCNA::TOMsimilarityFromExpr(X))
+  # pheatmap(WGCNA::TOMsimilarityFromExpr(d1$datExpr))
+  # pheatmap(WGCNA::TOMsimilarityFromExpr(d1$datExpr)-WGCNA::TOMsimilarityFromExpr(d0$datExpr))
   
   # betaMainEffect <- vector("double", length = p)
   # betaMainInteractions <- vector("double", length = p)
@@ -175,30 +181,18 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   
   #plot(beta)
   
-  result <- generate_data(p = p, n = n, n0 = n0, X = X,
+  result <- generate_data(p = p, X = X, 
                           beta = beta, include_interaction = includeInteraction,
                           cluster_distance = cluster_distance,
-                          EclustAddDistance = Ecluster_distance,
+                          n = n, n0 = n0, 
+                          eclust_distance = Ecluster_distance,
                           signal_to_noise_ratio = SNR,
-                          distanceMethod = distanceMethod,
-                          clustMethod = clustMethod,
-                          cutMethod = cutMethod,
-                          method = method,
-                          K.max = K.max, B = B)
-  
-  # since the above result is based on TOM and diffTOM, 
-  # we need to calculate also for clusters based on correlation matrix 
-  result_correlation <- generate_data(p = p, n = n, n0 = n0, X = X,
-                          beta = beta, include_interaction = includeInteraction,
-                          cluster_distance = "corr",
-                          EclustAddDistance = Ecluster_distance,
-                          signal_to_noise_ratio = SNR,
-                          distanceMethod = distanceMethod,
-                          clustMethod = clustMethod,
-                          cutMethod = cutMethod,
-                          method = method,
-                          K.max = K.max, B = B)
-  
+                          distance_method = distanceMethod,
+                          cluster_method = clustMethod,
+                          cut_method = cutMethod,
+                          agglomeration_method = agglomerationMethod,
+                          K.max = K.max, B = B, nPC = 1)
+
   # result$clustersEclust[which(betaMainEffect!=0)][, table(module, cluster)]
   # result$clustersEclust[module=="yellow"]
   #
@@ -268,7 +262,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   # 
   # uni_res
   
-  ## ---- cluster-and-regress-TOM----
+  ## ---- cluster-and-regress ----
   
   # we will treat the clusters as fixed i.e., even if we filter, or
   # do cross validation, the group labels are predetermined by the
@@ -281,8 +275,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   clust_res <- mapply(clust_fun,
                       #summary = rep(c("pc","spc","avg"), each = 3),
                       #model = rep(c("lm", "lasso","elasticnet"), 3),
-                      summary = rep(c("avg","pc"), each = 3),
-                      model = rep(c("lasso","elasticnet","shim"), 2),
+                      summary = rep(c("avg","pc"), each = 2),
+                      model = rep(c("lasso","elasticnet"), 2),
                       MoreArgs = list(x_train = result[["X_train"]],
                                       x_test = result[["X_test"]],
                                       y_train = result[["Y_train"]],
@@ -295,7 +289,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                                       s0 = result[["S0"]],
                                       p = p,
                                       gene_groups = result[["clustersAll"]],
-                                      clust_type = "clust"),
+                                      clust_type = "clust",
+                                      nPC = 1),
                       SIMPLIFY = F,
                       USE.NAMES = F)
   
@@ -321,8 +316,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                                                 SIMPLIFY = F),
                          #summary = rep(c("pc","spc","avg"), each = 3),
                          #model = rep(c("lm", "lasso","elasticnet"), 3),
-                         summary = rep(c("avg","pc"), each = 3),
-                         model = rep(c("lasso","elasticnet","shim"), 2),
+                         summary = rep(c("avg","pc"), each = 2),
+                         model = rep(c("lasso","elasticnet"), 2),
                          SIMPLIFY = F,
                          USE.NAMES = F)
     
@@ -338,8 +333,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
     clust_labs <- mapply(clust_labels,
                          #summary = rep(c("pc","spc","avg"), each = 3),
                          #model = rep(c("lm", "lasso","elasticnet"), 3),
-                         summary = rep(c("avg","pc"), each = 3),
-                         model = rep(c("lasso","elasticnet","shim"), 2),
+                         summary = rep(c("avg","pc"), each = 2),
+                         model = rep(c("lasso","elasticnet"), 2),
                          USE.NAMES = F)
     
     
@@ -373,117 +368,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   
   print("done clust and regress interaction")
   
-  
-  ## ---- cluster-and-regress-correlation----
-  
-  # we will treat the clusters as fixed i.e., even if we filter, or
-  # do cross validation, the group labels are predetermined by the
-  # above clustering procedure
-  # This method is based on clusters derived without accounting for the
-  # environment, AND using Correlations. 
-  
-  print("starting cluster and regress with interaction")
-  
-  clust_res_corr <- mapply(clust_fun,
-                      #summary = rep(c("pc","spc","avg"), each = 3),
-                      #model = rep(c("lm", "lasso","elasticnet"), 3),
-                      summary = rep(c("avg","pc"), each = 3),
-                      model = rep(c("lasso","elasticnet","shim"), 2),
-                      MoreArgs = list(x_train = result_correlation[["X_train"]],
-                                      x_test = result_correlation[["X_test"]],
-                                      y_train = result_correlation[["Y_train"]],
-                                      y_test = result_correlation[["Y_test"]],
-                                      stability = F,
-                                      filter = F,
-                                      filter_var = F,
-                                      include_E = T,
-                                      include_interaction = includeInteraction,
-                                      s0 = result_correlation[["S0"]],
-                                      p = p,
-                                      gene_groups = result_correlation[["clustersAll"]],
-                                      clust_type = "corrclust"),
-                      SIMPLIFY = F,
-                      USE.NAMES = F)
-  
-  # result %>% names
-  clust_res_corr %>% unlist
-  
-  if (includeStability) {
-    clust_stab_corr <- mapply(function(summary,
-                                  model) mapply(clust_fun,
-                                                x_train = result_correlation[["X_train_folds"]],
-                                                y_train = result_correlation[["Y_train_folds"]],
-                                                MoreArgs = list(stability = T,
-                                                                x_test = result_correlation[["X_test"]],
-                                                                summary = summary,
-                                                                model = model,
-                                                                filter = F,
-                                                                filter_var = F,
-                                                                include_E = T,
-                                                                include_interaction = includeInteraction,
-                                                                gene_groups = result_correlation[["clustersAll"]],
-                                                                p = p,
-                                                                clust_type = "corrclust"),
-                                                SIMPLIFY = F),
-                         #summary = rep(c("pc","spc","avg"), each = 3),
-                         #model = rep(c("lm", "lasso","elasticnet"), 3),
-                         summary = rep(c("avg","pc"), each = 3),
-                         model = rep(c("lasso","elasticnet","shim"), 2),
-                         SIMPLIFY = F,
-                         USE.NAMES = F)
-    
-    
-    # Make the combinations of list elements
-    ll_corr <- lapply(seq_along(clust_stab_corr), function(i) combn(clust_stab_corr[[i]], 2, simplify = F))
-    
-    
-    clust_labels_corr <- function(summary, model) {
-      paste0("corrclust",paste0("_",summary),paste0("_",model),"_","yes_")
-    }
-    
-    clust_labs_corr <- mapply(clust_labels_corr,
-                         #summary = rep(c("pc","spc","avg"), each = 3),
-                         #model = rep(c("lm", "lasso","elasticnet"), 3),
-                         summary = rep(c("avg","pc"), each = 3),
-                         model = rep(c("lasso","elasticnet","shim"), 2),
-                         USE.NAMES = F)
-    
-    
-    # Pairwise correlations of the model coefficients for each of the 10 CV folds
-    clust_mean_stab_corr <- lapply(seq_along(ll_corr), function(j) {
-      lapply(c("pearson","spearman"), function(i) {
-        res <- mean(sapply(ll_corr[[j]] , function(x) WGCNA::cor(x[[1]]$coef.est, x[[2]]$coef.est, method = i,
-                                                            use = 'pairwise.complete.obs')), na.rm = TRUE)
-        names(res) <- paste0(clust_labs_corr[[j]], i)
-        return(res)
-      }
-      )
-    }
-    )
-    
-    clust_mean_stab_corr %>% unlist
-    
-    # Jaccard index
-    clust_jacc_corr <- lapply(seq_along(ll_corr), function(j) {
-      res <- mean(sapply(ll_corr[[j]] , function(x) {
-        A = x[[1]][coef.est != 0]$Gene
-        B = x[[2]][coef.est != 0]$Gene
-        if (length(A)==0 | length(B)==0) 0 else length(intersect(A,B))/length(union(A,B))
-      }), na.rm = TRUE)
-      names(res) <- paste0(clust_labs_corr[[j]],"jacc")
-      return(res)
-    })
-    
-    clust_jacc_corr %>% unlist
-  }
-  
-  print("done clust and regress interaction with correlation matrix")
-  
-  
-  
-  
-  
-  
+
   ## ---- Ecluster-and-regress----
   
   # we will treat the clusters as fixed i.e., even if we filter, or
@@ -499,8 +384,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   Eclust_res <- mapply(clust_fun,
                        #summary = rep(c("pc","spc","avg"), each = 3),
                        #model = rep(c("lm", "lasso","elasticnet"), 3),
-                       summary = rep(c("avg","pc"), each = 3),
-                       model = rep(c("lasso","elasticnet","shim"), 2),
+                       summary = rep(c("avg","pc"), each = 2),
+                       model = rep(c("lasso","elasticnet"), 2),
                        MoreArgs = list(x_train = result[["X_train"]],
                                        x_test = result[["X_test"]],
                                        y_train = result[["Y_train"]],
@@ -513,7 +398,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                                        s0 = result[["S0"]],
                                        p = p,
                                        gene_groups = result[["clustersAddon"]],
-                                       clust_type = "Eclust"),
+                                       clust_type = "Eclust",
+                                       nPC = 1),
                        SIMPLIFY = F,
                        USE.NAMES = F)
   
@@ -540,8 +426,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                                                  SIMPLIFY = F),
                           #summary = rep(c("pc","spc","avg"), each = 3),
                           #model = rep(c("lm", "lasso","elasticnet"), 3),
-                          summary = rep(c("avg","pc"), each = 3),
-                          model = rep(c("lasso","elasticnet","shim"), 2),
+                          summary = rep(c("avg","pc"), each = 2),
+                          model = rep(c("lasso","elasticnet"), 2),
                           SIMPLIFY = F,
                           USE.NAMES = F)
     
@@ -556,8 +442,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
     Eclust_labs <- mapply(Eclust_labels,
                           #summary = rep(c("pc","spc","avg"), each = 3),
                           #model = rep(c("lm", "lasso","elasticnet"), 3),
-                          summary = rep(c("avg","pc"), each = 3),
-                          model = rep(c("lasso","elasticnet","shim"), 2),
+                          summary = rep(c("avg","pc"), each = 2),
+                          model = rep(c("lasso","elasticnet"), 2),
                           USE.NAMES = F)
     
     
@@ -768,13 +654,11 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
     c(simulationParameters,
       # uni_res,uni_mean_stab, "uni_jacc" = uni_jacc,
       clust_res,clust_mean_stab, clust_jacc,
-      clust_res_corr, clust_mean_stab_corr, clust_jacc_corr,
       pen_res,pen_mean_stab, pen_jacc,
       Eclust_res,Eclust_mean_stab, Eclust_jacc) %>% unlist } else {
         c(simulationParameters, 
           # uni_res,
           clust_res,
-          clust_res_corr,
           pen_res,
           Eclust_res)  %>% unlist
       }

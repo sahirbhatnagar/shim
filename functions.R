@@ -7,6 +7,7 @@
 # This is based on code from Network analysis book by Horvath
 ##################################
 
+# firstPC is called by clusterSimilarity which is called by generate_data
 
 ## ---- functions ----
 
@@ -215,6 +216,8 @@ bigcorPar <- function(data.all, data.e0, data.e1, alpha = 1.5, threshold = 1,
 #' @description this function retunrs the 1st and 2nd PC instead of just the loading
 #' as well as the mean and sd for each module, that will be used in predicting
 #' the PCs for the test data
+#' @note its called firstPC, but its actually returning both 1st and 2nd PC for 
+#' each cluster
 #' @rdname clusterSimilarity
 firstPC <- function(expr, colors, exprTest, impute = TRUE, nPC = 2,
                     align = "along average", excludeGrey = FALSE,
@@ -407,8 +410,8 @@ clusterSimilarity <- function(x,
                               method = c("complete", "average", "ward.D2",
                                          "single", "ward.D", "mcquitty",
                                          "median", "centroid"),
-                              K.max = 10, B = 50) {
-
+                              K.max = 10, B = 50, nPC) {
+  
   # x = corrX ; expr = X
   # exprTest = X[sample(seq_len(nrow(X)),nrow(X), replace = TRUE ),]
   # dim(X) ; dim(expr) ; dim(exprTest)
@@ -419,17 +422,17 @@ clusterSimilarity <- function(x,
   # summary = c("pca")
   # K.max = 10; B = 50
   # distance = as.dist(1 - x)
-
+  
   geneNames <- dimnames(x)[[1]]
   p <- nrow(x)
   method <- match.arg(method)
   cutMethod <- match.arg(cutMethod)
   clustMethod <- match.arg(clustMethod)
-
+  
   distance <- if (missing(distanceMethod)) {
     as.dist(1 - x)
   } else dist(x = x, method = distanceMethod)
-
+  
   hc <- switch(clustMethod,
                hclust = {
                  hclust(distance, method = method)
@@ -438,13 +441,13 @@ clusterSimilarity <- function(x,
                  protoclust(distance)
                }
   )
-
+  
   #plot(hc)
   # create cluster function used if Gap statistic is requested
   # its as.dist(x) here because I am passing the
   # 1-x matrix to the cluster::clusGap function
   if (cutMethod == "gap") {
-
+    
     FUNcluster <- if (missing(distanceMethod)) {
       switch(clustMethod,
              hclust = {
@@ -479,8 +482,8 @@ clusterSimilarity <- function(x,
     }
     #return(FUNcluster)
   }
-
-
+  
+  
   clustAssignment <- switch(cutMethod,
                             dynamic = {
                               if (clustMethod == "hclust") {
@@ -514,7 +517,7 @@ clusterSimilarity <- function(x,
                                                    method = "Tibs2001SEmax",
                                                    SE.factor = 1)
                                 cutree(hc, nClustGap)
-
+                                
                               } else {
                                 gapResult <- cluster::clusGap(1 - x,
                                                               FUNcluster = FUNcluster,
@@ -533,7 +536,7 @@ clusterSimilarity <- function(x,
                               } else protocut(hc, k = nClusters)[["cl"]]
                             }
   )
-
+  
   # check if all cluster groups are 0 which means no cluster
   # assignment and everyone is in their own group
   # plot(clustAssignment)
@@ -541,12 +544,12 @@ clusterSimilarity <- function(x,
                          cluster = if (all(clustAssignment == 0))
                            1:p else clustAssignment)
   #setkey(clusters, "cluster")
-
+  
   # convert cluster numbers to colors which define modules
   clusters[, module := WGCNA::labels2colors(cluster)]
   clusters[, table(cluster,module)]
-
-
+  
+  
   # note that the align argument acts as follows if equal to "along average"
   # which is the default: it take the correlation between the average expression
   # in a module and the 1st eigenvector in a module and checks if its less
@@ -568,7 +571,7 @@ clusterSimilarity <- function(x,
   # center = FALSE)
   #
   # plot(l$rotation[,1,drop=F],p$eigengenes[,"MEblue"])
-
+  
   # this plots the eigenvector against the average expression
   # to show the effect of the "along average" argument
   # cbind(pp$PC,pp$averageExpr) %>%
@@ -579,13 +582,12 @@ clusterSimilarity <- function(x,
   #   magrittr::set_colnames(c("id","module","average", "PC")) %>%
   #   ggplot(.,aes(x = average, y = PC)) + geom_point() + facet_grid(~module) +
   #   theme_bw()
-
-  pp <- firstPC(expr = expr[, clusters$gene],
-                exprTest = exprTest[, clusters$gene],
+  
+  pp <- extractPC(x_train = expr[, clusters$gene],
+                x_test = exprTest[, clusters$gene],
                 colors = clusters$module,
-                align = "along average",
-                scale = TRUE)
-
+                scale = TRUE, nPC = nPC)
+  
   # clusters
   # pp %>% names
   # pp$PCTest
@@ -594,10 +596,10 @@ clusterSimilarity <- function(x,
   # pp$averageExpr
   # pp$eigengenes
   # pp$PC
-
-
+  
+  
   return(list(clusters = clusters, pcInfo = pp))
-
+  
 }
 
 
@@ -681,7 +683,7 @@ sim_data <- function(n , n0 , p , genes,
 #' @param n total number of subjects
 #' @param n0 total number of subjects with E=0
 #' @param signal_to_noise_ratio signal to noise ratio, default is 4
-#' @inheritParams clusterSimilarity
+#' @inheritParams cluster_similarity
 #' @param cluster_distance character representing which matrix from the training
 #'   set that you want to use to cluster the genes. Must be one of the following
 #'   \itemize{ \item corr, corr0, corr1, tom, tom0, tom1, diffcorr, difftom,
@@ -725,93 +727,94 @@ generate_data <- function(p, X, beta,
                                                "fisherScore"),
                           n, n0, include_interaction = F,
                           signal_to_noise_ratio = 1,
-                          EclustAddDistance = c("fisherScore", "corScor", "diffcorr",
-                                                "difftom"),
-                          clustMethod = c("hclust", "protoclust"),
-                          cutMethod = c("dynamic","gap", "fixed"),
-                          distanceMethod = c("euclidean","maximum", "manhattan",
-                                             "canberra", "binary", "minkowski"),
-                          nClusters,
-                          method = c("complete", "average", "ward.D2",
-                                     "single", "ward.D", "mcquitty",
-                                     "median", "centroid"),
+                          eclust_distance = c("fisherScore", "corScor", "diffcorr",
+                                              "difftom"),
+                          cluster_method = c("hclust", "protoclust"),
+                          cut_method = c("dynamic","gap", "fixed"),
+                          distance_method = c("euclidean","maximum", "manhattan",
+                                              "canberra", "binary", "minkowski"),
+                          n_clusters,
+                          agglomeration_method = c("complete", "average", "ward.D2",
+                                                   "single", "ward.D", "mcquitty",
+                                                   "median", "centroid"),
+                          nPC = 1, 
                           K.max = 10, B = 10) {
-
+  
   # p = p; X = X ; beta = beta
   # n = n; n0 = n0
   # cluster_distance = "corr"
   # include_interaction = T
   # signal_to_noise_ratio = 0.5
-  # clustMethod = "hclust" ; cutMethod = "dynamic";method="complete";
-  # distanceMethod = "euclidean"
-  # EclustAdd = TRUE ; EclustAddDistance = "fisherScore"
-
-
-  method <- match.arg(method)
-  cutMethod <- match.arg(cutMethod)
-  clustMethod <- match.arg(clustMethod)
-  distanceMethod <- match.arg(distanceMethod)
+  # cluster_method = "hclust" ; cut_method = "dynamic";agglomeration_method="complete";
+  # distance_method = "euclidean"
+  # EclustAdd = TRUE ; eclust_distance = "fisherScore"
+  
+  
+  agglomeration_method <- match.arg(agglomeration_method)
+  cut_method <- match.arg(cut_method)
+  cluster_method <- match.arg(cluster_method)
+  distance_method <- match.arg(distance_method)
   cluster_distance <- match.arg(cluster_distance)
-  EclustAddDistance <- match.arg(EclustAddDistance)
-
-
+  eclust_distance <- match.arg(eclust_distance)
+  
+  
   names(beta) <- if (include_interaction) {
     c(paste0("Gene",1:p),"E", paste0("Gene",1:p,":E"))
   } else paste0("Gene",1:p)
-
+  
   # total true beta vector: this includes all the betas for the genes, then the
   # environment beta, then their interactions if interaction is true.
   # This is used to calculate the model error. This is the same as beta,
   # but in matrix form
   beta_truth <- as.matrix(beta)
-
+  
   # Gene names belonging to the active set
   S0 <- names(beta)[which(beta != 0)]
-
+  
   n1 <- n - n0
-
+  
   message("Creating data and simulating response")
-
+  
   DT <- as.data.frame(sim_data(n = n, n0 = n0, p = p, genes = X,
-                 include_interaction = include_interaction,
-                 E = c(rep(0,n0), rep(1, n1)),
-                 beta = beta,
-                 signal_to_noise_ratio = signal_to_noise_ratio))
-
+                               include_interaction = include_interaction,
+                               E = c(rep(0,n0), rep(1, n1)),
+                               beta = beta,
+                               signal_to_noise_ratio = signal_to_noise_ratio))
+  
   Y <- as.matrix(DT[,"Y"])
-
+  
   #remove response from X0 and X1
   X0 <- as.matrix(DT[which(DT$E == 0),-1])
   X1 <- as.matrix(DT[which(DT$E == 1),-1])
-
+  
   # partition-data
   trainIndex <- caret::createDataPartition(DT$E, p = .5, list = FALSE, times = 1)
   DT_train <- DT[trainIndex,]
   DT_test <- DT[-trainIndex,]
-
+  
   # X_train and X_test contain the environment variable
   X_train <- DT_train[,-1] %>% as.matrix
   Y_train <- DT_train[, 1]
   X_test <- DT_test[,-1] %>% as.matrix
   Y_test <- DT_test[, 1]
-
+  
   mse_null <- crossprod(mean(Y_test) - Y_test)/length(Y_test)
-
+  
   # gene expression data
   genes_e0 <- DT_train[which(DT_train$E == 0),paste0("Gene",1:p)] %>% as.matrix
   genes_e1 <- DT_train[which(DT_train$E == 1),paste0("Gene",1:p)] %>% as.matrix
   genes_all <- rbind(genes_e0,genes_e1)
-
+  
   message("Calculating similarity matrices")
-
+  
   # gene expression data
   genes_all_test <- DT_test[,paste0("Gene",1:p)] %>% as.matrix
-
+  
   corr_train_e0 <- WGCNA::cor(genes_e0)
   corr_train_e1 <- WGCNA::cor(genes_e1)
   corr_train_diff <- abs(corr_train_e1 - corr_train_e0)
   corr_train_all <- WGCNA::cor(genes_all)
-
+  
   tom_train_e0 <- WGCNA::TOMsimilarityFromExpr(genes_e0)
   dimnames(tom_train_e0)[[1]] <- dimnames(corr_train_all)[[1]]
   dimnames(tom_train_e0)[[2]] <- dimnames(corr_train_all)[[2]]
@@ -827,7 +830,7 @@ generate_data <- function(p, X, beta,
   tom_train_all <- WGCNA::TOMsimilarityFromExpr(genes_all)
   dimnames(tom_train_all)[[1]] <- dimnames(corr_train_all)[[1]]
   dimnames(tom_train_all)[[2]] <- dimnames(corr_train_all)[[2]]
-
+  
   
   
   
@@ -835,13 +838,13 @@ generate_data <- function(p, X, beta,
   alpha <- 2
   Scorr <- abs(corr_train_e0 + corr_train_e1 - alpha * corr_train_all)
   class(Scorr) <- c("similarity", class(Scorr))
-
+  
   # Stom <- abs(tom_train_e1 + tom_train_e0 - alpha * tom_train_all)
   # class(Stom) <- c("similarity", class(Stom))
-
+  
   fisherScore <- fisherZ(n0 = n0, cor0 = corr_train_e0,
                          n1 = n1, cor1 = corr_train_e1)
-
+  
   # class(tom_train_all) <- append(class(tom_train_all), "similarity")
   # class(tom_train_diff) <- append(class(tom_train_diff), "similarity")
   # class(tom_train_e1) <- append(class(tom_train_e1), "similarity")
@@ -850,19 +853,19 @@ generate_data <- function(p, X, beta,
   class(corr_train_diff) <- append(class(corr_train_diff), "similarity")
   class(corr_train_e1) <- append(class(corr_train_e1), "similarity")
   class(corr_train_e0) <- append(class(corr_train_e0), "similarity")
-
+  
   message("Creating CV folds from training data")
-
+  
   # Folds for Cross validation
   folds_train <- caret::createFolds(Y_train, k = 10, list = T)
   DT_train_folds <- lapply(folds_train, function(i) DT_train[-i,])
   X_train_folds <- lapply(DT_train_folds, function(i) i[,-grep("Y",colnames(i))])
   Y_train_folds <- lapply(DT_train_folds, function(i) i[,grep("Y",colnames(i))])
-
+  
   message(sprintf("Calculating number of clusters based on %s using %s with %s
                   linkage and the %s to determine the number of clusters",
-                  cluster_distance, clustMethod, method, cutMethod))
-
+                  cluster_distance, cluster_method, agglomeration_method, cut_method))
+  
   # clusters based on cluster_distance argument
   similarity <- switch(cluster_distance,
                        corr = corr_train_all,
@@ -876,90 +879,90 @@ generate_data <- function(p, X, beta,
                        corScor = Scorr,
                        tomScor = Stom,
                        fisherScore = fisherScore)
-
+  
   # results for clustering, PCs and averages for each block
-  # the only difference here is the distanceMethod arg
+  # the only difference here is the distance_method arg
   res <- if (cluster_distance %in% c("diffcorr","difftom",
                                      "corScor", "tomScor","fisherScore")) {
     clusterSimilarity(x = similarity,
                       expr = genes_all,
                       exprTest = genes_all_test,
-                      distanceMethod = distanceMethod,
-                      clustMethod = clustMethod,
-                      cutMethod = cutMethod,
-                      method = method,
-                      K.max = K.max, B = B, nClusters = nClusters)
+                      distanceMethod = distance_method,
+                      clustMethod = cluster_method,
+                      cutMethod = cut_method,
+                      method = agglomeration_method,
+                      K.max = K.max, B = B, nClusters = nClusters, nPC = nPC)
   } else {
     clusterSimilarity(x = similarity,
                       expr = genes_all,
                       exprTest = genes_all_test,
-                      clustMethod = clustMethod,
-                      cutMethod = cutMethod,
-                      method = method,
-                      K.max = K.max, B = B, nClusters = nClusters)
+                      clustMethod = cluster_method,
+                      cutMethod = cut_method,
+                      method = agglomeration_method,
+                      K.max = K.max, B = B, nClusters = nClusters, nPC = nPC)
   }
-
+  
   message(paste("Calculating number of environment clusters based on ",
-                EclustAddDistance))
-
-  # clusters based on EclustAddDistance
-  similarityEclust <- switch(EclustAddDistance,
-                         corr = corr_train_all,
-                         corr0 = corr_train_e0,
-                         corr1 = corr_train_e1,
-                         diffcorr = corr_train_diff,
-                         difftom = tom_train_diff,
-                         tom0 = tom_train_e0,
-                         tom1 = tom_train_e1,
-                         tom = tom_train_all,
-                         corScor = Scorr,
-                         tomScor = Stom,
-                         fisherScore = fisherScore)
-
-
-  resEclust <- if (EclustAddDistance %in% c("diffcorr","difftom",
+                eclust_distance))
+  
+  # clusters based on eclust_distance
+  similarityEclust <- switch(eclust_distance,
+                             corr = corr_train_all,
+                             corr0 = corr_train_e0,
+                             corr1 = corr_train_e1,
+                             diffcorr = corr_train_diff,
+                             difftom = tom_train_diff,
+                             tom0 = tom_train_e0,
+                             tom1 = tom_train_e1,
+                             tom = tom_train_all,
+                             corScor = Scorr,
+                             tomScor = Stom,
+                             fisherScore = fisherScore)
+  
+  
+  resEclust <- if (eclust_distance %in% c("diffcorr","difftom",
                                             "corScor", "tomScor","fisherScore")) {
     clusterSimilarity(x = similarityEclust,
                       expr = genes_all,
                       exprTest = genes_all_test,
-                      distanceMethod = distanceMethod,
-                      clustMethod = clustMethod,
-                      cutMethod = cutMethod,
-                      method = method,
-                      K.max = K.max, B = B, nClusters = nClusters)
+                      distanceMethod = distance_method,
+                      clustMethod = cluster_method,
+                      cutMethod = cut_method,
+                      method = agglomeration_method,
+                      K.max = K.max, B = B, nClusters = nClusters, nPC = nPC)
   } else {
     clusterSimilarity(x = similarityEclust,
                       expr = genes_all,
                       exprTest = genes_all_test,
-                      clustMethod = clustMethod,
-                      cutMethod = cutMethod,
-                      method = method,
-                      K.max = K.max, B = B, nClusters = nClusters)
+                      clustMethod = cluster_method,
+                      cutMethod = cut_method,
+                      method = agglomeration_method,
+                      K.max = K.max, B = B, nClusters = nClusters, nPC = nPC)
   }
-
-
+  
+  
   # we need to combine the cluster information here
   # this is based on cluster_distance only
   clustersAll <- copy(res$clusters)
   n_clusters_All <- res$pcInfo$nclusters
-
+  
   message(sprintf("There are %d clusters derived from the %s similarity matrix",
                   n_clusters_All, cluster_distance))
-
-  # this is based on EclustAddDistance only
+  
+  # this is based on eclust_distance only
   n_clusters_Eclust <- resEclust$pcInfo$nclusters
   clustersEclust <- copy(resEclust$clusters)
-
+  
   message(sprintf("There are %d clusters derived from the %s environment similarity matrix",
-                  n_clusters_Eclust, EclustAddDistance))
-
+                  n_clusters_Eclust, eclust_distance))
+  
   # this is based on both
   n_clusters_Addon <- n_clusters_All + n_clusters_Eclust
-
+  
   message(sprintf("There are a total of %d clusters derived from the %s
                   similarity matrix and the %s environment similarity matrix",
-                  n_clusters_Addon,cluster_distance,EclustAddDistance))
-
+                  n_clusters_Addon,cluster_distance,eclust_distance))
+  
   # check if any of the cluster numbers in clustersEclust are 0
   # if there are, then add n_clusters+1 to each module number in
   # clustersEclust, else just add n_clusters. this is to control for the
@@ -970,42 +973,42 @@ generate_data <- function(p, X, beta,
   } else {
     clustersEclust[,cluster := cluster + n_clusters_All ]
   }
-
+  
   # this contains the clusters from the cluster_distance (e.g. corr matrix)
-  # and the clusters from the EclustAddDistance (e.g. fisherScore)
+  # and the clusters from the eclust_distance (e.g. fisherScore)
   clustersAddon <- rbindlist(list(clustersAll, clustersEclust))
-
+  
   # need to calculate penalty factors for group lasso
   # I put all main effects and interactions of a given module in the same group
   # and the size of the penalty factor is sqrt(size of module), where the
   # size of the module includes both main and interaction effects
   # environment does not get penalized
   if (include_interaction) {
-
+    
     gene_groups = copy(clustersAll)
     gene_groups[, gene := paste0(gene,":E")]
     gene_groups <- rbind(clustersAll,gene_groups) %>% setkey(cluster)
-
+    
     pf_temp <- gene_groups[,.N, by = cluster][,pf := sqrt(N)] %>% setkey(cluster)
-
+    
     gene_groups_inter <- rbind(pf_temp[gene_groups],
                                data.table(cluster = n_clusters_All + 1, N = 1,
                                           pf = 0, gene = "E", module = "empty"))
-
+    
     gene_groups_Addon = copy(clustersAddon)
     gene_groups_Addon[, gene := paste0(gene,":E")]
     gene_groups_Addon <- rbind(clustersAddon, gene_groups_Addon) %>% setkey(cluster)
-
+    
     pf_temp_Addon <- gene_groups_Addon[,.N, by = cluster][,pf := sqrt(N)] %>% setkey(cluster)
-
+    
     gene_groups_inter_Addon <- rbind(pf_temp_Addon[gene_groups_Addon],
-                               data.table(cluster = n_clusters_Addon + 1, N = 1,
-                                          pf = 0, gene = "E", module = "empty"))
+                                     data.table(cluster = n_clusters_Addon + 1, N = 1,
+                                                pf = 0, gene = "E", module = "empty"))
   }
-
+  
   DT <- DT %>% as.matrix
   class(DT) <- append(class(DT),"eset")
-
+  
   result <- list(beta_truth = beta_truth,
                  similarity = similarity,
                  similarityEclust = similarityEclust,
@@ -1187,7 +1190,8 @@ clust_fun <- function(x_train,
                       include_interaction = F,
                       p = 1000,
                       filter_var = F,
-                      clust_type = c("clust","Eclust","Addon","corrclust")){
+                      clust_type = c("clust","Eclust","Addon","corrclust"),
+                      nPC = 1) {
 
   # result[["clustersAddon"]] %>% print(nrows=Inf)
   # result[["clustersAddon"]][, table(cluster, module)]
@@ -1239,9 +1243,10 @@ clust_fun <- function(x_train,
       }
 
   # these are only derived on the main effects genes.. E is only included in the model
-  PC_and_avg <- firstPC(expr = x_train_mod[,gene_groups$gene],
+  PC_and_avg <- extractPC(x_train = x_train_mod[,gene_groups$gene],
                         colors = gene_groups$cluster,
-                        exprTest = x_test_mod[,gene_groups$gene])
+                        x_test = x_test_mod[,gene_groups$gene],
+                        nPC = nPC)
 
   n.clusters <- PC_and_avg$nclusters
 
@@ -1954,3 +1959,205 @@ generate_blocks <- function(block_size, rho_E0, rho_E1, n, n0) {
 }
 
 
+
+#' This is a modified version of firstPC which was actually giving the first 2 PCs
+#' with no other option. This function is more flexible and the nPC argument is used.
+#' currently only nPC = 1 and nPC = 2 are supported
+extractPC <- function(x_train, colors, x_test, 
+                      y_train, y_test,
+                      impute = TRUE, nPC = 1,
+                      excludeGrey = FALSE,
+                      grey = if (is.numeric(colors)) 0 else "grey",
+                      subHubs = TRUE, trapErrors = FALSE,
+                      returnValidOnly = trapErrors, softPower = 6, scale = TRUE,
+                      verbose = 0, indent = 0) {
+  
+  
+  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+  # x_train_mod <- x_train %>% as.data.frame
+  # x_test_mod = x_test %>% as.data.frame
+  # gene_groups = result[["clustersAddon"]]
+  # x_train = x_train_mod[,gene_groups$gene];
+  # colors = gene_groups$cluster;
+  # x_test = x_test_mod[,gene_groups$gene]
+  # impute = TRUE; nPC = 1; align = "along average";
+  # excludeGrey = FALSE; grey = if (is.numeric(colors)) 0 else "grey";
+  # subHubs = TRUE; trapErrors = FALSE; returnValidOnly = trapErrors;
+  # softPower = 6; scale = TRUE; verbose = 0; indent = 0;
+  
+  if (is.null(x_train)) {
+    stop("moduleEigengenes: Error: x_train is NULL. ")
+  }
+  if (is.null(colors)) {
+    stop("moduleEigengenes: Error: colors is NULL. ")
+  }
+  if (is.null(dim(x_train)) || length(dim(x_train)) != 2)
+    stop("moduleEigengenes: Error: x_train must be two-dimensional.")
+  if (dim(x_train)[2] != length(colors))
+    stop("moduleEigengenes: Error: ncol(x_train) and length(colors) must be equal (one color per gene).")
+  if (is.factor(colors)) {
+    nl = nlevels(colors)
+    nlDrop = nlevels(colors[, drop = TRUE])
+    if (nl > nlDrop)
+      stop(paste("Argument 'colors' contains unused levels (empty modules). ",
+                 "Use colors[, drop=TRUE] to get rid of them."))
+  }
+  
+  # maxVarExplained = 10
+  # if (nPC > maxVarExplained)
+  #   warning(paste("Given nPC is too large. Will use value",
+  #                 maxVarExplained))
+  #
+  # nVarExplained = min(nPC, maxVarExplained)
+  
+  modlevels = levels(factor(colors))
+  
+  if (excludeGrey)
+    if (sum(as.character(modlevels) != as.character(grey)) >
+        0) {
+      modlevels = modlevels[as.character(modlevels) !=
+                              as.character(grey)]
+    } else {
+      stop(paste("Color levels are empty. Possible reason: the only color is grey",
+                 "and grey module is excluded from the calculation."))
+    }
+  
+  # these are the loadings aka the first and second eigenvector for each module
+  # length of these vectors will vary depending on the size of the module
+  eigenVectors <- vector("list", nPC*length(modlevels))
+  
+  # these are the actual PC's aka the data %*% eigenvector
+  # each column will be a n-dimensional vector.. i.e. a value for each person
+  #  this will contain the first 2 PCs for each module
+  PC <- data.frame(matrix(NA, nrow = dim(x_train)[[1]],
+                          ncol = nPC*length(modlevels)))
+  
+  PCTest <- data.frame(matrix(NA, nrow = dim(x_test)[[1]],
+                              ncol = nPC*length(modlevels)))
+  
+  #   PLS <- data.frame(matrix(NA, nrow = dim(x_train)[[1]],
+  #                           ncol = nPC*length(modlevels)))
+  #   
+  #   PLSTest <- data.frame(matrix(NA, nrow = dim(x_test)[[1]],
+  #                               ncol = nPC*length(modlevels)))
+  
+  # list to store prcomp objects
+  prcompObj <- vector("list", length(modlevels))
+  
+  # list to store pls objects
+  # plsObj <- vector("list", length(modlevels))
+  
+  
+  # this is the average expression in a module for each subject
+  # so this is a n x length(modlevels) matrix
+  averExpr <- data.frame(matrix(NA, nrow = dim(x_train)[[1]],
+                                ncol = length(modlevels)))
+  
+  averExprTest <- data.frame(matrix(NA, nrow = dim(x_test)[[1]],
+                                    ncol = length(modlevels)))
+  
+  varExpl <- vector("double", nPC*length(modlevels))
+  
+  # validMEs = rep(TRUE, length(modlevels))
+  # validAEs = rep(FALSE, length(modlevels))
+  
+  # these are the means and sds used for subsequent predictions
+  means = vector("list", length(modlevels))
+  sds = vector("list", length(modlevels))
+  
+  # isPC = rep(TRUE, length(modlevels))
+  # isHub = rep(FALSE, length(modlevels))
+  validColors = colors
+  
+  # names(eigenVectors) = paste(moduleColor.getMEprefix(), modlevels,
+  #                          sep = "")
+  names(PC) = paste(rep(paste0("pc",seq_len(nPC)), length(modlevels)), 
+                    rep(modlevels, each = nPC), sep = "_")
+  names(averExpr) = paste("avg", modlevels, sep = "")
+  #   names(PCTest) = paste(rep(paste0("pc",seq_len(nPC)), length(modlevels)), 
+  #                         rep(modlevels, each = nPC), sep = "_")
+  names(averExprTest) = paste("avg", modlevels, sep = "")
+  
+  for (i in seq_len(length(modlevels))) {
+    #i=1
+    if (verbose > 1)
+      printFlush(paste(spaces, "moduleEigengenes : Working on ME for module",
+                       modlevels[i]))
+    modulename = modlevels[i]
+    restrict1 = as.character(colors) == as.character(modulename)
+    if (verbose > 2)
+      printFlush(paste(spaces, " ...", sum(restrict1),
+                       "genes"))
+    
+    datModule <- as.matrix(x_train[, restrict1])
+    datModuleTest <- as.matrix(x_test[, restrict1])
+    
+    # xy_train <- data.frame(Y = as.matrix(y_train), x_train[, restrict1])
+    # xy_test <- data.frame(Y = as.matrix(y_test), x_test[, restrict1])
+    
+    # dim(datModule)
+    # dim(t(datModule))
+    # dim(x_train)
+    
+    # using prcomp first (need to use untransposed data!)
+    prcompObj[[i]] <- prcomp(datModule, center = scale, scale. = scale)
+    
+    # plsObj[[i]] <- pls::plsr(Y ~ ., ncomp = nPC, data = xy_train, validation = "CV")
+    
+    # plot(prcompObj[[i]])
+    # View(stats:::prcomp.default)
+    # prcompObj[[i]]$x %>% dim
+    # prcompObj[[i]] %>% names
+    # prcompObj[[i]]$rotation %>% dim
+    
+    if (nPC == 1) {
+      
+      eigenVectors[[i]] <- prcompObj[[i]]$rotation[,1, drop = F]
+      averExpr[,i] <- rowMeans(datModule, na.rm = TRUE)
+      averExprTest[,i] <- rowMeans(datModuleTest, na.rm = TRUE)
+      
+      varExpl[[i]] <- factoextra::get_eigenvalue(prcompObj[[i]])[1,"variance.percent"]
+      
+      # corAve = cor(averExpr[,i], prcompObj[[i]]$rotation[,1],
+      #              use = "p")
+      # if (!is.finite(corAve)) corAve = 0
+      # if (corAve < 0) prcompObj[[i]]$rotation[,1] = -prcompObj[[i]]$rotation[,1]
+      
+      PC[, i] <- predict(prcompObj[[i]])[,1]
+      PCTest[, i] <- predict(prcompObj[[i]], newdata = datModuleTest)[,1]
+      
+      # PLS[, i] <- predict(plsObj[[i]], ncomp = nPC, type = "scores")
+      # PLSTest[, i] <- predict(plsObj[[i]], ncomp = nPC, type = "scores", newdata = xy_test)[,1]
+      
+    } else if (nPC == 2) { 
+      eigenVectors[[2*i-1]] <- prcompObj[[i]]$rotation[,1, drop = F]
+      eigenVectors[[2*i]] <- prcompObj[[i]]$rotation[,2, drop = F]
+      averExpr[,i] <- rowMeans(datModule, na.rm = TRUE)
+      averExprTest[,i] <- rowMeans(datModuleTest, na.rm = TRUE)
+      
+      varExpl[[2*i-1]] <- factoextra::get_eigenvalue(prcompObj[[i]])[1,"variance.percent"]
+      varExpl[[2*i]] <- factoextra::get_eigenvalue(prcompObj[[i]])[2,"variance.percent"]
+      # corAve = cor(averExpr[,i], prcompObj[[i]]$rotation[,1],
+      #              use = "p")
+      # if (!is.finite(corAve)) corAve = 0
+      # if (corAve < 0) prcompObj[[i]]$rotation[,1] = -prcompObj[[i]]$rotation[,1]
+      
+      PC[, 2*i-1] <- predict(prcompObj[[i]])[,1]
+      PC[, 2*i] <- predict(prcompObj[[i]])[,2]
+      # PCTest[, 2*i-1] <- predict(prcompObj[[i]], newdata = datModuleTest)[,1]
+      # PCTest[, 2*i] <- predict(prcompObj[[i]], newdata = datModuleTest)[,2]
+      
+      # plot(PC[, i], prcompObj[[i]]$x[,1])
+      #means[i] <- prcompObj[[i]]$center
+      #sds[i] <- prcompObj[[i]]$scale
+    }
+    
+  }
+  
+  list(eigengenes = eigenVectors, averageExpr = averExpr,
+       averageExprTest = averExprTest,
+       varExplained = varExpl, validColors = validColors,
+       PC = PC, PCTest = PCTest, prcompObj = prcompObj,
+       # PLS = PLS, PLSTest = PLSTest, 
+       nclusters = length(modlevels))
+}

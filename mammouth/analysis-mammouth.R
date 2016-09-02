@@ -32,6 +32,7 @@ DT.long <- DT %>%
 DT.long$method %>% table
 DT.long$model %>% table
 DT.long$summary %>% table
+DT.long$measure %>% table(useNA = "always")
 
 levels <- c("pen", "clust", "Eclust")
 
@@ -40,8 +41,8 @@ DT.long[, `:=`(method = factor(method, levels = levels))]
 DT.long[, table(measure)]
 DT.long[, table(p)]
 
-DT.long[measure=="FPR"][, hist(value)]
-DT.long[measure=="TPR"][, hist(value)]
+DT.long[measure=="FPR"][, boxplot(value)]
+DT.long[measure=="TPR"][, boxplot(value)]
 
 
 # this takes the mean by method across all simulations in a given method
@@ -53,6 +54,33 @@ DT.summary <- DT.long %>%
                           "K.max","B","n0","nActive","measure","method","name"), 
             na.rm = TRUE) %>%
   as.data.table
+
+# used for boxplots
+DT.long2 <- DT.long %>%
+  tidyr::unite(name, summary, model)
+
+levels.name <- c("na_elasticnet", "na_lasso","avg_elasticnet",
+                 "avg_lasso", "avg_shim","pc_elasticnet",
+                 "pc_lasso", "pc_shim")
+
+labels.name <- c("elasticnet", "lasso","avg_elasticnet",
+                 "avg_lasso", "avg_shim","pc_elasticnet",
+                 "pc_lasso", "pc_shim")
+
+DT.long2[,`:=`(name = factor(name, levels = levels.name, labels = labels.name))]
+DT.long2[, table(name)]
+DT.long2[, table(rho)]
+DT.long2[, table(p)]
+DT.long2[, table(n)]
+DT.long2[, table(nActive)]
+DT.long2[, table(Ecluster_distance)]
+DT.long2[, table(SNR)]
+DT.long2[, table(betaMean)]
+DT.long2[, table(alphaMean)]
+DT.long2[, table(measure)]
+DT.long2[measure=="relmse"][,boxplot(value)]
+DT.long2[measure=="modelerror"][,boxplot(value)]
+
 
 
 DT.summary[, table(name)]
@@ -222,6 +250,28 @@ ggsave("~/git_repositories/eclust-simulation-aug2016/mammouth/results/figures/ms
        width = 12, height = 8)
 
 
+pd <- position_dodge(width = 1) # move them .05 to the left and right
+ggplot(DT.long2[measure=="mse"][name %ni% c("avg_shim","pc_shim")][SNR==0.2], 
+       aes(x = name, y = value, fill = method)) + 
+  geom_boxplot(position=pd) +
+  guides(color=guide_legend(title="method"))+
+  xlab("model")+
+  ylab("test set mean squared error")+
+  #ylab(TeX("average MSE (1000 simulations)"))+
+  facet_grid(p+alphaMean~rho, scales="free")+
+  theme_bw()+
+  theme(legend.position = "top")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
+        axis.text.y  = element_text(size=15),
+        axis.title.x = element_text(face="bold", colour="#990000", size=15),
+        axis.title.y = element_text(face="bold", colour="#990000", size=20),
+        title = element_text(size=16),legend.text = element_text(colour="blue", size = 16),
+        strip.text = element_text(size=20))+
+  theme(legend.key.width=unit(1, "inches"))
+
+
+
+
 
 ggplot(DT.summary[measure=="mse"][SNR==1],
        aes(x = name, y = mean, colour = method)) +
@@ -301,6 +351,26 @@ ggplot(DT.summary[measure=="jacc"][SNR==0.2],
   theme(legend.key.width=unit(1, "inches"))
 ggsave("~/git_repositories/eclust-simulation-aug2016/mammouth/results/figures/jacc_snr02.png",
        width = 12, height = 8)
+
+
+pd <- position_dodge(width = 1) # move them .05 to the left and right
+ggplot(DT.long2[measure=="jacc"][name %ni% c("avg_shim","pc_shim")][SNR==0.2], 
+       aes(x = name, y = value, fill = method)) + 
+  geom_boxplot(position=pd) +
+  guides(color=guide_legend(title="method"))+
+  xlab("model")+
+  ylab("Jaccard index")+
+  #ylab(TeX("average MSE (1000 simulations)"))+
+  facet_grid(p+alphaMean~rho, scales="free")+
+  theme_bw()+
+  theme(legend.position = "top")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
+        axis.text.y  = element_text(size=15),
+        axis.title.x = element_text(face="bold", colour="#990000", size=15),
+        axis.title.y = element_text(face="bold", colour="#990000", size=20),
+        title = element_text(size=16),legend.text = element_text(colour="blue", size = 16),
+        strip.text = element_text(size=20))+
+  theme(legend.key.width=unit(1, "inches"))
 
 
 
