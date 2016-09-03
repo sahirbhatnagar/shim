@@ -43,7 +43,7 @@ DT.long[, table(p)]
 
 DT.long[measure=="FPR"][, boxplot(value)]
 DT.long[measure=="TPR"][, boxplot(value)]
-
+DT.long
 
 # this takes the mean by method across all simulations in a given method
 DT.summary <- DT.long %>%
@@ -251,8 +251,8 @@ ggsave("~/git_repositories/eclust-simulation-aug2016/mammouth/results/figures/ms
 
 
 pd <- position_dodge(width = 1) # move them .05 to the left and right
-ggplot(DT.long2[measure=="mse"][name %ni% c("avg_shim","pc_shim")][SNR==0.2], 
-       aes(x = name, y = value, fill = method)) + 
+ggplot(DT.long2[measure=="mse"][name %ni% c("avg_shim","pc_shim")][SNR==1], 
+       aes(x = name, y = sqrt(value), fill = method)) + 
   geom_boxplot(position=pd) +
   guides(color=guide_legend(title="method"))+
   xlab("model")+

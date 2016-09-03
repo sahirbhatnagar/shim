@@ -1174,6 +1174,7 @@ uniFit <- function(train,
   }
 }
 
+# nPC=2 will not work if there is only one gene in a module!
 clust_fun <- function(x_train,
                       x_test,
                       y_train,
@@ -1193,15 +1194,15 @@ clust_fun <- function(x_train,
                       clust_type = c("clust","Eclust","Addon","corrclust"),
                       nPC = 1) {
 
-  # result[["clustersAddon"]] %>% print(nrows=Inf)
-  # result[["clustersAddon"]][, table(cluster, module)]
-  # result %>% names
-  # stability = F; gene_groups = result[["clustersAddon"]];
-  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
-  # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  # filter = F; filter_var = F; include_E = T; include_interaction = T;
-  # s0 = result[["S0"]]; p = p ;
-  # model = "shim"; summary = "pc"; topgenes = NULL; clust_type="Addon"
+  result[["clustersAddon"]] %>% print(nrows=Inf)
+  result[["clustersAddon"]][, table(cluster, module)]
+  result %>% names
+  stability = F; gene_groups = result[["clustersAll"]];
+  x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+  y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+  filter = F; filter_var = F; include_E = T; include_interaction = T;
+  s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
+  model = "lasso"; summary = "pc"; topgenes = NULL; clust_type="clust"; nPC = 1
 
   clust_type <- match.arg(clust_type)
   summary <- match.arg(summary)
@@ -1244,9 +1245,9 @@ clust_fun <- function(x_train,
 
   # these are only derived on the main effects genes.. E is only included in the model
   PC_and_avg <- extractPC(x_train = x_train_mod[,gene_groups$gene],
-                        colors = gene_groups$cluster,
-                        x_test = x_test_mod[,gene_groups$gene],
-                        nPC = nPC)
+                          colors = gene_groups$cluster,
+                          x_test = x_test_mod[,gene_groups$gene],
+                          nPC = nPC)
 
   n.clusters <- PC_and_avg$nclusters
 
@@ -1452,33 +1453,60 @@ clust_fun <- function(x_train,
         } else if (!include_interaction & !include_E) {
           paste0("~1+",paste0(colnames(clust_data_test), collapse = "+")) %>% as.formula
         }
+    
 
+    # this includes the intercept!
     X.model.formula_test <- model.matrix(model.formula_test,
                                          data = if (include_E) {
                                            cbind(clust_data_test,x_test_mod[,"E", drop = F])
                                            } else clust_data_test %>% as.data.frame)
-
+    
     # True Positive Rate
     clust.TPR <- length(intersect(clust.S.hat, s0))/length(s0)
 
     # True negatives
-    trueNegs <- setdiff(colnames(x_train), s0)
-
+    trueNegs <- setdiff(colnames(x_train_mod), s0)
+    # identical(setdiff(colnames(x_train_mod), s0), setdiff(colnames(x_train), s0))
+    
     # these are the terms which the model identified as zero
-    modelIdentifyZero <- setdiff(colnames(x_train),clust.S.hat)
+    modelIdentifyZero <- setdiff(colnames(x_train_mod),clust.S.hat)
 
     # how many of the terms identified by the model as zero, were actually zero
-    sum(modelIdentifyZero %in% trueNegs)
+    # use to calculate correct sparsity as defined by Witten et al in the 
+    # Cluster Elastic Net paper Technometrics 2013
+    C1 <- sum(modelIdentifyZero %in% trueNegs)
+    C2 <- length(intersect(clust.S.hat, s0))
+    clust.correct_sparsity <- (C1 + C2)/(ncol(x_train_mod))
 
-    # False Positive Rate = FP/(FP + TN)
-    clust.FPR <- sum(clust.S.hat %ni% s0)/(sum(clust.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs))
+    # this is from Interaction Screening for Ultrahigh Dimensional Data by ning hao and hao helen zhang
+    true.interaction_names <- grep(":", s0, value = T)
+    true.main_effect_names <- setdiff(s0, true.interaction_names)
+    
+    all.interaction_names <- grep(":", colnames(x_train_mod), value = T)
+    all.main_effect_names <- setdiff(colnames(x_train_mod), all.interaction_names)
+    
+    true.negative_main_effects <- setdiff(all.main_effect_names, true.main_effect_names)
+    true.negative_interaction_effects <- setdiff(all.interaction_names, true.interaction_names)
+    
+    (clust.correct_zeros_main_effects <- sum(setdiff(all.main_effect_names, c(clust.S.hat.main, non_zero_environment)) %in% true.negative_main_effects)/ length(true.negative_main_effects))
+    (clust.correct_zeros_interaction_effects <- sum(setdiff(all.interaction_names, clust.S.hat.interaction) %in% true.negative_interaction_effects)/ length(true.negative_interaction_effects))
+
+    (clust.incorrect_zeros_main_effects <- sum(setdiff(all.main_effect_names, c(clust.S.hat.main, non_zero_environment)) %in% true.main_effect_names)/ length(true.main_effect_names))
+    (clust.incorrect_zeros_interaction_effects <- sum(setdiff(all.interaction_names, clust.S.hat.interaction) %in% true.interaction_names)/ length(true.interaction_names))    
+    
+    # False Positive Rate = FP/(FP + TN) = FP / True number of 0 coefficients
+    (clust.FPR <- sum(clust.S.hat %ni% s0)/(sum(clust.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs)))
 
     # Mean Squared Error
-    clust.mse <- crossprod(X.model.formula_test %*% coefs$coef.est - y_test)/length(y_test)
+    (clust.mse <- sqrt(crossprod(X.model.formula_test %*% coefs$coef.est - y_test)/length(y_test)))
+
+    # remove intercept for prediction error formula given by ||X\beta - X\hat{\beta}||_2
+    # given in Witten 2013 Cluster ENET paper in Technometrics
+    # (clust.test_set_pred_error <- sqrt(crossprod(as.matrix(x_test_mod) %*% as.numeric(true_beta) - X.model.formula_test[,-1] %*% coefs$coef.est[-1])))
 
     # mse.null
-    mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
-
+    (mse_null <- crossprod(mean(y_test) - y_test)/length(y_test))
+    
     # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
     clust.r2 <- (mse_null - clust.mse)/mse_null
 
@@ -1487,15 +1515,23 @@ clust_fun <- function(x_train,
 
     ls <- list(clust.mse = clust.mse, clust.r2 = clust.r2,
                clust.adj.r2 = clust.adj.r2, clust.S.hat = length(clust.S.hat),
-               clust.TPR = clust.TPR, clust.FPR = clust.FPR)
+               clust.TPR = clust.TPR, clust.FPR = clust.FPR, clust.correct_sparsity = clust.correct_sparsity,
+               clust.correct_zeros_main_effects, clust.correct_zeros_interaction_effects,
+               clust.incorrect_zeros_main_effects, clust.incorrect_zeros_interaction_effects)
 
 
-    names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+    names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_rmse"),
                    paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
                    paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
                    paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
                    paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"))
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity")
+                   )
     return(ls)
 
   }
@@ -1604,12 +1640,34 @@ pen_fun <- function(x_train,
                 lambda = pen_model_oracle$lambda.min)
       }
 
+    # True Positive Rate
+    pen.TPR <- length(intersect(pen.S.hat, s0))/length(s0)
+    
+    # True negatives
+    trueNegs <- setdiff(colnames(x_train), s0)
+    
+    # these are the terms which the model identified as zero
+    modelIdentifyZero <- setdiff(colnames(x_train),pen.S.hat)
+    
+    # how many of the terms identified by the model as zero, were actually zero
+    # use to calculate correct sparsity as defined by Witten et al in the 
+    # Cluster Elastic Net paper Technometrics 2013
+    C1 <- sum(modelIdentifyZero %in% trueNegs)
+    C2 <- length(intersect(pen.S.hat, s0))
+    correct_sparsity <- (C1 + C2)/(ncol(x_train))
+    
+    # False Positive Rate = FP/(FP + TN) = FP / True number of 0 coefficients
+    (pen.FPR <- sum(pen.S.hat %ni% s0)/(sum(pen.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs)))
+    
+    # # False Positive Rate
+    # pen.FPR <- sum(pen.S.hat %ni% s0)/(p - length(s0))    
+    
     # Mean Squared Error
-    pen.mse <- crossprod(pen.pred - y_test)/length(y_test)
+    pen.mse <- sqrt(crossprod(pen.pred - y_test)/length(y_test))
 
     # Mean Squared Error Oracle
     pen.mse.oracle <- crossprod(pen.pred.oracle - y_test)/length(y_test)
-
+    
     # mse.null
     mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
 
@@ -1617,12 +1675,6 @@ pen_fun <- function(x_train,
     pen.r2 <- (mse_null - pen.mse)/mse_null
 
     pen.adj.r2 <- 1 - (1 - pen.r2)*(length(y_test) - 1)/(length(y_test) - length(pen.S.hat) - 1)
-
-    # True Positive Rate
-    pen.TPR <- length(intersect(pen.S.hat, s0))/length(s0)
-
-    # False Positive Rate
-    pen.FPR <- sum(pen.S.hat %ni% s0)/(p - length(s0))
 
     # model error
     identical(true_beta %>% rownames(),coefs[["Gene"]])
@@ -1965,7 +2017,7 @@ generate_blocks <- function(block_size, rho_E0, rho_E1, n, n0) {
 #' currently only nPC = 1 and nPC = 2 are supported
 extractPC <- function(x_train, colors, x_test, 
                       y_train, y_test,
-                      impute = TRUE, nPC = 1,
+                      impute = TRUE, nPC,
                       excludeGrey = FALSE,
                       grey = if (is.numeric(colors)) 0 else "grey",
                       subHubs = TRUE, trapErrors = FALSE,
@@ -1976,11 +2028,11 @@ extractPC <- function(x_train, colors, x_test,
   # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
   # x_train_mod <- x_train %>% as.data.frame
   # x_test_mod = x_test %>% as.data.frame
-  # gene_groups = result[["clustersAddon"]]
+  # gene_groups = result[["clustersAll"]]
   # x_train = x_train_mod[,gene_groups$gene];
   # colors = gene_groups$cluster;
   # x_test = x_test_mod[,gene_groups$gene]
-  # impute = TRUE; nPC = 1; align = "along average";
+  # impute = TRUE; nPC = 2; align = "along average";
   # excludeGrey = FALSE; grey = if (is.numeric(colors)) 0 else "grey";
   # subHubs = TRUE; trapErrors = FALSE; returnValidOnly = trapErrors;
   # softPower = 6; scale = TRUE; verbose = 0; indent = 0;
@@ -2079,9 +2131,9 @@ extractPC <- function(x_train, colors, x_test,
   names(averExprTest) = paste("avg", modlevels, sep = "")
   
   for (i in seq_len(length(modlevels))) {
-    #i=1
+    # i=2
     if (verbose > 1)
-      printFlush(paste(spaces, "moduleEigengenes : Working on ME for module",
+      printFlush(paste("moduleEigengenes : Working on ME for module",
                        modlevels[i]))
     modulename = modlevels[i]
     restrict1 = as.character(colors) == as.character(modulename)

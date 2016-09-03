@@ -286,6 +286,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                                       filter_var = F,
                                       include_E = T,
                                       include_interaction = includeInteraction,
+                                      true_beta = result[["beta_truth"]],
                                       s0 = result[["S0"]],
                                       p = p,
                                       gene_groups = result[["clustersAll"]],
