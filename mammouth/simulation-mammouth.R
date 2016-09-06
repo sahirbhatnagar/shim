@@ -16,9 +16,9 @@
 # for i in 1 ; do qsub -v index=$i simulation2.sh ; done
 ##################################
 
-rm(list=ls())
-source("packages.R")
-source("functions.R")
+# rm(list=ls())
+# source("packages.R")
+# source("functions.R")
 
 options(digits = 4, scipen = 999)
 
@@ -679,8 +679,8 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   final_results %>% t %>% as.data.frame()
   
 
-  filename <- tempfile(pattern = paste0(sprintf("rho%.2f_p%1.0f_SNR%.2f_n%1.0f_s0%1.0f_beta%.2f_alpha%.2f",
-                                                rho,p,SNR, n, nActive, betaMean, alphaMean),"_"),
+  filename <- tempfile(pattern = paste0(sprintf("%s_%s_rho%.2f_p%1.0f_SNR%.2f_n%1.0f_s0%1.0f_beta%.2f_alpha%.2f",
+                                                cluster_distance,Ecluster_distance,rho,p,SNR, n, nActive, betaMean, alphaMean),"_"),
                        #tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"), "simulation1/", sep="/")
                        tmpdir = "/home/bhatnaga/coexpression/august2016simulation/linear/results")
                        #tmpdir = "~/git_repositories/eclust/")
@@ -688,7 +688,13 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
               file = filename,
               quote = F,
               row.names = F,
-              col.names = F) 
+              col.names = F)
+  
+  write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
+              file  = "/home/bhatnaga/coexpression/august2016simulation/linear/colnames_stab.txt",
+              quote = F,
+              row.names = F, 
+              col.names = F)
 }, mc.cores = 24)
 
 # write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
