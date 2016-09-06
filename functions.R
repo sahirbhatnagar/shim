@@ -489,11 +489,12 @@ clusterSimilarity <- function(x,
                               if (clustMethod == "hclust") {
                                 dynamicTreeCut::cutreeDynamic(
                                   hc,
+                                  method = "hybrid",
                                   distM = as.matrix(distance),
                                   #cutHeight = 0.995,
-                                  deepSplit = 0,
+                                  deepSplit = 1,
                                   pamRespectsDendro = T,
-                                  minClusterSize = 20)
+                                  minClusterSize = 50)
                               } else {
                                 hcMod <- hc
                                 class(hcMod) <- "hclust"
@@ -501,9 +502,10 @@ clusterSimilarity <- function(x,
                                   hcMod,
                                   distM = as.matrix(distance),
                                   #cutHeight = 0.995,
-                                  deepSplit = 0,
+                                  deepSplit = 1,
+                                  method = "hybrid",
                                   pamRespectsDendro = T,
-                                  minClusterSize = 20)
+                                  minClusterSize = 50)
                               }
                             },
                             gap = {
@@ -982,7 +984,8 @@ generate_data <- function(p, X, beta,
   # I put all main effects and interactions of a given module in the same group
   # and the size of the penalty factor is sqrt(size of module), where the
   # size of the module includes both main and interaction effects
-  # environment does not get penalized
+  # environment should get penalized, in the original simulation 1
+  # it was not being penalized which is maybe why it was performing well
   if (include_interaction) {
     
     gene_groups = copy(clustersAll)
@@ -992,8 +995,11 @@ generate_data <- function(p, X, beta,
     pf_temp <- gene_groups[,.N, by = cluster][,pf := sqrt(N)] %>% setkey(cluster)
     
     gene_groups_inter <- rbind(pf_temp[gene_groups],
-                               data.table(cluster = n_clusters_All + 1, N = 1,
-                                          pf = 0, gene = "E", module = "empty"))
+                               data.table(cluster = n_clusters_All, N = 1,
+                                          pf = 1, gene = "E", module = "empty"))
+    # gglasso needs groups number consecutively 1, 2,3 ...
+    gene_groups_inter[, cluster:=cluster+1]
+    setkey(gene_groups_inter, cluster)
     
     gene_groups_Addon = copy(clustersAddon)
     gene_groups_Addon[, gene := paste0(gene,":E")]
@@ -1002,8 +1008,11 @@ generate_data <- function(p, X, beta,
     pf_temp_Addon <- gene_groups_Addon[,.N, by = cluster][,pf := sqrt(N)] %>% setkey(cluster)
     
     gene_groups_inter_Addon <- rbind(pf_temp_Addon[gene_groups_Addon],
-                                     data.table(cluster = n_clusters_Addon + 1, N = 1,
-                                                pf = 0, gene = "E", module = "empty"))
+                                     data.table(cluster = n_clusters_Addon, N = 1,
+                                                pf = 1, gene = "E", module = "empty"))
+    # gglasso needs groups number consecutively 1, 2,3 ...
+    gene_groups_inter_Addon[, cluster:=cluster+1]
+    setkey(gene_groups_inter_Addon, cluster)
   }
   
   DT <- DT %>% as.matrix
@@ -1191,18 +1200,18 @@ clust_fun <- function(x_train,
                       include_interaction = F,
                       p = 1000,
                       filter_var = F,
-                      clust_type = c("clust","Eclust","Addon","corrclust"),
+                      clust_type = c("clust","Eclust","Addon"),
                       nPC = 1) {
 
-  result[["clustersAddon"]] %>% print(nrows=Inf)
-  result[["clustersAddon"]][, table(cluster, module)]
-  result %>% names
-  stability = F; gene_groups = result[["clustersAll"]];
-  x_train = result[["X_train"]] ; x_test = result[["X_test"]];
-  y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  filter = F; filter_var = F; include_E = T; include_interaction = T;
-  s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
-  model = "lasso"; summary = "pc"; topgenes = NULL; clust_type="clust"; nPC = 1
+  # result[["clustersAddon"]] %>% print(nrows=Inf)
+  # result[["clustersAddon"]][, table(cluster, module)]
+  # result %>% names
+  # stability = F; gene_groups = result[["clustersAddon"]];
+  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+  # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+  # filter = F; filter_var = F; include_E = T; include_interaction = T;
+  # s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
+  # model = "lasso"; summary = "pc"; topgenes = NULL; clust_type="clust"; nPC = 1
 
   clust_type <- match.arg(clust_type)
   summary <- match.arg(summary)
@@ -1318,7 +1327,7 @@ clust_fun <- function(x_train,
                     dat <- data.table::data.table(Gene = colnames(X.model.formula),
                                                   coef.est = rep(0, ncol(X.model.formula)))
                     if (n.clusters != 1) {
-                      coef(clust_train_model, s = "lambda.1se") %>%
+                      coef(clust_train_model, s = "lambda.min") %>%
                         as.matrix %>%
                         as.data.table(keep.rownames = TRUE) %>%
                         magrittr::set_colnames(c("Gene","coef.est"))
@@ -1330,7 +1339,7 @@ clust_fun <- function(x_train,
                     dat <- data.table::data.table(Gene = colnames(X.model.formula),
                                                   coef.est = rep(0, ncol(X.model.formula)))
                     if (n.clusters != 1) {
-                      coef(clust_train_model, s = "lambda.1se") %>%
+                      coef(clust_train_model, s = "lambda.min") %>%
                         as.matrix %>%
                         as.data.table(keep.rownames = TRUE) %>%
                         magrittr::set_colnames(c("Gene","coef.est"))
@@ -1367,7 +1376,7 @@ clust_fun <- function(x_train,
                                                   coef.est = rep(0, ncol(X.model.formula)))
                     if (n.clusters != 1) {
 
-                      coef(clust_train_model, s = "lambda.1se") %>%
+                      coef(clust_train_model, s = "lambda.min") %>%
                         as.matrix %>%
                         as.data.table(keep.rownames = TRUE) %>%
                         magrittr::set_colnames(c("Gene","coef.est"))
@@ -1498,8 +1507,11 @@ clust_fun <- function(x_train,
     (clust.FPR <- sum(clust.S.hat %ni% s0)/(sum(clust.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs)))
 
     # Mean Squared Error
-    (clust.mse <- sqrt(crossprod(X.model.formula_test %*% coefs$coef.est - y_test)/length(y_test)))
-
+    (clust.mse <- crossprod(X.model.formula_test %*% coefs$coef.est - y_test)/length(y_test))
+    
+    # Root Mean Squared Error
+    (clust.RMSE <- sqrt(crossprod(X.model.formula_test %*% coefs$coef.est - y_test)/length(y_test)))
+    
     # remove intercept for prediction error formula given by ||X\beta - X\hat{\beta}||_2
     # given in Witten 2013 Cluster ENET paper in Technometrics
     # (clust.test_set_pred_error <- sqrt(crossprod(as.matrix(x_test_mod) %*% as.numeric(true_beta) - X.model.formula_test[,-1] %*% coefs$coef.est[-1])))
@@ -1508,29 +1520,39 @@ clust_fun <- function(x_train,
     (mse_null <- crossprod(mean(y_test) - y_test)/length(y_test))
     
     # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
-    clust.r2 <- (mse_null - clust.mse)/mse_null
+    # clust.r2 <- (mse_null - clust.mse)/mse_null
 
-    clust.adj.r2 <- 1 - (1 - clust.r2)*(nrow(x_test) - 1)/(nrow(x_test) - n.non_zero_clusters - 1)
-
-
-    ls <- list(clust.mse = clust.mse, clust.r2 = clust.r2,
-               clust.adj.r2 = clust.adj.r2, clust.S.hat = length(clust.S.hat),
-               clust.TPR = clust.TPR, clust.FPR = clust.FPR, clust.correct_sparsity = clust.correct_sparsity,
-               clust.correct_zeros_main_effects, clust.correct_zeros_interaction_effects,
-               clust.incorrect_zeros_main_effects, clust.incorrect_zeros_interaction_effects)
+    # clust.adj.r2 <- 1 - (1 - clust.r2)*(nrow(x_test) - 1)/(nrow(x_test) - n.non_zero_clusters - 1)
 
 
-    names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_rmse"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+    ls <- list(clust.mse = clust.mse,
+               clust.RMSE,
+               # clust.r2 = clust.r2,
+               # clust.adj.r2 = clust.adj.r2, 
+               clust.S.hat = length(clust.S.hat),
+               clust.TPR = clust.TPR, 
+               clust.FPR = clust.FPR, 
+               clust.correct_sparsity = clust.correct_sparsity,
+               clust.correct_zeros_main_effects, 
+               clust.correct_zeros_interaction_effects,
+               clust.incorrect_zeros_main_effects, 
+               clust.incorrect_zeros_interaction_effects,
+               n.clusters)
+
+
+    names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                   # paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
+                   # paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
                    paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
                    paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
                    paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
                    paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity")
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"),
+                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_nclusters")
                    )
     return(ls)
 
@@ -1553,22 +1575,32 @@ pen_fun <- function(x_train,
                     p = 1000,
                     filter_var = F){
 
-  #   stability = F; x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
-  #   y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  #   filter = F; filter_var = F; include_E = F; include_interaction = F;
-  #   s0 = result[["S0"]]; p = 1000 ;
-  #   model = "scad"; topgenes = NULL; true_beta = result[["beta_truth"]]
+    # stability = F; x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
+    # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+    # filter = F; filter_var = F; include_E = T; include_interaction = T;
+    # s0 = result[["S0"]]; p = p ;
+    # model = "lasso"; topgenes = NULL; true_beta = result[["beta_truth"]]
 
-  #     stability = F; x_train = result_interaction[["X_train"]] ; x_test = result_interaction[["X_test"]] ;
-  #     y_train = result_interaction[["Y_train"]] ; y_test = result_interaction[["Y_test"]];
-  #     filter = F; filter_var = F; include_E = T; include_interaction = T;
-  #     s0 = result_interaction[["S0"]]; p = 1000 ;
-  #     model = "scad"; topgenes = NULL; true_beta = result_interaction[["beta_truth"]]
+      # stability = F; x_train = result_interaction[["X_train"]] ; x_test = result_interaction[["X_test"]] ;
+      # y_train = result_interaction[["Y_train"]] ; y_test = result_interaction[["Y_test"]];
+      # filter = F; filter_var = F; include_E = T; include_interaction = T;
+      # s0 = result_interaction[["S0"]]; p = 1000 ;
+      # model = "scad"; topgenes = NULL; true_beta = result_interaction[["beta_truth"]]
+  
+  # result[["clustersAddon"]] %>% print(nrows=Inf)
+  # result[["clustersAddon"]][, table(cluster, module)]
+  # result %>% names
+  # stability = F; gene_groups = result[["clustersAll"]];
+  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+  # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+  # filter = F; filter_var = F; include_E = T; include_interaction = T;
+  # s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
+  # model = "lasso"; summary = "pc"; topgenes = NULL; clust_type="clust"; nPC = 1
 
   # model: "scad", "mcp", "lasso", "elasticnet", "ridge"
   # filter: T or F based on univariate filter
 
-  print(paste(model,"filter = ", filter, "filter_var = ",filter_var, "include_E = ", include_E, "include_interaction = ", include_interaction, sep = ","))
+  print(paste(model,"filter = ", filter, "filter_var = ",filter_var, "include_E = ", include_E, "include_interaction = ", include_interaction, sep = " "))
 
   if (include_E == F & include_interaction == T) stop("include_E needs to be
                                                       TRUE if you want to include
@@ -1601,18 +1633,18 @@ pen_fun <- function(x_train,
   )
 
   # oracle penalization model
-  pen_model_oracle <- switch(model,
-                             lasso = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 1),
-                             elasticnet = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 0.5),
-                             ridge = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 0),
-                             scad = ncvreg::cv.ncvreg(X = x_train[,s0], y = y_train,
-                                                      family = "gaussian", penalty = "SCAD"),
-                             mcp = ncvreg::cv.ncvreg(X = x_train[,s0], y = y_train,
-                                                     family = "gaussian", penalty = "MCP")
-  )
+  # pen_model_oracle <- switch(model,
+  #                            lasso = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 1),
+  #                            elasticnet = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 0.5),
+  #                            ridge = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 0),
+  #                            scad = ncvreg::cv.ncvreg(X = x_train[,s0], y = y_train,
+  #                                                     family = "gaussian", penalty = "SCAD"),
+  #                            mcp = ncvreg::cv.ncvreg(X = x_train[,s0], y = y_train,
+  #                                                    family = "gaussian", penalty = "MCP")
+  # )
 
   # here we give the coefficient stability on the individual genes
-  coefs <- coef(pen_model, s = "lambda.1se") %>%
+  coefs <- coef(pen_model, s = "lambda.min") %>%
     as.matrix %>%
     as.data.table(keep.rownames = TRUE) %>%
     magrittr::set_colnames(c("Gene","coef.est")) %>%
@@ -1625,20 +1657,22 @@ pen_fun <- function(x_train,
   } else {
 
     pen.S.hat <- coefs[coef.est != 0] %>% magrittr::use_series("Gene")
+    pen.S.hat.interaction <- grep(":", pen.S.hat, value = T)
+    pen.S.hat.main <- setdiff(pen.S.hat, pen.S.hat.interaction)
 
     pen.pred <- if (model %in% c("lasso","elasticnet","ridge")) {
       predict(pen_model, newx =  if (!include_E) as.matrix(x_test[,-grep("E", colnames(x_test))]) else
-        as.matrix(x_test), s = "lambda.1se") } else if (model %in% c("scad","mcp")) {
+        as.matrix(x_test), s = "lambda.min") } else if (model %in% c("scad","mcp")) {
           predict(pen_model, X =  if (!include_E) as.matrix(x_test[,-grep("E", colnames(x_test))]) else
             as.matrix(x_test),
             lambda = pen_model$lambda.min)
         }
 
-    pen.pred.oracle <- if (model %in% c("lasso","elasticnet","ridge")) {
-      predict(pen_model_oracle, newx = x_test[,s0], s = "lambda.1se") } else if (model %in% c("scad","mcp")) {
-        predict(pen_model_oracle, X = x_test[,s0],
-                lambda = pen_model_oracle$lambda.min)
-      }
+    # pen.pred.oracle <- if (model %in% c("lasso","elasticnet","ridge")) {
+    #   predict(pen_model_oracle, newx = x_test[,s0], s = "lambda.min") } else if (model %in% c("scad","mcp")) {
+    #     predict(pen_model_oracle, X = x_test[,s0],
+    #             lambda = pen_model_oracle$lambda.min)
+    #   }
 
     # True Positive Rate
     pen.TPR <- length(intersect(pen.S.hat, s0))/length(s0)
@@ -1656,6 +1690,22 @@ pen_fun <- function(x_train,
     C2 <- length(intersect(pen.S.hat, s0))
     correct_sparsity <- (C1 + C2)/(ncol(x_train))
     
+    # this is from Interaction Screening for Ultrahigh Dimensional Data by ning hao and hao helen zhang
+    true.interaction_names <- grep(":", s0, value = T)
+    true.main_effect_names <- setdiff(s0, true.interaction_names)
+    
+    all.interaction_names <- grep(":", colnames(x_train), value = T)
+    all.main_effect_names <- setdiff(colnames(x_train), all.interaction_names)
+    
+    true.negative_main_effects <- setdiff(all.main_effect_names, true.main_effect_names)
+    true.negative_interaction_effects <- setdiff(all.interaction_names, true.interaction_names)
+    
+    (pen.correct_zeros_main_effects <- sum(setdiff(all.main_effect_names, pen.S.hat.main) %in% true.negative_main_effects)/ length(true.negative_main_effects))
+    (pen.correct_zeros_interaction_effects <- sum(setdiff(all.interaction_names, pen.S.hat.interaction) %in% true.negative_interaction_effects)/ length(true.negative_interaction_effects))
+    
+    (pen.incorrect_zeros_main_effects <- sum(setdiff(all.main_effect_names, pen.S.hat) %in% true.main_effect_names)/ length(true.main_effect_names))
+    (pen.incorrect_zeros_interaction_effects <- sum(setdiff(all.interaction_names, pen.S.hat.interaction) %in% true.interaction_names)/ length(true.interaction_names))    
+    
     # False Positive Rate = FP/(FP + TN) = FP / True number of 0 coefficients
     (pen.FPR <- sum(pen.S.hat %ni% s0)/(sum(pen.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs)))
     
@@ -1663,34 +1713,55 @@ pen_fun <- function(x_train,
     # pen.FPR <- sum(pen.S.hat %ni% s0)/(p - length(s0))    
     
     # Mean Squared Error
-    pen.mse <- sqrt(crossprod(pen.pred - y_test)/length(y_test))
+    (pen.mse <- crossprod(pen.pred - y_test)/length(y_test))
+    
+    # Root Mean Squared Error
+    (pen.RMSE <- sqrt(crossprod(pen.pred - y_test)/length(y_test)))
 
     # Mean Squared Error Oracle
-    pen.mse.oracle <- crossprod(pen.pred.oracle - y_test)/length(y_test)
+    # pen.mse.oracle <- crossprod(pen.pred.oracle - y_test)/length(y_test)
     
     # mse.null
     mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
 
+    # sqrt(mse_null)
+    
     # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
-    pen.r2 <- (mse_null - pen.mse)/mse_null
+    # pen.r2 <- (mse_null - pen.mse)/mse_null
 
-    pen.adj.r2 <- 1 - (1 - pen.r2)*(length(y_test) - 1)/(length(y_test) - length(pen.S.hat) - 1)
+    # pen.adj.r2 <- 1 - (1 - pen.r2)*(length(y_test) - 1)/(length(y_test) - length(pen.S.hat) - 1)
 
     # model error
-    identical(true_beta %>% rownames(),coefs[["Gene"]])
-    pen.model.error <- {(true_beta - coefs[["coef.est"]]) %>% t} %*% WGCNA::cor(x_test[,coefs[["Gene"]]]) %*% (true_beta - coefs[["coef.est"]])
+    # identical(true_beta %>% rownames(),coefs[["Gene"]])
+    # pen.model.error <- {(true_beta - coefs[["coef.est"]]) %>% t} %*% WGCNA::cor(x_test[,coefs[["Gene"]]]) %*% (true_beta - coefs[["coef.est"]])
 
-    ls <- list(pen.mse = as.numeric(pen.mse), pen.r2 = as.numeric(pen.r2),
-               pen.adj.r2 = as.numeric(pen.adj.r2), pen.S.hat = length(pen.S.hat),
-               pen.TPR = pen.TPR, pen.FPR = pen.FPR, pen.relative.mse = pen.mse/pen.mse.oracle, pen.model.error = pen.model.error)
+    ls <- list(pen.mse = as.numeric(pen.mse),
+               pen.RMSE = as.numeric(pen.RMSE),
+               # pen.r2 = as.numeric(pen.r2),
+               # pen.adj.r2 = as.numeric(pen.adj.r2), 
+               pen.S.hat = length(pen.S.hat),
+               pen.TPR = pen.TPR, 
+               pen.FPR = pen.FPR, 
+               # pen.relative.mse = pen.mse/pen.mse.oracle, 
+               # pen.model.error = pen.model.error,
+               correct_sparsity,
+               pen.correct_zeros_main_effects,
+               pen.correct_zeros_interaction_effects,
+               pen.incorrect_zeros_main_effects,
+               pen.incorrect_zeros_interaction_effects
+               )
     names(ls) <- c(paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                   # paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
+                   # paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
                    paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
                    paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
                    paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_relmse"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_modelerror"))
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
     return(ls)
   }
 
@@ -1712,12 +1783,12 @@ group_pen_fun <- function(x_train,
                           p = 1000,
                           filter_var = F){
 
-  #   stability = F; x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
-  #   y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  #   filter = F; filter_var = F; include_E = F; include_interaction = F;
-  #   s0 = result[["S0"]]; p = 1000 ;
-  #   model = "gglasso"; topgenes = NULL; true_beta = result[["beta_truth"]]
-  #   gene_groups = result[["clusters"]]
+    # stability = F; x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
+    # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+    # filter = F; filter_var = F; include_E = T; include_interaction = T;
+    # s0 = result[["S0"]]; p = p ;
+    # model = "gglasso"; topgenes = NULL; true_beta = result[["beta_truth"]]
+    # gene_groups = result[["gene_groups_inter"]]
   #
   #   # interaction
   #   stability = F; x_train = result_interaction[["X_train"]] ; x_test = result_interaction[["X_test"]] ;
@@ -1749,9 +1820,9 @@ group_pen_fun <- function(x_train,
   #   cv.glasso <- gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]), y_train, group = gene_groups[cluster != 0]$cluster,
   #                           loss = "ls")
   #
-  #   coef.glasso <- coef(cv.glasso, s = "lambda.1se") %>% as.data.table(keep.rownames = T)
+  #   coef.glasso <- coef(cv.glasso, s = "lambda.min") %>% as.data.table(keep.rownames = T)
   #   setnames(coef.glasso, c("gene","coef"))
-  #   fit.glasso <- predict(cv.glasso, newx = as.matrix(DT.test[,clusters[cluster!=0]$gene]), s = "lambda.1se")
+  #   fit.glasso <- predict(cv.glasso, newx = as.matrix(DT.test[,clusters[cluster!=0]$gene]), s = "lambda.min")
   #
   #   # Mean Squared Error
   #   gglasso.mse <- crossprod(fit.glasso - DT.test[,"V1"])/nrow(DT.test)
@@ -1762,16 +1833,31 @@ group_pen_fun <- function(x_train,
 
 
   # penalization model
+  # grp_pen_model <- switch(model,
+  #                         gglasso =   if (include_interaction) {
+  #                           gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]),
+  #                                               y_train,
+  #                                               pf = gene_groups %>% distinct(cluster) %>% magrittr::use_series("pf"),
+  #                                               group = gene_groups[cluster != 0]$cluster,
+  #                                               loss = "ls")} else {
+  #                                                 gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]),
+  #                                                                     y_train,
+  #                                                                     group = gene_groups[cluster != 0]$cluster,
+  #                                                                     loss = "ls")
+  #                                               }
+  # )
+  
+  # penalization model
   grp_pen_model <- switch(model,
                           gglasso =   if (include_interaction) {
-                            gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]),
+                            gglasso::cv.gglasso(x_train,
                                                 y_train,
-                                                pf = gene_groups %>% distinct(cluster) %>% magrittr::use_series("pf"),
-                                                group = gene_groups[cluster != 0]$cluster,
+                                                pf = unique(gene_groups) %>% magrittr::use_series("pf"),
+                                                group = gene_groups$cluster,
                                                 loss = "ls")} else {
-                                                  gglasso::cv.gglasso(as.matrix(x_train[,gene_groups[cluster != 0]$gene]),
+                                                  gglasso::cv.gglasso(x_train,
                                                                       y_train,
-                                                                      group = gene_groups[cluster != 0]$cluster,
+                                                                      group = gene_groups$cluster,
                                                                       loss = "ls")
                                                 }
   )
@@ -1784,7 +1870,7 @@ group_pen_fun <- function(x_train,
   #                                                               loss = "ls"))
 
   # here we give the coefficient stability on the individual genes
-  coefs <- coef(grp_pen_model, s = "lambda.1se") %>%
+  coefs <- coef(grp_pen_model, s = "lambda.min") %>%
     as.matrix %>%
     as.data.table(keep.rownames = TRUE) %>%
     magrittr::set_colnames(c("Gene","coef.est")) %>%
@@ -1794,63 +1880,100 @@ group_pen_fun <- function(x_train,
     return(coefs)
   } else {
 
-    grp.pen.S.hat <- coefs[Gene != "E"][coef.est != 0] %>% magrittr::use_series("Gene") %>%
-      gsub(":E","",.) %>% unique
+    grp.pen.S.hat <- coefs[coef.est != 0] %>% magrittr::use_series("Gene") 
+    grp.pen.S.hat.interaction <- grep(":", grp.pen.S.hat, value = T)
+    grp.pen.S.hat.main <- setdiff(grp.pen.S.hat, grp.pen.S.hat.interaction)
 
-    grp.pen.pred <- predict(grp_pen_model, newx = as.matrix(x_test[,gene_groups[cluster !=0 ]$gene]), s = "lambda.1se")
-    # grp.pen.pred.oracle <- predict(grp_pen_model_oracle, newx = as.matrix(x_test[,s0]), s = "lambda.1se")
+    grp.pen.pred <- predict(grp_pen_model, newx = x_test, s = "lambda.min")
+    # grp.pen.pred.oracle <- predict(grp_pen_model_oracle, newx = as.matrix(x_test[,s0]), s = "lambda.min")
     # this is to make sure that the order of coefficients corresponds to that of the test data:
     # identical(coef(grp_pen_model)[-1,,drop=F] %>% rownames(),gene_groups[cluster !=0 ]$gene )
 
+    # True Positive Rate
+    grp.pen.TPR <- length(intersect(grp.pen.S.hat, s0))/length(s0)
+    
+    # True negatives
+    trueNegs <- setdiff(colnames(x_train), s0)
+    
+    # these are the terms which the model identified as zero
+    modelIdentifyZero <- setdiff(colnames(x_train),grp.pen.S.hat)
+    
+    # how many of the terms identified by the model as zero, were actually zero
+    # use to calculate correct sparsity as defined by Witten et al in the 
+    # Cluster Elastic Net paper Technometrics 2013
+    C1 <- sum(modelIdentifyZero %in% trueNegs)
+    C2 <- length(intersect(grp.pen.S.hat, s0))
+    correct_sparsity <- (C1 + C2)/(ncol(x_train))
+    
+    # this is from Interaction Screening for Ultrahigh Dimensional Data by ning hao and hao helen zhang
+    true.interaction_names <- grep(":", s0, value = T)
+    true.main_effect_names <- setdiff(s0, true.interaction_names)
+    
+    all.interaction_names <- grep(":", colnames(x_train), value = T)
+    all.main_effect_names <- setdiff(colnames(x_train), all.interaction_names)
+    
+    true.negative_main_effects <- setdiff(all.main_effect_names, true.main_effect_names)
+    true.negative_interaction_effects <- setdiff(all.interaction_names, true.interaction_names)
+    
+    (grp.pen.correct_zeros_main_effects <- sum(setdiff(all.main_effect_names, grp.pen.S.hat.main) %in% true.negative_main_effects)/ length(true.negative_main_effects))
+    (grp.pen.correct_zeros_interaction_effects <- sum(setdiff(all.interaction_names, grp.pen.S.hat.interaction) %in% true.negative_interaction_effects)/ length(true.negative_interaction_effects))
+    
+    (grp.pen.incorrect_zeros_main_effects <- sum(setdiff(all.main_effect_names, grp.pen.S.hat) %in% true.main_effect_names)/ length(true.main_effect_names))
+    (grp.pen.incorrect_zeros_interaction_effects <- sum(setdiff(all.interaction_names, grp.pen.S.hat.interaction) %in% true.interaction_names)/ length(true.interaction_names))    
+    
+    # False Positive Rate = FP/(FP + TN) = FP / True number of 0 coefficients
+    (grp.pen.FPR <- sum(grp.pen.S.hat %ni% s0)/(sum(grp.pen.S.hat %ni% s0) + sum(modelIdentifyZero %in% trueNegs)))
+    
     # Mean Squared Error
     grp.pen.mse <- crossprod(grp.pen.pred - y_test)/length(y_test)
 
-    # Mean Squared Error Oracle
-    # grp.pen.mse.oracle <- crossprod(grp.pen.pred.oracle - y_test)/length(y_test)
-
+    # Root Mean Squared Error
+    (grp.pen.RMSE <- sqrt(crossprod(grp.pen.pred - y_test)/length(y_test)))
+    
     # mse.null
     mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
 
     # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
-    grp.pen.r2 <- (mse_null - grp.pen.mse)/mse_null
+    # grp.pen.r2 <- (mse_null - grp.pen.mse)/mse_null
 
-    grp.pen.adj.r2 <- 1 - (1 - grp.pen.r2)*(length(y_test) - 1)/(length(y_test) - length(grp.pen.S.hat) - 1)
-
-    # True Positive Rate
-    grp.pen.TPR <- length(intersect(grp.pen.S.hat, s0))/length(s0)
-
-    # False Positive Rate
-    grp.pen.FPR <- sum(grp.pen.S.hat %ni% s0)/(p - length(s0))
-
-    # model error
-    identical(true_beta %>% rownames(),coefs[["Gene"]])
+    # grp.pen.adj.r2 <- 1 - (1 - grp.pen.r2)*(length(y_test) - 1)/(length(y_test) - length(grp.pen.S.hat) - 1)
 
     # this is required to be able to take proper differences between vectors, so we join them first
-    truth <- true_beta %>% as.data.table(keep.rownames = T) %>% magrittr::set_colnames(c("Gene","true_beta")) %>% setkey(Gene)
-    setkey(coefs,Gene)
-
-    tmp <- truth[coefs]
-    tmp[,diff:=true_beta-coef.est]
-
-    grp.pen.model.error <- {(tmp$diff) %>% t} %*% WGCNA::cor(x_test[,tmp[["Gene"]]]) %*% (tmp$diff)
+    # truth <- true_beta %>% as.data.table(keep.rownames = T) %>% magrittr::set_colnames(c("Gene","true_beta")) %>% setkey(Gene)
+    # setkey(coefs,Gene)
+    # 
+    # tmp <- truth[coefs]
+    # tmp[,diff:=true_beta-coef.est]
+    # 
+    # grp.pen.model.error <- {(tmp$diff) %>% t} %*% WGCNA::cor(x_test[,tmp[["Gene"]]]) %*% (tmp$diff)
 
     ls <- list(grp.pen.mse = as.numeric(grp.pen.mse), 
-               grp.pen.r2 = as.numeric(grp.pen.r2),
-               grp.pen.adj.r2 = as.numeric(grp.pen.adj.r2), 
+               grp.pen.RMSE = as.numeric(grp.pen.RMSE),
+               # grp.pen.r2 = as.numeric(grp.pen.r2),
+               # grp.pen.adj.r2 = as.numeric(grp.pen.adj.r2), 
                grp.pen.S.hat = length(grp.pen.S.hat),
                grp.pen.TPR = grp.pen.TPR,
                grp.pen.FPR = grp.pen.FPR,
                # grp.pen.relative.mse = grp.pen.mse/grp.pen.mse.oracle,
                #grp.pen.relative.mse = NA,
-               grp.pen.model.error = grp.pen.model.error)
-    names(ls) <- c(paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_mse"),
-                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_r2"),
-                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_adjr2"),
-                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_Shat"),
-                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                   # paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_relmse"),
-                   paste0("group_na","_",model,ifelse(filter_var,"",""),ifelse(include_E,"",""),ifelse(include_interaction,"_yes","_no"),"_modelerror"))
+               correct_sparsity,
+               grp.pen.correct_zeros_main_effects,
+               grp.pen.correct_zeros_interaction_effects,
+               grp.pen.incorrect_zeros_main_effects,
+               grp.pen.incorrect_zeros_interaction_effects)
+    
+    names(ls) <- c(paste0("group_na","_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                   paste0("group_na","_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                   # paste0("group_na","_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
+                   # paste0("group_na","_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+                   paste0("group_na","_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                   paste0("group_na","_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                   paste0("group_na","_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                   paste0("group_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                   paste0("group_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                   paste0("group_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                   paste0("group_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                   paste0("group_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
     return(ls)
   }
 

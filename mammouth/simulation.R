@@ -28,7 +28,7 @@ source("/home/bhatnaga/coexpression/august2016simulation/linear/packages.R")
 source("/home/bhatnaga/coexpression/august2016simulation/linear/functions.R")
 
 parametersDf <- expand.grid(rho = c(0.2,0.90),
-                            p = c(500,3000,5000),
+                            p = c(5000),
                             SNR = c(0.2,1,2),
                             n = c(400), # this is the total train + test sample size
                             # nActive = c(300), # must be even because its being split among two modules
@@ -48,7 +48,10 @@ parametersDf <- expand.grid(rho = c(0.2,0.90),
                             agglomerationMethod = "average",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
-parametersDf <- transform(parametersDf, n0 = n/2, nActive = p*0.10)
+parametersDf <- transform(parametersDf, n0 = n/2, nActive = p*0.05)
+parametersDf <- parametersDf[which(parametersDf$cluster_distance=="tom" & parametersDf$Ecluster_distance=="difftom" | 
+                     parametersDf$cluster_distance=="corr" & parametersDf$Ecluster_distance=="diffcorr"),]
+
 nSimScenarios <- nrow(parametersDf)
 
 # 23 cores per node are reserved on mammouth
@@ -59,12 +62,13 @@ SPLIT <- split(1:nSimScenarios, ceiling(seq_along(1:nSimScenarios)/24))
 
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
-parameterIndex = 3
+# parameterIndex = 1
 
 simScenarioIndices <- SPLIT[[parameterIndex]]
 
 FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
-  INDEX=63
+  
+  # INDEX=1
   simulationParameters <- parametersDf[INDEX,, drop = F]
   
   print(simulationParameters)
@@ -313,7 +317,9 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                                                                 include_interaction = includeInteraction,
                                                                 gene_groups = result[["clustersAll"]],
                                                                 p = p,
-                                                                clust_type = "clust"),
+                                                                true_beta = result[["beta_truth"]],
+                                                                clust_type = "clust",
+                                                                nPC = 1),
                                                 SIMPLIFY = F),
                          #summary = rep(c("pc","spc","avg"), each = 3),
                          #model = rep(c("lm", "lasso","elasticnet"), 3),
@@ -398,6 +404,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                                        include_interaction = includeInteraction,
                                        s0 = result[["S0"]],
                                        p = p,
+                                       true_beta = result[["beta_truth"]],
                                        gene_groups = result[["clustersAddon"]],
                                        clust_type = "Eclust",
                                        nPC = 1),
@@ -423,7 +430,9 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
                                                                  include_interaction = includeInteraction,
                                                                  gene_groups = result[["clustersAddon"]],
                                                                  p = p,
-                                                                 clust_type = "Eclust"),
+                                                                 true_beta = result[["beta_truth"]],
+                                                                 clust_type = "Eclust",
+                                                                 nPC = 1),
                                                  SIMPLIFY = F),
                           #summary = rep(c("pc","spc","avg"), each = 3),
                           #model = rep(c("lm", "lasso","elasticnet"), 3),
@@ -478,86 +487,89 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   
   print("done Environment clust and regress with interaction")
   
-  ## ---- group-lasso ----
+  ## ---- group-lasso-clust ----
   
-  group_pen_res <- mapply(group_pen_fun, model = c("gglasso"),
-                          MoreArgs = list(x_train = result[["X_train"]], 
-                                          x_test = result[["X_test"]], 
-                                          y_train = result[["Y_train"]], 
-                                          y_test = result[["Y_test"]], 
-                                          stability = F,
-                                          filter = F,
-                                          filter_var = F,
-                                          include_E = T,
-                                          include_interaction = includeInteraction,
-                                          s0 = result[["S0"]],
-                                          p = p,
-                                          true_beta = result[["beta_truth"]],
-                                          gene_groups = result[["clusters"]]),
-                          SIMPLIFY = F, 
-                          USE.NAMES = F)
-  
-  group_pen_res %>% unlist()
-  if (args[2]=="T") {
-    group_pen_stab <- mapply(function(model) mapply(group_pen_fun, 
-                                                    x_train = result[["X_train_folds"]], 
-                                                    y_train = result[["Y_train_folds"]], 
-                                                    MoreArgs = list(stability = T, 
-                                                                    model = model,
-                                                                    filter = F,
-                                                                    filter_var = F,
-                                                                    include_E = F, 
-                                                                    include_interaction = F,
-                                                                    s0 = result[["S0"]],
-                                                                    true_beta = result[["beta_truth"]],
-                                                                    gene_groups = result[["clusters"]],
-                                                                    p = 1000), 
-                                                    SIMPLIFY = F),
-                             model = c("gglasso"),
-                             SIMPLIFY = F, 
-                             USE.NAMES = F)
-    
-    
-    # Make the combinations of list elements
-    ll <- lapply(seq_along(group_pen_stab), function(i) combn(group_pen_stab[[i]], 2, simplify = F))
-    
-    
-    group_pen_labels <- function(model) {
-      paste0("group_pen",paste0("_",model),"_")
-    }
-    
-    group_pen_labs <- mapply(group_pen_labels, 
-                             model = c("gglasso"),
-                             USE.NAMES = F)
-    
-    
-    # Pairwise correlations of the model coefficients for each of the 10 CV folds 
-    group_pen_mean_stab <- lapply(seq_along(ll), function(j) {
-      lapply(c("pearson","spearman"), function(i) { 
-        res <- sapply(ll[[j]] , function(x) WGCNA::cor(x[[1]]$coef.est, x[[2]]$coef.est, method = i)) %>% mean
-        names(res) <- paste0(group_pen_labs[[j]], i)
-        return(res)
-      }
-      )
-    }
-    )
-    
-    group_pen_mean_stab %>% unlist
-    
-    # Jaccard index
-    group_pen_jacc <- lapply(seq_along(ll), function(j) {
-      res <- sapply(ll[[j]] , function(x) {  
-        A = x[[1]][coef.est != 0]$Gene
-        B = x[[2]][coef.est != 0]$Gene
-        length(intersect(A,B))/length(union(A,B))
-      }) %>% mean
-      names(res) <- paste0(group_pen_labs[[j]],"jacc")
-      return(res)
-    })
-    
-    group_pen_jacc %>% unlist
-  }
-  print("done group penalization no interaction")
+  # currently not being used for simulation 2 because it takes way too long
+  # result[["gene_groups_inter"]] is without using Environment
+  # result[["gene_groups_inter_Addon"]] is with using Environment
+  # group_pen_res <- mapply(group_pen_fun, model = c("gglasso"),
+  #                         MoreArgs = list(x_train = result[["X_train"]], 
+  #                                         x_test = result[["X_test"]], 
+  #                                         y_train = result[["Y_train"]], 
+  #                                         y_test = result[["Y_test"]], 
+  #                                         stability = F,
+  #                                         filter = F,
+  #                                         filter_var = F,
+  #                                         include_E = T,
+  #                                         include_interaction = includeInteraction,
+  #                                         s0 = result[["S0"]],
+  #                                         p = p,
+  #                                         true_beta = result[["beta_truth"]],
+  #                                         gene_groups = result[["gene_groups_inter"]]),
+  #                         SIMPLIFY = F, 
+  #                         USE.NAMES = F)
+  # 
+  # group_pen_res %>% unlist()
+  # if (includeStability) {
+  #   group_pen_stab <- mapply(function(model) mapply(group_pen_fun, 
+  #                                                   x_train = result[["X_train_folds"]], 
+  #                                                   y_train = result[["Y_train_folds"]], 
+  #                                                   MoreArgs = list(stability = T, 
+  #                                                                   model = model,
+  #                                                                   filter = F,
+  #                                                                   filter_var = F,
+  #                                                                   include_E = T, 
+  #                                                                   include_interaction = T,
+  #                                                                   s0 = result[["S0"]],
+  #                                                                   true_beta = result[["beta_truth"]],
+  #                                                                   gene_groups = result[["gene_groups_inter"]],
+  #                                                                   p = 1000), 
+  #                                                   SIMPLIFY = F),
+  #                            model = c("gglasso"),
+  #                            SIMPLIFY = F, 
+  #                            USE.NAMES = F)
+  #   
+  #   
+  #   # Make the combinations of list elements
+  #   ll <- lapply(seq_along(group_pen_stab), function(i) combn(group_pen_stab[[i]], 2, simplify = F))
+  #   
+  #   
+  #   group_pen_labels <- function(model) {
+  #     paste0("group_pen",paste0("_",model),"_")
+  #   }
+  #   
+  #   group_pen_labs <- mapply(group_pen_labels, 
+  #                            model = c("gglasso"),
+  #                            USE.NAMES = F)
+  #   
+  #   
+  #   # Pairwise correlations of the model coefficients for each of the 10 CV folds 
+  #   group_pen_mean_stab <- lapply(seq_along(ll), function(j) {
+  #     lapply(c("pearson","spearman"), function(i) { 
+  #       res <- sapply(ll[[j]] , function(x) WGCNA::cor(x[[1]]$coef.est, x[[2]]$coef.est, method = i)) %>% mean
+  #       names(res) <- paste0(group_pen_labs[[j]], i)
+  #       return(res)
+  #     }
+  #     )
+  #   }
+  #   )
+  #   
+  #   group_pen_mean_stab %>% unlist
+  #   
+  #   # Jaccard index
+  #   group_pen_jacc <- lapply(seq_along(ll), function(j) {
+  #     res <- sapply(ll[[j]] , function(x) {  
+  #       A = x[[1]][coef.est != 0]$Gene
+  #       B = x[[2]][coef.est != 0]$Gene
+  #       length(intersect(A,B))/length(union(A,B))
+  #     }) %>% mean
+  #     names(res) <- paste0(group_pen_labs[[j]],"jacc")
+  #     return(res)
+  #   })
+  #   
+  #   group_pen_jacc %>% unlist
+  # }
+  # print("done group penalization no interaction")
   
   
   
@@ -666,7 +678,7 @@ FINAL_RESULT <- mclapply(simScenarioIndices, function(INDEX) {
   
   final_results %>% t %>% as.data.frame()
   
-  
+
   filename <- tempfile(pattern = paste0(sprintf("rho%.2f_p%1.0f_SNR%.2f_n%1.0f_s0%1.0f_beta%.2f_alpha%.2f",
                                                 rho,p,SNR, n, nActive, betaMean, alphaMean),"_"),
                        #tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"), "simulation1/", sep="/")
