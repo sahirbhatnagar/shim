@@ -3,7 +3,7 @@
 # on hydra cluster
 # Git: this is on the eclust repo, sim2-modules-mammouth branch
 # Created by Sahir,  August 24, 2016
-# Updated:  
+# Updated:  Sept 6, 2016
 # Notes:
 # Simulations being run from /mnt/GREENWOOD_SCRATCH/sahir.bhatnagar/august2016simulation/linear
 # This is the same simulation begin run on mammouth cluster
@@ -13,6 +13,8 @@
 # scp simulation.R sahir.bhatnagar@d1p-hydratm01:/mnt/GREENWOOD_SCRATCH/sahir.bhatnagar/august2016simulation/linear
 # qsub command from /mnt/GREENWOOD_SCRATCH/sahir.bhatnagar/august2016simulation/linear folder:
 # for i in {1..24..1} ; do qsub -v index=$i sim-hydra.sh ; done
+# to submit to a specific node:
+# for i in {19..24..1} ; do qsub -v index=$i sim-hydra.sh -l nodes=d1p-hydraex04.ldi.lan:ppn=1; done
 ##################################
 
 # rm(list=ls())
@@ -27,27 +29,29 @@ source(paste(Sys.getenv("PBS_O_WORKDIR"),"packages.R", sep="/"))
 source(paste(Sys.getenv("PBS_O_WORKDIR"),"functions.R", sep="/"))
 
 parametersDf <- expand.grid(rho = c(0.2,0.90),
-                            p = c(3000),
+                            p = c(5000),
                             SNR = c(0.2,1,2),
                             n = c(400), # this is the total train + test sample size
                             # nActive = c(300), # must be even because its being split among two modules
                             #n0 = 200,
-                            cluster_distance = c("tom"),
-                            Ecluster_distance = c("difftom"),
+                            cluster_distance = c("tom","corr"),
+                            Ecluster_distance = c("difftom", "diffcorr"),
                             rhoOther = 0.6,
                             betaMean = c(1),
                             alphaMean = c(0.5,2),
                             betaE = 2,
                             includeInteraction = TRUE,
-                            includeStability = FALSE,
+                            includeStability = TRUE,
                             distanceMethod = "euclidean",
                             clustMethod = "hclust",
                             #cutMethod = "gap",
                             cutMethod = "dynamic",
-                            method = "average",
+                            agglomerationMethod = "average",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
-parametersDf <- transform(parametersDf, n0 = n/2, nActive = p*0.10)
+parametersDf <- transform(parametersDf, n0 = n/2, nActive = p*0.05)
+parametersDf <- parametersDf[which(parametersDf$cluster_distance=="tom" & parametersDf$Ecluster_distance=="difftom" | 
+                                     parametersDf$cluster_distance=="corr" & parametersDf$Ecluster_distance=="diffcorr"),]
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
 # parameterIndex = 3
@@ -76,10 +80,9 @@ includeStability <- simulationParameters[,"includeStability"]
 distanceMethod <- simulationParameters[,"distanceMethod"]
 clustMethod <- simulationParameters[,"clustMethod"]
 cutMethod <- simulationParameters[,"cutMethod"]
-method <- simulationParameters[,"method"]
+agglomerationMethod <- simulationParameters[,"agglomerationMethod"]
 K.max <- simulationParameters[,"K.max"]
 B <- simulationParameters[,"B"]
-
 
 # in this simulation its blocks 3 and 4 that are important
 # leaveOut:  optional specification of modules that should be left out 
@@ -88,12 +91,12 @@ B <- simulationParameters[,"B"]
 # is present while in others it is absent.
 d0 <- simModule(n = n0, p = p, rho = c(0,0), exposed = FALSE,
                 modProportions = c(0.15,0.15,0.15,0.15,0.15,0.25),
-                minCor = 0.4,
+                minCor = 0.01,
                 maxCor = 1,
-                corPower = 0.3,
-                #propNegativeCor = 0.1,
-                backgroundNoise = 0.2,
-                signed = TRUE,
+                corPower = 1,
+                propNegativeCor = 0.3,
+                backgroundNoise = 0.5,
+                signed = FALSE,
                 leaveOut = 1:4)
 
 d1 <- simModule(n = n1, p = p, rho = c(rho, rho), exposed = TRUE,
@@ -101,9 +104,9 @@ d1 <- simModule(n = n1, p = p, rho = c(rho, rho), exposed = TRUE,
                 minCor = 0.4,
                 maxCor = 1,
                 corPower = 0.3,
-                #propNegativeCor = 0.1,
-                backgroundNoise = 0.2,
-                signed = TRUE)
+                propNegativeCor = 0.3,
+                backgroundNoise = 0.5,
+                signed = FALSE)
 
 # these should be the same. if they arent, its because I removed the red and
 # green modules from the E=0 group
@@ -122,7 +125,13 @@ X <- rbind(d0$datExpr, d1$datExpr) %>%
   magrittr::set_rownames(paste0("Subject",1:n))
 
 dim(X)
-
+# pheatmap(cor(X))
+# pheatmap(cor(d1$datExpr))
+# pheatmap(cor(d0$datExpr))
+# pheatmap(cor(d1$datExpr)-cor(d0$datExpr))
+# pheatmap(WGCNA::TOMsimilarityFromExpr(X))
+# pheatmap(WGCNA::TOMsimilarityFromExpr(d1$datExpr))
+# pheatmap(WGCNA::TOMsimilarityFromExpr(d1$datExpr)-WGCNA::TOMsimilarityFromExpr(d0$datExpr))
 
 # betaMainEffect <- vector("double", length = p)
 # betaMainInteractions <- vector("double", length = p)
@@ -162,16 +171,17 @@ beta <- c(betaMainEffect,
 
 #plot(beta)
 
-result <- generate_data(p = p, n = n, n0 = n0, X = X,
+result <- generate_data(p = p, X = X, 
                         beta = beta, include_interaction = includeInteraction,
                         cluster_distance = cluster_distance,
-                        EclustAddDistance = Ecluster_distance,
+                        n = n, n0 = n0, 
+                        eclust_distance = Ecluster_distance,
                         signal_to_noise_ratio = SNR,
-                        distanceMethod = distanceMethod,
-                        clustMethod = clustMethod,
-                        cutMethod = cutMethod,
-                        method = method,
-                        K.max = K.max, B = B)
+                        distance_method = distanceMethod,
+                        cluster_method = clustMethod,
+                        cut_method = cutMethod,
+                        agglomeration_method = agglomerationMethod,
+                        K.max = K.max, B = B, nPC = 1)
 
 # result$clustersEclust[which(betaMainEffect!=0)][, table(module, cluster)]
 # result$clustersEclust[module=="yellow"]
@@ -242,7 +252,7 @@ result <- generate_data(p = p, n = n, n0 = n0, X = X,
 # 
 # uni_res
 
-## ---- cluster-and-regress----
+## ---- cluster-and-regress ----
 
 # we will treat the clusters as fixed i.e., even if we filter, or
 # do cross validation, the group labels are predetermined by the
@@ -255,8 +265,8 @@ print("starting cluster and regress with interaction")
 clust_res <- mapply(clust_fun,
                     #summary = rep(c("pc","spc","avg"), each = 3),
                     #model = rep(c("lm", "lasso","elasticnet"), 3),
-                    summary = rep(c("avg","pc"), each = 3),
-                    model = rep(c("lasso","elasticnet","shim"), 2),
+                    summary = rep(c("avg","pc"), each = 2),
+                    model = rep(c("lasso","elasticnet"), 2),
                     MoreArgs = list(x_train = result[["X_train"]],
                                     x_test = result[["X_test"]],
                                     y_train = result[["Y_train"]],
@@ -266,10 +276,12 @@ clust_res <- mapply(clust_fun,
                                     filter_var = F,
                                     include_E = T,
                                     include_interaction = includeInteraction,
+                                    true_beta = result[["beta_truth"]],
                                     s0 = result[["S0"]],
                                     p = p,
                                     gene_groups = result[["clustersAll"]],
-                                    clust_type = "clust"),
+                                    clust_type = "clust",
+                                    nPC = 1),
                     SIMPLIFY = F,
                     USE.NAMES = F)
 
@@ -291,12 +303,14 @@ if (includeStability) {
                                                               include_interaction = includeInteraction,
                                                               gene_groups = result[["clustersAll"]],
                                                               p = p,
-                                                              clust_type = "clust"),
+                                                              true_beta = result[["beta_truth"]],
+                                                              clust_type = "clust",
+                                                              nPC = 1),
                                               SIMPLIFY = F),
                        #summary = rep(c("pc","spc","avg"), each = 3),
                        #model = rep(c("lm", "lasso","elasticnet"), 3),
-                       summary = rep(c("avg","pc"), each = 3),
-                       model = rep(c("lasso","elasticnet","shim"), 2),
+                       summary = rep(c("avg","pc"), each = 2),
+                       model = rep(c("lasso","elasticnet"), 2),
                        SIMPLIFY = F,
                        USE.NAMES = F)
   
@@ -312,8 +326,8 @@ if (includeStability) {
   clust_labs <- mapply(clust_labels,
                        #summary = rep(c("pc","spc","avg"), each = 3),
                        #model = rep(c("lm", "lasso","elasticnet"), 3),
-                       summary = rep(c("avg","pc"), each = 3),
-                       model = rep(c("lasso","elasticnet","shim"), 2),
+                       summary = rep(c("avg","pc"), each = 2),
+                       model = rep(c("lasso","elasticnet"), 2),
                        USE.NAMES = F)
   
   
@@ -347,6 +361,7 @@ if (includeStability) {
 
 print("done clust and regress interaction")
 
+
 ## ---- Ecluster-and-regress----
 
 # we will treat the clusters as fixed i.e., even if we filter, or
@@ -362,8 +377,8 @@ message("starting Environment cluster and regress with interaction")
 Eclust_res <- mapply(clust_fun,
                      #summary = rep(c("pc","spc","avg"), each = 3),
                      #model = rep(c("lm", "lasso","elasticnet"), 3),
-                     summary = rep(c("avg","pc"), each = 3),
-                     model = rep(c("lasso","elasticnet","shim"), 2),
+                     summary = rep(c("avg","pc"), each = 2),
+                     model = rep(c("lasso","elasticnet"), 2),
                      MoreArgs = list(x_train = result[["X_train"]],
                                      x_test = result[["X_test"]],
                                      y_train = result[["Y_train"]],
@@ -375,8 +390,10 @@ Eclust_res <- mapply(clust_fun,
                                      include_interaction = includeInteraction,
                                      s0 = result[["S0"]],
                                      p = p,
+                                     true_beta = result[["beta_truth"]],
                                      gene_groups = result[["clustersAddon"]],
-                                     clust_type = "Eclust"),
+                                     clust_type = "Eclust",
+                                     nPC = 1),
                      SIMPLIFY = F,
                      USE.NAMES = F)
 
@@ -399,12 +416,14 @@ if (includeStability) {
                                                                include_interaction = includeInteraction,
                                                                gene_groups = result[["clustersAddon"]],
                                                                p = p,
-                                                               clust_type = "Eclust"),
+                                                               true_beta = result[["beta_truth"]],
+                                                               clust_type = "Eclust",
+                                                               nPC = 1),
                                                SIMPLIFY = F),
                         #summary = rep(c("pc","spc","avg"), each = 3),
                         #model = rep(c("lm", "lasso","elasticnet"), 3),
-                        summary = rep(c("avg","pc"), each = 3),
-                        model = rep(c("lasso","elasticnet","shim"), 2),
+                        summary = rep(c("avg","pc"), each = 2),
+                        model = rep(c("lasso","elasticnet"), 2),
                         SIMPLIFY = F,
                         USE.NAMES = F)
   
@@ -419,8 +438,8 @@ if (includeStability) {
   Eclust_labs <- mapply(Eclust_labels,
                         #summary = rep(c("pc","spc","avg"), each = 3),
                         #model = rep(c("lm", "lasso","elasticnet"), 3),
-                        summary = rep(c("avg","pc"), each = 3),
-                        model = rep(c("lasso","elasticnet","shim"), 2),
+                        summary = rep(c("avg","pc"), each = 2),
+                        model = rep(c("lasso","elasticnet"), 2),
                         USE.NAMES = F)
   
   
@@ -453,6 +472,91 @@ if (includeStability) {
 }
 
 print("done Environment clust and regress with interaction")
+
+## ---- group-lasso-clust ----
+
+# currently not being used for simulation 2 because it takes way too long
+# result[["gene_groups_inter"]] is without using Environment
+# result[["gene_groups_inter_Addon"]] is with using Environment
+# group_pen_res <- mapply(group_pen_fun, model = c("gglasso"),
+#                         MoreArgs = list(x_train = result[["X_train"]], 
+#                                         x_test = result[["X_test"]], 
+#                                         y_train = result[["Y_train"]], 
+#                                         y_test = result[["Y_test"]], 
+#                                         stability = F,
+#                                         filter = F,
+#                                         filter_var = F,
+#                                         include_E = T,
+#                                         include_interaction = includeInteraction,
+#                                         s0 = result[["S0"]],
+#                                         p = p,
+#                                         true_beta = result[["beta_truth"]],
+#                                         gene_groups = result[["gene_groups_inter"]]),
+#                         SIMPLIFY = F, 
+#                         USE.NAMES = F)
+# 
+# group_pen_res %>% unlist()
+# if (includeStability) {
+#   group_pen_stab <- mapply(function(model) mapply(group_pen_fun, 
+#                                                   x_train = result[["X_train_folds"]], 
+#                                                   y_train = result[["Y_train_folds"]], 
+#                                                   MoreArgs = list(stability = T, 
+#                                                                   model = model,
+#                                                                   filter = F,
+#                                                                   filter_var = F,
+#                                                                   include_E = T, 
+#                                                                   include_interaction = T,
+#                                                                   s0 = result[["S0"]],
+#                                                                   true_beta = result[["beta_truth"]],
+#                                                                   gene_groups = result[["gene_groups_inter"]],
+#                                                                   p = 1000), 
+#                                                   SIMPLIFY = F),
+#                            model = c("gglasso"),
+#                            SIMPLIFY = F, 
+#                            USE.NAMES = F)
+#   
+#   
+#   # Make the combinations of list elements
+#   ll <- lapply(seq_along(group_pen_stab), function(i) combn(group_pen_stab[[i]], 2, simplify = F))
+#   
+#   
+#   group_pen_labels <- function(model) {
+#     paste0("group_pen",paste0("_",model),"_")
+#   }
+#   
+#   group_pen_labs <- mapply(group_pen_labels, 
+#                            model = c("gglasso"),
+#                            USE.NAMES = F)
+#   
+#   
+#   # Pairwise correlations of the model coefficients for each of the 10 CV folds 
+#   group_pen_mean_stab <- lapply(seq_along(ll), function(j) {
+#     lapply(c("pearson","spearman"), function(i) { 
+#       res <- sapply(ll[[j]] , function(x) WGCNA::cor(x[[1]]$coef.est, x[[2]]$coef.est, method = i)) %>% mean
+#       names(res) <- paste0(group_pen_labs[[j]], i)
+#       return(res)
+#     }
+#     )
+#   }
+#   )
+#   
+#   group_pen_mean_stab %>% unlist
+#   
+#   # Jaccard index
+#   group_pen_jacc <- lapply(seq_along(ll), function(j) {
+#     res <- sapply(ll[[j]] , function(x) {  
+#       A = x[[1]][coef.est != 0]$Gene
+#       B = x[[2]][coef.est != 0]$Gene
+#       length(intersect(A,B))/length(union(A,B))
+#     }) %>% mean
+#     names(res) <- paste0(group_pen_labs[[j]],"jacc")
+#     return(res)
+#   })
+#   
+#   group_pen_jacc %>% unlist
+# }
+# print("done group penalization no interaction")
+
 
 
 ## ---- penalization ----
@@ -561,8 +665,8 @@ final_results <- if (includeStability) {
 final_results %>% t %>% as.data.frame()
 
 
-filename <- tempfile(pattern = paste0(sprintf("rho%.2f_p%1.0f_SNR%.2f_n%1.0f_s0%1.0f_beta%.2f_alpha%.2f",
-                                              rho,p,SNR, n, nActive, betaMean, alphaMean),"_"),
+filename <- tempfile(pattern = paste0(sprintf("%s_%s_rho%.2f_p%1.0f_SNR%.2f_n%1.0f_s0%1.0f_beta%.2f_alpha%.2f",
+                                              cluster_distance,Ecluster_distance,rho,p,SNR, n, nActive, betaMean, alphaMean),"_"),
                      tmpdir = paste(Sys.getenv("PBS_O_WORKDIR"),"results", sep="/"))
 #tmpdir = "/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/results/")
 write.table(final_results %>% t %>% as.data.frame(),
@@ -571,12 +675,12 @@ write.table(final_results %>% t %>% as.data.frame(),
             row.names = F,
             col.names = F)
 
-# write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
-#             file = "~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_nostab_nouni",
-#             # file  = filename,
-#             quote = F,
-#             row.names = F, col.names = F)
-# 
+write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
+            file = paste(Sys.getenv("PBS_O_WORKDIR"),"colnames_stab_hydra.txt",sep="/"),
+            # file  = filename,
+            quote = F,
+            row.names = F, col.names = F)
+
 # final_results %>% t %>% as.data.frame() %>% colnames()
 
 

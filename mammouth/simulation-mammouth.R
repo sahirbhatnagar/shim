@@ -3,7 +3,7 @@
 # on Mamouth cluster
 # Git: this is on the eclust repo, sim2-modules-mammouth branch
 # Created by Sahir,  April 2, 2016
-# Updated: Sept 1, 2016
+# Updated: Sept 6, 2016
 # Notes:
 # This is a modified simulation and different from simulation1
 # Its based on code from Network analysis book by Horvath
