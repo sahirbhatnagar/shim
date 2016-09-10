@@ -17,9 +17,9 @@
 # for i in {19..24..1} ; do qsub -v index=$i sim-hydra.sh -l nodes=d1p-hydraex04.ldi.lan:ppn=1; done
 ##################################
 
-# rm(list=ls())
-# source("packages.R")
-# source("functions.R")
+rm(list=ls())
+source("packages.R")
+source("functions.R")
 options(digits = 4, scipen=999)
 
 # source("/home/bhatnaga/coexpression/may2016simulation/sim2-modules-mammouth/packages.R")

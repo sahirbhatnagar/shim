@@ -226,3 +226,10 @@ if(!pckg) {
   require(caret)
 }
 
+pckg = try(require(earth))
+if(!pckg) {
+  cat("Installing 'earth' from CRAN\n")
+  getPckg("earth")
+  require(earth)
+}
+
