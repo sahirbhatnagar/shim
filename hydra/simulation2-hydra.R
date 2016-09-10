@@ -165,6 +165,8 @@ betaMainEffect[which(truemodule1 %in% 4)[1:(nActive/2)]] <- runif(
 
 betaMainInteractions[which(betaMainEffect!=0)] <- runif(nActive, alphaMean - 0.1, alphaMean + 0.1)
 
+# must be in this order!!!! main effects, E, and then interactions... this order is being used
+# by the generate_data function
 beta <- c(betaMainEffect,
           betaE,
           betaMainInteractions)

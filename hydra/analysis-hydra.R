@@ -108,17 +108,7 @@ DT.long2[, table(betaMean)]
 DT.long2[, table(alphaMean)]
 DT.long2[, table(measure)]
 DT.long2[measure=="RMSE"][,boxplot(value)]
-DT.long2[measure=="modelerror"][,boxplot(value)]
 
-
-
-
-
-
-
-
-
-# TPR vs Shat group size vs rho -------------------------------------------------------------
 
 ## ---- tpr-vs-shat ----
 p <- DT.long[measure %in% c("TPR","Shat")] %>%
@@ -145,8 +135,6 @@ p %>%
   theme(legend.key.width=unit(1, "inches"))+
   theme(legend.position = "top")
 #ggsave(paste(Sys.getenv("HOME"),"eclust/simulation/simulation1/plots/TPR_vs_Shat.png", sep = "/"))
-
-# TPR vs FPR group size vs rho  -------------------------------------------------------------
 
 ## ---- tpr-vs-fpr ----
 #SNR=0.2
@@ -234,9 +222,6 @@ ggsave("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/tpr_f
        width = 11, height = 8)
 
 
-# MSE ---------------------------------------------------------------------
-# pdf("protocol_simulation/plots/mse.pdf",width = 11, height = 8.5 )
-
 ## ---- mse ----
 pd <- position_dodge(width = 0.7) # move them .05 to the left and right
 
@@ -262,6 +247,28 @@ ggplot(DT.summary[measure=="mse"][SNR==0.2],
 ggsave("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/mse_snr02.png",
        width = 11, height = 8)
 
+
+pd <- position_dodge(width = 1) # move them .05 to the left and right
+ggplot(DT.long2[measure=="CorrectSparsity"][SNR==1][alphaMean==2], 
+       aes(x = name, y = sqrt(value), fill = method)) + 
+  geom_boxplot(position=pd) +
+  guides(color=guide_legend(title="method"))+
+  xlab("model")+
+  ylab("test set mean squared error")+
+  #ylab(TeX("average MSE (1000 simulations)"))+
+  facet_grid(rho~cluster_distance, scales="fixed")+
+  theme_bw()+
+  theme(legend.position = "top")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.7, size=15),
+        axis.text.y  = element_text(size=15),
+        axis.title.x = element_text(face="bold", colour="#990000", size=15),
+        axis.title.y = element_text(face="bold", colour="#990000", size=20),
+        title = element_text(size=16),legend.text = element_text(colour="blue", size = 16),
+        strip.text = element_text(size=20))+
+  theme(legend.key.width=unit(1, "inches"))
+
+
+DT.long2[, table(measure)]
 
 
 ggplot(DT.summary[measure=="mse"][SNR==1],

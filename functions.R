@@ -637,7 +637,7 @@ sim_data <- function(n , n0 , p , genes,
       set(DT, i = NULL, j = paste0("Gene",j,":E"), value = DT[[j]]*DT[['E']])
     }
   } else {
-    DT <- genes
+    DT <- cbind(genes,E) %>% as.data.table()
   }
 
   y.star <- {DT %>% as.matrix()} %*% beta
@@ -646,7 +646,7 @@ sim_data <- function(n , n0 , p , genes,
 
   y <- y.star + k*error
 
-  result <- if (include_interaction) as.matrix(cbind(y,DT)) else as.matrix(cbind(y,DT,E))
+  result <- if (include_interaction) as.matrix(cbind(y,DT)) else as.matrix(cbind(y,DT))
   colnames(result)[1] <- "Y"
   class(result) <- append(class(result), "expression")
 
@@ -745,11 +745,11 @@ generate_data <- function(p, X, beta,
   # p = p; X = X ; beta = beta
   # n = n; n0 = n0
   # cluster_distance = "corr"
-  # include_interaction = T
+  # include_interaction = F
   # signal_to_noise_ratio = 0.5
   # cluster_method = "hclust" ; cut_method = "dynamic";agglomeration_method="complete";
   # distance_method = "euclidean"
-  # EclustAdd = TRUE ; eclust_distance = "fisherScore"
+  # eclust_distance = "diffcorr"; nPC = 1
   
   
   agglomeration_method <- match.arg(agglomeration_method)
@@ -762,7 +762,7 @@ generate_data <- function(p, X, beta,
   
   names(beta) <- if (include_interaction) {
     c(paste0("Gene",1:p),"E", paste0("Gene",1:p,":E"))
-  } else paste0("Gene",1:p)
+  } else c(paste0("Gene",1:p),"E")
   
   # total true beta vector: this includes all the betas for the genes, then the
   # environment beta, then their interactions if interaction is true.
@@ -782,13 +782,14 @@ generate_data <- function(p, X, beta,
                                E = c(rep(0,n0), rep(1, n1)),
                                beta = beta,
                                signal_to_noise_ratio = signal_to_noise_ratio))
+  dim(DT)
   
   Y <- as.matrix(DT[,"Y"])
   
   #remove response from X0 and X1
   X0 <- as.matrix(DT[which(DT$E == 0),-1])
   X1 <- as.matrix(DT[which(DT$E == 1),-1])
-  
+
   # partition-data
   trainIndex <- caret::createDataPartition(DT$E, p = .5, list = FALSE, times = 1)
   DT_train <- DT[trainIndex,]
@@ -1209,7 +1210,8 @@ clust_fun <- function(x_train,
   # stability = F; gene_groups = result[["clustersAddon"]];
   # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
   # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  # filter = F; filter_var = F; include_E = T; include_interaction = T;
+  # dim(x_train)
+  # filter = F; filter_var = F; include_E = T; include_interaction = F;
   # s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
   # model = "lasso"; summary = "pc"; topgenes = NULL; clust_type="clust"; nPC = 1
 
@@ -1577,7 +1579,7 @@ pen_fun <- function(x_train,
 
     # stability = F; x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
     # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-    # filter = F; filter_var = F; include_E = T; include_interaction = T;
+    # filter = F; filter_var = F; include_E = T; include_interaction = F;
     # s0 = result[["S0"]]; p = p ;
     # model = "lasso"; topgenes = NULL; true_beta = result[["beta_truth"]]
 
@@ -1632,6 +1634,7 @@ pen_fun <- function(x_train,
                         family = "gaussian", penalty = "MCP")
   )
 
+  # plot(pen_model)
   # oracle penalization model
   # pen_model_oracle <- switch(model,
   #                            lasso = glmnet::cv.glmnet(x = as.matrix(x_train[,s0]), y = y_train, alpha = 1),
@@ -1785,10 +1788,10 @@ group_pen_fun <- function(x_train,
 
     # stability = F; x_train = result[["X_train"]] ; x_test = result[["X_test"]] ;
     # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-    # filter = F; filter_var = F; include_E = T; include_interaction = T;
+    # filter = F; filter_var = F; include_E = T; include_interaction = F;
     # s0 = result[["S0"]]; p = p ;
     # model = "gglasso"; topgenes = NULL; true_beta = result[["beta_truth"]]
-    # gene_groups = result[["gene_groups_inter"]]
+    # gene_groups = result[["clustersAll"]]
   #
   #   # interaction
   #   stability = F; x_train = result_interaction[["X_train"]] ; x_test = result_interaction[["X_test"]] ;
@@ -1846,6 +1849,20 @@ group_pen_fun <- function(x_train,
   #                                                                     loss = "ls")
   #                                               }
   # )
+  
+  
+    # need to add E if include_E is true but include_interaction is not
+  if (include_E & !include_interaction) {
+  
+    nclusters_gene_group <- unique(gene_groups$cluster)
+    gene_groups <- rbind(gene_groups,
+                             data.table(gene = "E", 
+                                        cluster = max(nclusters_gene_group)+1,
+                                        module = "empty"))
+    gene_groups[, cluster:=cluster+1]
+    gene_groups[, table(cluster)]
+  
+    }
   
   # penalization model
   grp_pen_model <- switch(model,
