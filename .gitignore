@@ -5,3 +5,5 @@ inst/doc
 .nfs*
 eclustRD
 *.Rproj
+results/
+old-results/

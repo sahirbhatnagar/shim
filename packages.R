@@ -233,3 +233,10 @@ if(!pckg) {
   require(earth)
 }
 
+
+pckg = try(require(cowplot))
+if(!pckg) {
+  cat("Installing 'cowplot' from CRAN\n")
+  getPckg("cowplot")
+  require(cowplot)
+}
