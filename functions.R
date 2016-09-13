@@ -2419,3 +2419,18 @@ extractPC <- function(x_train, colors, x_test,
        # PLS = PLS, PLSTest = PLSTest, 
        nclusters = length(modlevels))
 }
+
+
+# obj is an earth object
+get.used.pred.names <- function(obj) {
+  any1 <- function(x) any(x != 0) # like any but no warning if x is double
+  names(which(apply(obj$dirs[obj$selected.terms, , drop=FALSE], 2, any1)))
+}
+
+
+savepdf <- function(file, width=16, height=10){
+  # fname <- paste("figures/",file,".pdf",sep="")
+  pdf(file, width=width/2.54, height=height/2.54,
+      pointsize=10)
+  par(mgp=c(2.2,0.45,0), tcl=-0.4, mar=c(3.3,3.6,1.1,1.1))
+}
