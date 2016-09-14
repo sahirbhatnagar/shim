@@ -240,3 +240,17 @@ if(!pckg) {
   getPckg("cowplot")
   require(cowplot)
 }
+
+pckg = try(require(fields))
+if(!pckg) {
+  cat("Installing 'fields' from CRAN\n")
+  getPckg("fields")
+  require(fields)
+}
+
+pckg = try(require(RColorBrewer))
+if(!pckg) {
+  cat("Installing 'RColorBrewer' from CRAN\n")
+  getPckg("RColorBrewer")
+  require(RColorBrewer)
+}
