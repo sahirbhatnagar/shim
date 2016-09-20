@@ -27,8 +27,8 @@ options(scipen = 999, digits = 4)
 
 probe_sd <- rowSds(placentaALL)
 
-# 10,000 most variable probes
-filterd_probes <- probe_sd[probe_sd > quantile(probe_sd,0.956485)] %>% names
+# 20,000 most variable probes
+filterd_probes <- probe_sd[probe_sd > quantile(probe_sd,0.912965)] %>% names
 filterd_probes %>% length()
 
 # 5,000 most variable probes
@@ -94,7 +94,7 @@ pp <- cluster_kmeans(data = t(placentaALL[filterd_probes,]),
 
 
 save(pp, file = paste0(
-  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/","1_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM_Sept19.RData"
+  "/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/","1_PC_bouchard_sd_filter_20K_probes_TOM_DIFFTOM_Sept19.RData"
 ))
 
 # save(pp, file = paste0(
@@ -420,40 +420,21 @@ save(pp, file = paste0(
 # load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/file19e17f13c434_2_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM.RData")
 
 
-load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/1_PC_bouchard_sd_filter_5K_probes_TOM_DIFFTOM_Sept19.RData")
-res5k <- pp
-
-rm(pp)
-
-load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/1_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM_Sept19.RData")
-
-res10k <- pp
-rm(pp)
+# load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/1_PC_bouchard_sd_filter_5K_probes_TOM_DIFFTOM_Sept19.RData")
 
 # this loads an object called pp2
 # load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/file19e150ebfb6e_2_PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData")
 
 # to combine all the principal components
-pcTrain_TOM <- res5k$clustersAddon$PC
-res5k$clustersAll$nclusters
-res5k$clustersAddon$nclusters
+pcTrain_TOM <- pp$clustersAddon$PC
+pp$clustersAll$nclusters
+pp$clustersAddon$nclusters
 
-res5k$clustersAddon$prcompObj %>% str
+pp$clustersAddon$prcompObj %>% str
 
 dim(pcTrain_TOM)
 head(pcTrain_TOM)
-avgTrain_TOM <- res5k$clustersAddon$averageExpr
-
-pcTrain_TOM_10k <- res10k$clustersAddon$PC
-res10k$clustersAll$nclusters
-res10k$clustersAddon$nclusters
-
-res10k$clustersAddon$prcompObj %>% str
-
-dim(pcTrain_TOM_10k)
-head(pcTrain_TOM_10k)
-avgTrain_TOM_10k <- res10k$clustersAddon$averageExpr
-
+avgTrain_TOM <- pp$clustersAddon$averageExpr
 
 # to combine all the principal components
 # pcTrain_corr <- pp2$clustersAddon$PC
@@ -480,14 +461,14 @@ avgTrain_TOM_10k <- res10k$clustersAddon$averageExpr
 # p <- ggplot(var_expl_data, aes(x = index, y = value, color = PC))
 # p + geom_point(size=2) + facet_wrap(~type) + ylab("variance explained") + theme_bw()
 
-max_heat <- max(c(max(pcTrain_TOM[which(res5k$etrain==0),]),max(pcTrain_TOM[which(res5k$etrain==1),])))
-min_heat <- min(c(min(pcTrain_TOM[which(res5k$etrain==0),]),min(pcTrain_TOM[which(res5k$etrain==1),])))
+max_heat <- max(c(max(pcTrain_TOM[which(pp$etrain==0),]),max(pcTrain_TOM[which(pp$etrain==1),])))
+min_heat <- min(c(min(pcTrain_TOM[which(pp$etrain==0),]),min(pcTrain_TOM[which(pp$etrain==1),])))
 
 library(ComplexHeatmap)
 require(circlize)
 
 cm <- colorRamp2(seq(min_heat, max_heat, length.out = 100), viridis(100))
-ht1 = Heatmap(t(pcTrain_TOM[which(res5k$etrain==0),]), 
+ht1 = Heatmap(t(pcTrain_TOM[which(pp$etrain==0),]), 
               name = "E=0",
               # col = viridis(10), 
               col = cm,
@@ -495,7 +476,7 @@ ht1 = Heatmap(t(pcTrain_TOM[which(res5k$etrain==0),]),
               # column_title = "Income_Level: 1-7",
               column_title = "NGD",
               show_row_names = FALSE)
-ht2 = Heatmap(t(pcTrain_TOM[which(res5k$etrain==1),]), 
+ht2 = Heatmap(t(pcTrain_TOM[which(pp$etrain==1),]), 
               name = "E=1",
               # col = viridis(10), 
               col = cm,
@@ -504,88 +485,45 @@ ht2 = Heatmap(t(pcTrain_TOM[which(res5k$etrain==1),]),
               column_title = "GD",
               show_row_names = FALSE)
 
-png(paste0("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/","1_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM_Sept19.png"))
+png(paste0("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/","1_PC_bouchard_sd_filter_20K_probes_TOM_DIFFTOM_Sept19.png"))
 ht1 + ht2
 dev.off()
 
 
-
-max_heat <- max(c(max(pcTrain_TOM_10k[which(res10k$etrain==0),]),max(pcTrain_TOM_10k[which(res10k$etrain==1),])))
-min_heat <- min(c(min(pcTrain_TOM_10k[which(res10k$etrain==0),]),min(pcTrain_TOM_10k[which(res10k$etrain==1),])))
-cm <- colorRamp2(seq(min_heat, max_heat, length.out = 100), viridis(100))
-ht1 = Heatmap(t(pcTrain_TOM_10k[which(res10k$etrain==0),]), 
-              name = "E=0",
-              # col = viridis(10), 
-              col = cm,
-              # column_title = "E = 0 : Age [4.8, 11.3]",
-              # column_title = "Income_Level: 1-7",
-              column_title = "NGD",
-              show_row_names = FALSE)
-ht2 = Heatmap(t(pcTrain_TOM_10k[which(res10k$etrain==1),]), 
-              name = "E=1",
-              # col = viridis(10), 
-              col = cm,
-              # column_title = "E = 1 : Age [11.3, 18]",
-              # column_title = "Income_Level: 8-10",
-              column_title = "GD",
-              show_row_names = FALSE)
-
-# png(paste0("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/","1_PC_bouchard_sd_filter_10K_probes_TOM_DIFFTOM_Sept19.png"))
-ht1 + ht2
-# dev.off()
-
+# kl <- prepare_data(data = cbind(pcTrain_TOM, pheno = Y[trainIndex], 
+#                                 income = E[trainIndex]),
+#                    response = "pheno", exposure = "income")
+# 
+# kl$X %>% dim
+# kl$X[,1:45] %>% head
+# 
+# 
+# fit.earth <- earth::earth(x = kl$X[,1:45], y = kl$Y, pmethod = "backward", keepxy = TRUE, degree = 2, nfold = 5, ncross = 3, trace = 4)
+# summary(fit.earth)
+# plot(fit.earth)
+# plotmo(fit.earth)
+# predict(fit.earth, newdata = kl$X)
+# evimp(fit.earth)
+# 
+# 
+# pc_21 <- rownames(pp$clustersAddon$prcompObj[[21]]$rotation)
+# pc_27 <- rownames(pp$clustersAddon$prcompObj[[27]]$rotation)
+# 
+# DT.placenta[rn %in% c(pc_21,pc_27)]$nearestGeneSymbol %>% unique %>% length()
+# 
+# 
+# DT.placenta[rn %in% c(pc_21,pc_27)]$nearestTranscript
 
 
-kl_5k <- prepare_data(data = cbind(pcTrain_TOM, pheno = Y[trainIndex],
-                                income = E[trainIndex]),
-                   response = "pheno", exposure = "income")
 
-kl_10k <- prepare_data(data = cbind(pcTrain_TOM_10k, pheno = Y[trainIndex],
-                                   income = E[trainIndex]),
-                      response = "pheno", exposure = "income")
-
-
-kl_5k$X %>% dim
-kl_5k$X[,1:45] %>% head
-
-kl_10k$X %>% dim
-kl_10k$X[,1:78] %>% head
-
-fit.earth.5k <- earth::earth(x = kl_5k$X[,1:45], y = kl_5k$Y, pmethod = "backward", keepxy = TRUE, degree = 2, nfold = 5, ncross = 3, trace = 4)
-summary(fit.earth.5k)
-plot(fit.earth.5k)
-plotmo(fit.earth.5k)
-evimp(fit.earth.5k)
-
-
-fit.earth.10k <- earth::earth(x = kl_10k$X[,1:78], y = kl_10k$Y, pmethod = "backward", keepxy = TRUE, degree = 2, nfold = 5, ncross = 3, trace = 4)
-summary(fit.earth.10k)
-plot(fit.earth.10k)
-plotmo(fit.earth.10k)
-evimp(fit.earth.10k)
-
-pc_21_5k <- rownames(res5k$clustersAddon$prcompObj[[21]]$rotation)
-pc_27_5k <- rownames(res5k$clustersAddon$prcompObj[[27]]$rotation)
-
-pc_56_10k <- rownames(res10k$clustersAddon$prcompObj[[56]]$rotation)
-
-
-genes_5k <- DT.placenta[rn %in% c(pc_21_5k,pc_27_5k)]$nearestGeneSymbol %>% unique
-genes_5k %>% length()
-DT.placenta[rn %in% c(pc_21,pc_27)]$nearestTranscript
-
-genes_10k <- DT.placenta[rn %in% c(pc_56_10k)]$nearestGeneSymbol %>% unique
-genes_10k %>% length()
-
-intersect(genes_5k,genes_10k) %>% unique()
 
 
 
 
 # enter in gene mania
 
-write.table(genes_10k,
-quote = F, sep = "\n", row.names = F, col.names = FALSE)
+# write.table(DT.placenta[rn %in% c(pc_21,pc_27)]$nearestGeneSymbol %>% unique,
+# quote = F, sep = "\n", row.names = F, col.names = FALSE)
 
 
 ## try http:// if https:// URLs are not supported
