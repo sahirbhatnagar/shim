@@ -8,3 +8,5 @@ eclustRD
 results/
 old-results/
 figures-for-manuscript
+*.png
+*.RData

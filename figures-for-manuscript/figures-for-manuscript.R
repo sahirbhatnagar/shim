@@ -11,19 +11,19 @@
 # it is being run on Mammouth
 ##################################
 
-# rm(list=ls())
-# source("packages.R")
-# source("functions.R")
+rm(list=ls())
+source("packages.R")
+source("functions.R")
 options(digits = 4, scipen=999)
 
-source("/home/bhatnaga/coexpression/august2016simulation/linear/packages.R")
-source("/home/bhatnaga/coexpression/august2016simulation/linear/functions.R")
+# source("/home/bhatnaga/coexpression/august2016simulation/linear/packages.R")
+# source("/home/bhatnaga/coexpression/august2016simulation/linear/functions.R")
 
 # source(paste(Sys.getenv("PBS_O_WORKDIR"),"packages.R", sep="/"))
 # source(paste(Sys.getenv("PBS_O_WORKDIR"),"functions.R", sep="/"))
 
 parametersDf <- expand.grid(rho = c(0.2,0.90),
-                            p = c(5000),
+                            p = c(1000),
                             SNR = c(0.2,1,2),
                             n = c(400), # this is the total train + test sample size
                             # nActive = c(300), # must be even because its being split among two modules
@@ -48,7 +48,7 @@ parametersDf <- parametersDf[which(parametersDf$cluster_distance=="tom" & parame
                                      parametersDf$cluster_distance=="corr" & parametersDf$Ecluster_distance=="diffcorr"),]
 # parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
-parameterIndex = 1
+parameterIndex = 2
 simulationParameters <- parametersDf[parameterIndex,, drop = F]
 
 print(simulationParameters)
@@ -198,7 +198,8 @@ fig.w <- 1024
 fig.h <- 768
 fig.res <- 100
 
-path <- "/home/bhatnaga/coexpression/august2016simulation/linear/"
+# path <- "/home/bhatnaga/coexpression/august2016simulation/linear/"
+path <- ""
 
 ## ---- heat-corr-all ----
 hc <- hclust(as.dist(1 - corrX), method = "average")
