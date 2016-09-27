@@ -12,9 +12,9 @@
 ##################################
 
 
-# rm(list=ls())
-# source("packages.R")
-# source("functions.R")
+rm(list=ls())
+source("packages.R")
+source("functions.R")
 
 options(digits = 4, scipen = 999)
 
@@ -23,11 +23,11 @@ options(digits = 4, scipen = 999)
 # source("/home/bhatnaga/coexpression/august2016simulation/linear/packages.R")
 # source("/home/bhatnaga/coexpression/august2016simulation/linear/functions.R")
 
-source(paste(Sys.getenv("PBS_O_WORKDIR"),"packages.R", sep="/"))
-source(paste(Sys.getenv("PBS_O_WORKDIR"),"functions.R", sep="/"))
+# source(paste(Sys.getenv("PBS_O_WORKDIR"),"packages.R", sep="/"))
+# source(paste(Sys.getenv("PBS_O_WORKDIR"),"functions.R", sep="/"))
 
 parametersDf <- expand.grid(rho = c(0.2,0.90),
-                            p = c(5000),
+                            p = c(1000),
                             SNR = c(0.2,1,2),
                             n = c(400), # this is the total train + test sample size
                             # nActive = c(300), # must be even because its being split among two modules
@@ -37,7 +37,7 @@ parametersDf <- expand.grid(rho = c(0.2,0.90),
                             rhoOther = 0.6,
                             betaMean = c(1),
                             alphaMean = c(0.1),
-                            betaE = 2,
+                            betaE = 1,
                             includeInteraction = FALSE,
                             includeStability = TRUE,
                             distanceMethod = "euclidean",
@@ -53,7 +53,7 @@ parametersDf <- parametersDf[which(parametersDf$cluster_distance=="tom" & parame
 nSimScenarios <- nrow(parametersDf)
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
-# parameterIndex = 5
+parameterIndex = 5
 simulationParameters <- parametersDf[parameterIndex,, drop = F]
 
 print(simulationParameters)
@@ -483,7 +483,7 @@ write.table(final_results %>% t %>% as.data.frame(),
             col.names = F)
 
 write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
-            file = paste(Sys.getenv("PBS_O_WORKDIR"),"colnames_stab_hydra-sim3-sept14.txt",sep="/"),
+            file = paste(Sys.getenv("PBS_O_WORKDIR"),"colnames_stab_hydra-sim3-sept27.txt",sep="/"),
             # file  = filename,
             quote = F,
             row.names = F, col.names = F)
@@ -545,24 +545,24 @@ write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
 #   x2seq <- seq(x2r[1], x2r[2], length.out = 25)
 #   return(list(x = x1seq, y = x2seq, z = outer(x1seq, x2seq, fun)))
 # }
-# 
+#
 # result[["S0"]]
 # x1 <- result[["X_train"]][, result[["S0"]][1:25]]
 # dim(x1)
 # u1 <- svd(x1)$u[,1]
 # # u1 <- apply(x1, 1, mean)
-# 
+#
 # x2 <- result[["X_train"]][, result[["S0"]][26:50]]
 # dim(x2)
 # u2 <- svd(x2)$u[,1]
 # # u2 <- apply(x2, 1, mean)
-# 
+#
 # reslin <- outseq(u1,u2, linprod)
 # reshinge <- outseq(u1,u2, hingeprod)
-# # persp(res[["y"]], res[["x"]], res[["z"]])
-# # persp(res[["y"]], res[["x"]], res[["z"]],
-# #       theta = 10, phi = 30, expand = 0.8, col = "lightblue", ltheta = 120, shade = .01, ticktype = "simple",    xlab = "X1", ylab = "X2", zlab = "(X1-1)_+ * (X2-0.8)_+")
-# 
+# persp(res[["y"]], res[["x"]], res[["z"]])
+# persp(res[["y"]], res[["x"]], res[["z"]],
+#       theta = 10, phi = 30, expand = 0.8, col = "lightblue", ltheta = 120, shade = .01, ticktype = "simple",    xlab = "X1", ylab = "X2", zlab = "(X1-1)_+ * (X2-0.8)_+")
+
 # savepdf("~/git_repositories/eclust-simulation-aug2016/sim3-persp.pdf")
 # par(mfrow=c(1,2))
 # drape.plot(reslin[["y"]], reslin[["x"]], reslin[["z"]], col=colorRampPalette(brewer.pal(9, "Reds"))(100),
@@ -574,4 +574,46 @@ write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
 #            theta = 50, expand = 0.75, phi = 30, ltheta = 120,
 #            xlab = "U1", ylab = "U2", zlab = "Y")#, main = "E = 1")
 # dev.off()
+
+
+
+# hingeprod <- function(x1, x2) {
+#   1*(x1 + 1) + 1 * x2
+#   # 10*sin(pi * x*y)
+#   # tan(pmax(x,0) * pmax(y,0))
+#   # 0.1*exp(4*x) + 4/(1+exp(-20*(y-0.5)))
+# }
+# 
+# 
+# linprod <- function(x1, x2) {
+#   1*(x1 + 1)
+#   # 10*sin(pi * x*y)
+#   # tan(pmax(x,0) * pmax(y,0))
+#   # 0.1*exp(4*x) + 4/(1+exp(-20*(y-0.5)))
+# }
+# 
+# outseq <- function(x, y, fun){
+#   x1r <- range(x)
+#   x1seq <- seq(x1r[1], x1r[2], length.out = 25)
+#   x2r <- range(y)
+#   x2seq <- seq(x2r[1], x2r[2], length.out = 25)
+#   return(list(x = x1seq, y = x2seq, z = outer(x1seq, x2seq, fun)))
+# }
+# 
+# 
+# reslin <- outseq(x_main,x_inter, linprod)
+# reshinge <- outseq(x_main,x_inter, hingeprod)
+# 
+# savepdf("~/git_repositories/eclust-simulation-aug2016/sim3-persp-Qi.pdf")
+# par(mfrow=c(1,2))
+# drape.plot(reslin[["y"]], reslin[["x"]], reslin[["z"]], col=colorRampPalette(brewer.pal(9, "Reds"))(100),
+#            horizontal = FALSE, add.legend = F, zlim = range(reshinge[["z"]]), zlim2 = range(reshinge[["z"]]),
+#            theta = 50, phi = 30, expand = 0.75, ltheta = 120,
+#            xlab = "1st PC", ylab = "Qi term", zlab = "Y")#, main = "E = 0")
+# drape.plot(reshinge[["y"]], reshinge[["x"]], reshinge[["z"]], col=colorRampPalette(brewer.pal(9, "Reds"))(100),
+#            horizontal = FALSE, add.legend = F, zlim = range(reshinge[["z"]]), zlim2 = range(reshinge[["z"]]),
+#            theta = 50, expand = 0.75, phi = 30, ltheta = 120,
+#            xlab = "1st PC", ylab = "Qi term", zlab = "Y")#, main = "E = 1")
+# dev.off()
+
 

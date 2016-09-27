@@ -2120,15 +2120,34 @@ mars_fun <- function(x_train,
   
   # mars model
   mars_model <- switch(model,
-                      MARS = earth::earth(x = as.matrix(x_train), 
-                                          y = y_train, 
-                                          keepxy = TRUE,
-                                          pmethod = "backward",
-                                          nk = 1000,
-                                          degree = 3, 
-                                          trace = 4))
-                                          # ,
-                                          # nfold = 5))
+                      MARS = {
+                        
+                        fitControl <-  trainControl(method = "cv",
+                                                    # number = 25,
+                                                    # repeats = 3,
+                                                    verboseIter = TRUE)
+                        
+                        marsGrid <- expand.grid(.degree = 1:2, .nprune = 1000)
+
+                        mars_tuned <- train(as.matrix(x_train),
+                                            y_train,
+                                            method = "earth",
+                                            trace = 4, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                                            tuneGrid = marsGrid,
+                                            trControl = fitControl)
+                        
+                        
+                        earth::earth(x = as.matrix(x_train), 
+                                     y = y_train, 
+                                     keepxy = TRUE,
+                                     pmethod = "backward",
+                                     # pmethod = "cv",
+                                     # nfold = 10,
+                                     nk = 1000,
+                                     degree = mars_tuned$bestTune$degree, 
+                                     trace = 4) }
+  )
+
   
   # selected genes
   # coef(mars_model)
@@ -2363,15 +2382,32 @@ mars_clust_fun <- function(x_train,
   df <- X.model.formula %>% cbind(y_train) %>% as.data.frame()
 
   clust_train_model <- switch(model,
-                              MARS = earth::earth(x = X.model.formula, 
-                                                  y = y_train, 
-                                                  keepxy = TRUE,
-                                                  pmethod = "backward",
-                                                  nk = 1000,
-                                                  degree = 3, 
-                                                  trace = 4))
-                              # ,
-                                                  # nfold = 5))
+                              MARS = {
+                                
+                                fitControl <-  trainControl(method = "cv",
+                                                            # number = 25,
+                                                            # repeats = 3,
+                                                            verboseIter = TRUE)
+                                
+                                marsGrid <- expand.grid(.degree = 1:2, .nprune = 1000)
+                                
+                                mars_tuned <- train(X.model.formula,
+                                                    y_train,
+                                                    method = "earth",
+                                                    trace = 4, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                                                    tuneGrid = marsGrid,
+                                                    trControl = fitControl)
+                                
+                                earth::earth(x = X.model.formula, 
+                                             y = y_train, 
+                                             keepxy = TRUE,
+                                             pmethod = "backward",
+                                             nk = 1000,
+                                             degree = mars_tuned$bestTune$degree, 
+                                             trace = 4, nfold = 10)
+                              }
+  )
+  
   
   # summary(clust_train_model)
   # ONLY Jaccard index can be calculated for MARS
@@ -2950,24 +2986,50 @@ savepdf <- function(file, width=16, height=10){
 
 #' @rdname simulated_data
 #' @export
-sim_data_mars <- function(n , n0 , p , genes,
+sim_data_mars <- function(n , n0 , p , genes, beta, 
                           E, signal_to_noise_ratio = 1,
                           truemodule, nActive) {
   
-  # nActive
   # truemodule = truemodule1
   # genes = X
   # E = c(rep(0,n0),rep(1, n1))
-    
-  DT <- cbind(genes,E) %>% as.data.table()
-
-  x1 <- genes[,which(truemodule %in% 3)[1:(nActive/2)]]
-  u1 <- svd(x1)$u[,1]
-
-  x2 <- genes[,which(truemodule %in% 4)[1:(nActive/2)]]
-  u2 <- svd(x2)$u[,1]
+  # signal_to_noise_ratio = SNR
   
-  y.star <- 0.1*(u1 + u2 + E) + 4 * pmax(u1-0.01, 0) * pmax(u2-0.05, 0) * E
+  DT <- cbind(genes,E) %>% as.data.table()
+  
+  x1 <- genes[,which(truemodule %in% 3)[1:(nActive/2)]]
+  x2 <- genes[,which(truemodule %in% 4)[1:(nActive/2)]]
+  
+  # p causaully associated genes
+  xp <- cbind(x1,x2)
+  # all(c(colnames(x1),colnames(x2)) %in% colnames(xp))
+  
+  # means of the causal genes for each subject
+  xpbar <- rowMeans(xp)
+  
+  # these are equivalent
+  # apply(xp, 2, function(i) (i - xpbar)^2)[1:3,1:3]
+  # ((xp - xpbar)[1:3,1:3])^2
+  
+  Qip <- (xp - xpbar)^2
+  Qi <- -1*apply(Qip, 1, max) 
+  
+  x_inter <- (Qi - min(Qi))/(-1 * min(Qi)) 
+
+  x_main <- svd(xp)$u[,1]
+  
+  # plot(x_main, x_inter)
+  # x1 <- genes[,which(truemodule %in% 3)[1:(nActive/2)]]
+  # u1 <- svd(x1)$u[,1]
+  # 
+  # x2 <- genes[,which(truemodule %in% 4)[1:(nActive/2)]]
+  # u2 <- svd(x2)$u[,1]
+  # y.star <- 0.1*(u1 + u2 + E) + 4 * pmax(u1-0.01, 0) * pmax(u2-0.05, 0) * E
+  
+  # y.star <- x_main + E + E * x_inter
+  
+  y.star <- {DT %>% as.matrix()} %*% beta + E * x_inter
+  
   error <- rnorm(n)
   k <- sqrt(var(y.star)/(signal_to_noise_ratio*var(error)))
   
@@ -3040,7 +3102,7 @@ generate_data_mars <- function(p, X, beta,
   message("Creating data and simulating response for MARS model")
   
   DT <- as.data.frame(sim_data_mars(n = n, n0 = n0, p = p, genes = X,
-                                    truemodule = truemodule,
+                                    truemodule = truemodule, beta = beta, 
                                     nActive = nActive,
                                     E = c(rep(0,n0), rep(1, n1)),
                                     signal_to_noise_ratio = signal_to_noise_ratio))

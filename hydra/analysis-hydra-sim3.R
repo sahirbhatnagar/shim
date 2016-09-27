@@ -14,9 +14,9 @@ options(digits = 2, scipen=999)
 # the intersect and union command give NAs
 ## ---- data ----
 
-col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim3-sept14.txt", header = F)$V1
+col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim3-sept21.txt", header = F)$V1
 
-DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim3-hydra-results-p5000-sept15", stringsAsFactors = FALSE) %>%
+DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim3-hydra-results-p5000-sept21", stringsAsFactors = FALSE) %>%
   setnames(col.names)
 
 DT[, `:=`(simulation = 1:nrow(DT))]
@@ -224,7 +224,7 @@ legend_b <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
 
 p <- prow + draw_grob(legend_b, 0.3, -0.25)
 
-save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept15/%s_sim3.png","tpr_fpr",05),
+save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept21/%s_sim3.png","tpr_fpr",05),
           p, base_aspect_ratio = 1.2, ncol = 2, nrow = 2, base_height = 5)
 
 
@@ -278,18 +278,20 @@ ll <- DT.long2[cluster_distance == "TOM"][measure=="mse"][, `:=`(ymin = boxplot.
 
 # p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure=="mse"],
 #              aes(x = name, y = value, fill = method)) +
-#   geom_boxplot(position = pd, outlier.shape = NA) +
+#   geom_boxplot(position = pd) +
 #   guides(color = guide_legend(title = "method")) +
 #   xlab("") +
 #   ylab("RMSE") +
-#   facet_grid(SNR ~ rho, 
-#              scales="free", 
-#              labeller = labeller(rho = as_labeller(appender1, 
+#   facet_grid(SNR ~ rho,
+#              scales="free",
+#              labeller = labeller(rho = as_labeller(appender1,
 #                                                    default = label_parsed),
 #                                  SNR = as_labeller(appender2,default = label_parsed))) +
-#   scale_fill_manual(values = group.colors) + 
+#   scale_fill_manual(values = group.colors) +
 #   theme(plot.margin = unit(c(6,0,6,0), "pt"),legend.position="bottom") +
 #   panel_border()
+# 
+# p1
 
 p1 <- ggplot(ll,
        aes(x = name, lower=lower, upper=upper, middle=middle, ymin=ymin, 
@@ -307,10 +309,42 @@ p1 <- ggplot(ll,
   theme(plot.margin = unit(c(6,0,6,0), "pt"),legend.position="bottom") +
   panel_border()
 
+p1
 
-save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept15/%s_sim3.png","RMSE"),
+save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept21/%s_sim3.png","RMSE"),
           p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
 
+
+
+## ---- tpr-fpr ---- 
+
+for (m in c("TPR", "FPR")) {
+  
+  ylabel <- switch(m, 
+                   TPR = "True Positive Rate",
+                   FPR = "False Positive Rate")
+  
+  p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure==m],
+               aes(x = name, y = value, fill = method)) +
+    geom_boxplot(position = pd) +
+    guides(color = guide_legend(title = "method")) +
+    xlab("") +
+    ylab(ylabel) +
+    facet_grid(SNR ~ rho,
+               scales="free",
+               labeller = labeller(rho = as_labeller(appender1,
+                                                     default = label_parsed),
+                                   SNR = as_labeller(appender2,default = label_parsed))) +
+    scale_fill_manual(values = group.colors) +
+    theme(plot.margin = unit(c(6,0,6,0), "pt"),legend.position="bottom") +
+    panel_border()
+  
+  p1
+  
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept21/%s_sim3.png",m),
+            p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
+
+}
 
 ## ---- jacc-pearson-spearman ----
 
@@ -340,7 +374,7 @@ for (m in c("jacc")) {
     theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
     panel_border()
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept15/%s_sim3.png",m),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept21/%s_sim3.png",m),
             p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
   
 } 
@@ -375,7 +409,7 @@ p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure=="CorrectSparsity"][nam
   theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
   panel_border()
 
-save_plot("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept15/CorrectSparsity_sim3.png",
+save_plot("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept21/CorrectSparsity_sim3.png",
           p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
 
 
