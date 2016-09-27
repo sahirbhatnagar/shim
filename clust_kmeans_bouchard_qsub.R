@@ -10,7 +10,7 @@
 # 
 ##################################
 
-# rm(list=ls())
+rm(list=ls())
 source("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/functions.R")
 source("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/packages.R")
 source("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/data_cleaning.R")
@@ -28,12 +28,12 @@ options(scipen = 999, digits = 4)
 probe_sd <- rowSds(placentaALL)
 
 # 10,000 most variable probes
-filterd_probes <- probe_sd[probe_sd > quantile(probe_sd,0.956485)] %>% names
-filterd_probes %>% length()
+# filterd_probes <- probe_sd[probe_sd > quantile(probe_sd,0.956485)] %>% names
+# filterd_probes %>% length()
 
 # 5,000 most variable probes
-# filterd_probes <- probe_sd[probe_sd > quantile(probe_sd,0.978245)] %>% names 
-# filterd_probes %>% length()
+filterd_probes <- probe_sd[probe_sd > quantile(probe_sd,0.978245)] %>% names
+filterd_probes %>% length()
 
 
 # parameterIndex <- as.numeric(commandArgs(trailingOnly = T))
@@ -430,10 +430,18 @@ load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/1_PC_bo
 res10k <- pp
 rm(pp)
 
+
+load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/1_PC_bouchard_sd_filter_20K_probes_TOM_DIFFTOM_Sept19.RData")
+res20k <- pp
+rm(pp)
+
+
 # this loads an object called pp2
 # load("/mnt/GREENWOOD_BACKUP/home/sahir.bhatnagar/eclust/rda/bouchard_git/file19e150ebfb6e_2_PC_bouchard_sd_filter_10K_probes_corr_fisherScore.RData")
 
 # to combine all the principal components
+
+# 5k most variable
 pcTrain_TOM <- res5k$clustersAddon$PC
 res5k$clustersAll$nclusters
 res5k$clustersAddon$nclusters
@@ -444,6 +452,21 @@ dim(pcTrain_TOM)
 head(pcTrain_TOM)
 avgTrain_TOM <- res5k$clustersAddon$averageExpr
 
+
+pcTrain_TOM_clust <- res5k$clustersAll$PC
+res5k$clustersAll$nclusters
+res5k$clustersAddon$nclusters
+
+res5k$clustersAll$prcompObj %>% str
+
+dim(pcTrain_TOM_clust)
+head(pcTrain_TOM_clust)
+avgTrain_TOM_clust <- res5k$clustersAll$averageExpr
+
+
+
+
+# 10k most variable
 pcTrain_TOM_10k <- res10k$clustersAddon$PC
 res10k$clustersAll$nclusters
 res10k$clustersAddon$nclusters
@@ -453,6 +476,17 @@ res10k$clustersAddon$prcompObj %>% str
 dim(pcTrain_TOM_10k)
 head(pcTrain_TOM_10k)
 avgTrain_TOM_10k <- res10k$clustersAddon$averageExpr
+
+# 20k most variable
+pcTrain_TOM_20k <- res20k$clustersAddon$PC
+res20k$clustersAll$nclusters
+res20k$clustersAddon$nclusters
+
+res20k$clustersAddon$prcompObj %>% str
+
+dim(pcTrain_TOM_20k)
+head(pcTrain_TOM_20k)
+avgTrain_TOM_20k <- res20k$clustersAddon$averageExpr
 
 
 # to combine all the principal components
@@ -544,6 +578,10 @@ kl_10k <- prepare_data(data = cbind(pcTrain_TOM_10k, pheno = Y[trainIndex],
                                    income = E[trainIndex]),
                       response = "pheno", exposure = "income")
 
+kl_20k <- prepare_data(data = cbind(pcTrain_TOM_20k, pheno = Y[trainIndex],
+                                    income = E[trainIndex]),
+                       response = "pheno", exposure = "income")
+
 
 kl_5k$X %>% dim
 kl_5k$X[,1:45] %>% head
@@ -551,31 +589,195 @@ kl_5k$X[,1:45] %>% head
 kl_10k$X %>% dim
 kl_10k$X[,1:78] %>% head
 
-fit.earth.5k <- earth::earth(x = kl_5k$X[,1:45], y = kl_5k$Y, pmethod = "backward", keepxy = TRUE, degree = 2, nfold = 5, ncross = 3, trace = 4)
+kl_20k$X %>% dim
+kl_20k$X[,1:142] %>% head
+
+
+fit.earth.5k <- earth::earth(x = kl_5k$X[,1:45], y = kl_5k$Y, pmethod = "backward", keepxy = TRUE, 
+                             degree = 3, nfold = 5, ncross = 3, trace = 4, nk = 1000)
 summary(fit.earth.5k)
 plot(fit.earth.5k)
 plotmo(fit.earth.5k)
 evimp(fit.earth.5k)
 
 
-fit.earth.10k <- earth::earth(x = kl_10k$X[,1:78], y = kl_10k$Y, pmethod = "backward", keepxy = TRUE, degree = 2, nfold = 5, ncross = 3, trace = 4)
+
+
+
+# Performance using Cross Validation --------------------------------------
+
+fitControl <-  trainControl(method = "repeatedcv",
+                            number = 10,
+                            repeats = 5,
+                            verboseIter = TRUE)
+
+# fitControl <-  trainControl(method = "cv",
+#                             number = 5,
+#                             repeats = 1,
+#                             verboseIter = TRUE)
+
+
+# Define the candidate models to test
+marsGrid <- expand.grid(.degree = 1:3, .nprune = 1000)
+# Fix the seed so that the results can be reproduced
+
+# MARS tuned ECLUST ----
+set.seed(1056)
+marsEclust <- train(kl_5k$X[,1:45], kl_5k$Y,
+                   method = "earth",
+                   trace = 4, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                   # Explicitly declare the candidate models to test
+                   tuneGrid = marsGrid,
+                   trControl = fitControl)
+# marsTuned$finalModel$bx
+# plot(marsTuned)
+# marsTuned %>% summary()
+# marsTuned$bestTune
+# 
+# fit.earth <- earth::earth(x = kl_5k$X[,1:45], y = kl_5k$Y,
+#                           trace = 4, nk = 1000, keepxy = TRUE, pmethod = "backward", 
+#                           degree = marsTuned$bestTune$degree)
+# summary(fit.earth)
+# plotmo(fit.earth)
+
+# MARS tuned Original ----
+set.seed(1056)
+marsOriginal <- train(t(placentaALL[filterd_probes,]), kl_5k$Y,
+                   method = "earth",
+                   trace = 4, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                   # Explicitly declare the candidate models to test
+                   tuneGrid = marsGrid,
+                   trControl = fitControl)
+
+# MARS tuned bagged ECLUST ----
+set.seed(1056)
+bagMarsEclust <- train(kl_5k$X[,1:45], kl_5k$Y,
+                   method = "bagEarth", B = 10,
+                   trace = 4, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                   # Explicitly declare the candidate models to test
+                   tuneGrid = marsGrid,
+                   trControl = fitControl)
+
+# marsTunedBag$finalModel$fit$Resample10
+# summary(marsTunedBag)
+# 
+# predict(marsTunedBag)
+# predict(marsTuned)
+
+
+# Lasso + ECLUST ----
+# apparently this does tune over both alpha and lambda, but just need to provide lambda
+# http://stats.stackexchange.com/questions/69638/does-caret-train-function-for-glmnet-cross-validate-for-both-alpha-and-lambda?rq=1
+# lassoGrid <- expand.grid(.alpha = seq(0,1,length.out = 5), .lambda = seq(min(glmnet(x = kl_5k$X, y = kl_5k$Y)$lambda),
+#                                                               max(glmnet(x = kl_5k$X, y = kl_5k$Y)$lambda),length.out = 5))
+# glmnet(x = kl_5k$X, y = kl_5k$Y)$lambda
+
+set.seed(1056)
+lassoEclust <- train(x = kl_5k$X, y = kl_5k$Y,
+                  method = "glmnet",
+                  tuneLength = 20,
+                  trControl = fitControl)
+
+# Lasso Original ----
+
+set.seed(1056)
+lassoOriginal <- train(t(placentaALL[filterd_probes,]), kl_5k$Y,
+                     method = "glmnet",
+                     tuneLength = 20,
+                     trControl = fitControl)
+
+
+
+
+
+resamps <- resamples(list(earth = marsTuned,
+                          bagEarth = marsTunedBag))
+
+
+trellis.par.set("theme1")
+bwplot(resamps, layout = c(3, 1))
+
+summary(resamps)
+
+resamps
+
+
+data(trees)
+fit1 <- bagEarth(Volume ~ ., data = trees, keepX = TRUE)
+fit2 <- bagEarth(Volume ~ ., data = trees, keepX = FALSE)
+hist(predict(fit1) - predict(fit2))
+
+
+
+
+
+
+
+# MARS 5k Original ----
+
+t(placentaALL[filterd_probes,]) %>% str
+fit.earth.5k_original <- earth::earth(x = t(placentaALL[filterd_probes,]), y = Y, pmethod = "backward", keepxy = TRUE, 
+                                      degree = 3, trace = 4, nk = 1000, nfold = 5, ncross = 3)
+summary(fit.earth.5k_original)
+plot(fit.earth.5k_original)
+plotmo(fit.earth.5k_original)
+evimp(fit.earth.5k_original)
+
+
+
+
+fit.earth.10k <- earth::earth(x = kl_10k$X[,1:78], y = kl_10k$Y, pmethod = "backward", keepxy = TRUE, degree = 3, nfold = 5, ncross = 3, trace = 4)
 summary(fit.earth.10k)
 plot(fit.earth.10k)
 plotmo(fit.earth.10k)
 evimp(fit.earth.10k)
+
+
+fit.earth.10k_original <- earth::earth(x = t(placentaALL[filterd_probes,]), y = Y, pmethod = "backward", keepxy = TRUE, 
+                                      degree = 3, trace = 4, nk = 1000, nfold = 3, ncross = 3)
+summary(fit.earth.10k_original)
+plot(fit.earth.10k_original)
+plotmo(fit.earth.10k_original)
+evimp(fit.earth.10k_original)
+
+
+
+fit.earth.20k <- earth::earth(x = kl_20k$X[,1:142], y = kl_20k$Y, pmethod = "backward", keepxy = TRUE, degree = 3, nfold = 5, ncross = 3, trace = 4)
+summary(fit.earth.20k)
+plot(fit.earth.20k)
+plotmo(fit.earth.20k)
+evimp(fit.earth.20k)
+
 
 pc_21_5k <- rownames(res5k$clustersAddon$prcompObj[[21]]$rotation)
 pc_27_5k <- rownames(res5k$clustersAddon$prcompObj[[27]]$rotation)
 
 pc_56_10k <- rownames(res10k$clustersAddon$prcompObj[[56]]$rotation)
 
+pc_111_20k <- rownames(res20k$clustersAddon$prcompObj[[111]]$rotation)
+pc_114_20k <- rownames(res20k$clustersAddon$prcompObj[[114]]$rotation)
+pc_128_20k <- rownames(res20k$clustersAddon$prcompObj[[128]]$rotation)
+
 
 genes_5k <- DT.placenta[rn %in% c(pc_21_5k,pc_27_5k)]$nearestGeneSymbol %>% unique
 genes_5k %>% length()
-DT.placenta[rn %in% c(pc_21,pc_27)]$nearestTranscript
 
 genes_10k <- DT.placenta[rn %in% c(pc_56_10k)]$nearestGeneSymbol %>% unique
 genes_10k %>% length()
+
+genes_20k <- DT.placenta[rn %in% c(pc_111_20k, pc_114_20k, pc_128_20k)]$nearestGeneSymbol %>% unique
+genes_20k %>% length()
+
+
+library(VennDiagram)
+overlap <- VennDiagram::calculate.overlap(x = list('5k' = genes_5k, 
+                                    '10k' = genes_10k,
+                                    '20k' = genes_20k))
+
+
+VennDiagram::venn.diagram(list('5k' = genes_5k, 
+                               '10k' = genes_10k,
+                               '20k' = genes_20k), filename = "overlap.png", imagetype = "png")
 
 intersect(genes_5k,genes_10k) %>% unique()
 
