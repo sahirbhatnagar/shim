@@ -42,7 +42,7 @@ DT.long$cluster_distance %>% table
 DT.long$Ecluster_distance %>% table
 
 
-DT.long[, `:=`(method = factor(method, levels = c("pen", "clust", "Eclust"), labels = c("original", "clust", "ECLUST")))]
+DT.long[, `:=`(method = factor(method, levels = c("pen", "clust", "Eclust"), labels = c("SEPARATE", "CLUST", "ECLUST")))]
 DT.long[, `:=`(cluster_distance = factor(cluster_distance, levels = c("corr","tom"), labels = c("Correlation", "TOM")))]
 
 DT.long[, table(measure)]
@@ -133,10 +133,10 @@ DT.long2[measure=="RMSE"][,boxplot(value)]
 
 #ggsave(paste(Sys.getenv("HOME"),"eclust/simulation/simulation1/plots/TPR_vs_Shat.png", sep = "/"))
 
-## ---- tpr-vs-fpr ----
+## ---- tpr-vs-fpr-corr-vs-tom ----
 
 pd <- position_dodge(width = 1)
-group.colors <- c(original = "#F8766D", clust = "#00BA38" , ECLUST = "#619CFF")
+group.colors <- c(SEPARATE = "#F8766D", CLUST = "#00BA38" , ECLUST = "#619CFF")
 appender1 <- function(string) TeX(paste("$\\rho = $", string))
 appender2 <- function(string) TeX(paste("$SNR = $", string))
 scaleFUN <- function(x) sprintf("%g", x)
@@ -312,10 +312,95 @@ p <- prow + draw_grob(legend_b, 0.3, -0.25)
 save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/%s_alpha%gsim2.png","tpr_fpr",2),
           p, base_aspect_ratio = 1.2, ncol = 2, nrow = 2, base_height = 5)
 
+
+
+## ---- tpr-vs-fpr-tom-only ----
+
+pd <- position_dodge(width = 1)
+group.colors <- c(SEPARATE = "#F8766D", CLUST = "#00BA38" , ECLUST = "#619CFF")
+appender1 <- function(string) TeX(paste("$\\rho = $", string))
+appender2 <- function(string) TeX(paste("$SNR = $", string))
+scaleFUN <- function(x) sprintf("%g", x)
+
+tpr_fpr <- copy(DT.long[measure %in% c("TPR","FPR")]) 
+
+tpr_fpr <- tpr_fpr %>%
+  tidyr::spread(measure, value) %>%
+  tidyr::unite(name, summary, model)
+
+tpr_fpr[, str(method)]
+tpr_fpr[, str(name)]
+data.table::setnames(tpr_fpr, "name", "model")
+
+tpr_fpr[, `:=`(model = factor(model, levels = c("na_lasso", "avg_lasso", "pc_lasso",
+                                                "na_elasticnet", "avg_elasticnet", "pc_elasticnet"),
+                              labels = c("lasso", "avg_lasso", "pc_lasso", 
+                                         "elasticnet", "avg_elasticnet", "pc_elasticnet")))]
+
+for (cdist in c("Correlation","TOM")) {
+  
+  p1 <- ggplot(tpr_fpr[alphaMean==0.5][cluster_distance==cdist],
+               aes(x = FPR, y = TPR, color = method)) +
+    geom_point(size = 2.5, aes(shape = model)) +
+    ylab("True positive rate") +
+    xlab("False positive rate") + 
+    facet_grid(SNR ~ rho, 
+               scales = "fixed", 
+               labeller = labeller(rho = as_labeller(appender1, 
+                                                     default = label_parsed),
+                                   SNR = as_labeller(appender2,default = label_parsed))) +
+    scale_fill_manual(values = group.colors) + 
+    theme(plot.margin = unit(c(6,0,6,0), "pt")) +
+    scale_x_continuous(labels=scaleFUN) + 
+    scale_y_continuous(labels=scaleFUN) +
+    panel_border()
+  
+  p2 <- ggplot(tpr_fpr[alphaMean==2][cluster_distance==cdist],
+               aes(x = FPR, y = TPR, color = method)) +
+    geom_point(size = 2.5, aes(shape = model)) +
+    ylab("") +
+    xlab("False positive rate") + 
+    facet_grid(SNR ~ rho, 
+               scales = "fixed", 
+               labeller = labeller(rho = as_labeller(appender1, 
+                                                     default = label_parsed),
+                                   SNR = as_labeller(appender2,default = label_parsed))) +
+    scale_fill_manual(values = group.colors) + 
+    theme(plot.margin = unit(c(6,0,6,0), "pt")) +
+    scale_x_continuous(labels=scaleFUN) + 
+    scale_y_continuous(labels=scaleFUN) +
+    panel_border()
+  
+  prow <- plot_grid(p1 + theme(legend.position="none"),
+                    p2 + theme(legend.position="none"),
+                    NULL,
+                    align = 'hv',
+                    ncol = 2,
+                    nrow = 1,
+                    labels = c(LETTERS[1:2],""),
+                    hjust = -1)
+  # prow
+  grobs <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs
+  legend_b <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
+  
+  # add the legend underneath the row we made earlier. Give it 10% of the height
+  # of one plot (via rel_heights).
+  p <- plot_grid( prow, legend_b, nrow = 2, rel_heights = c(1, .20))
+  # p
+  # p <- prow + draw_grob(legend_b, 0.3, -0.25)
+  
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/tpr_fpr_%s_sim2.png",cdist),
+            p, base_aspect_ratio = 1.2, ncol = 2, nrow = 2, base_height = 5)
+  
+}
+
+
+
+
 ## ---- mse ----
 
 pd <- position_dodge(width = 1)
-group.colors <- c(original = "#F8766D", clust = "#00BA38" , ECLUST = "#619CFF")
+group.colors <- c(SEPARATE = "#F8766D", CLUST = "#00BA38" , ECLUST = "#619CFF")
 appender1 <- function(string) TeX(paste("$\\rho = $", string))
 appender2 <- function(string) TeX(paste("$SNR = $", string))
 
@@ -353,95 +438,163 @@ DT.long2[,table(method)]
 DT.long2[,table(name)]
 DT.long2[,table(cluster_distance, Ecluster_distance)]
 
-p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure=="RMSE"][alphaMean==0.5],
-             aes(x = name, y = value, fill = method)) +
-  geom_boxplot(position = pd) +
-  guides(color = guide_legend(title = "method")) +
-  xlab("") +
-  ylab("RMSE") +
-  facet_grid(SNR ~ rho, 
-             scales="free", 
-             labeller = labeller(rho = as_labeller(appender1, 
-                                                   default = label_parsed),
-                                 SNR = as_labeller(appender2,default = label_parsed))) +
-  scale_fill_manual(values = group.colors) + 
-  theme(plot.margin = unit(c(6,0,6,0), "pt")) +
-  panel_border()
-
-p2 <- ggplot(DT.long2[cluster_distance == "TOM"][measure=="RMSE"][alphaMean==2],
-             aes(x = name, y = value, fill = method)) +
-  geom_boxplot(position = pd) +
-  guides(color = guide_legend(title = "method")) +
-  xlab("model") +
-  ylab("RMSE") +
-  facet_grid(SNR ~ rho, 
-             scales="free", 
-             labeller = labeller(rho = as_labeller(appender1, 
-                                                   default = label_parsed),
-                                 SNR = as_labeller(appender2,default = label_parsed))) +
-  scale_fill_manual(values = group.colors) + 
-  theme(plot.margin = unit(c(6,0,6,0), "pt")) +
-  panel_border()
-
-prow <- plot_grid(p1 + theme(legend.position="none"),
-                  p2 + theme(legend.position="none"),
-                  align = 'hv',
-                  nrow = 2,
-                  labels = c("A", "B"),
-                  hjust = -1)
-
-grobs <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs
-legend_b <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
-
-# add the legend underneath the row we made earlier. Give it 10% of the height
-# of one plot (via rel_heights).
-p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1,.03))
-p
-save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/%s_sim2.png","RMSE"),
-          p, base_aspect_ratio = 1.3, nrow = 2, base_width = 11, base_height = 7)
+for (cdist in c("Correlation","TOM")) {
   
+  p1 <- ggplot(DT.long2[cluster_distance == cdist][measure=="RMSE"][alphaMean==0.5],
+               aes(x = name, y = value, fill = method)) +
+    geom_boxplot(position = pd) +
+    guides(color = guide_legend(title = "method")) +
+    xlab("") +
+    ylab("RMSE") +
+    facet_grid(SNR ~ rho, 
+               scales="free", 
+               labeller = labeller(rho = as_labeller(appender1, 
+                                                     default = label_parsed),
+                                   SNR = as_labeller(appender2,default = label_parsed))) +
+    scale_fill_manual(values = group.colors) + 
+    theme(plot.margin = unit(c(6,0,6,0), "pt")) +
+    panel_border()
+  
+  p2 <- ggplot(DT.long2[cluster_distance == cdist][measure=="RMSE"][alphaMean==2],
+               aes(x = name, y = value, fill = method)) +
+    geom_boxplot(position = pd) +
+    guides(color = guide_legend(title = "method")) +
+    xlab("model") +
+    ylab("RMSE") +
+    facet_grid(SNR ~ rho, 
+               scales="free", 
+               labeller = labeller(rho = as_labeller(appender1, 
+                                                     default = label_parsed),
+                                   SNR = as_labeller(appender2,default = label_parsed))) +
+    scale_fill_manual(values = group.colors) + 
+    theme(plot.margin = unit(c(6,0,6,0), "pt")) +
+    panel_border()
+  
+  prow <- plot_grid(p1 + theme(legend.position="none"),
+                    p2 + theme(legend.position="none"),
+                    align = 'hv',
+                    nrow = 2,
+                    labels = c("A", "B"),
+                    hjust = -1)
+  
+  grobs <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs
+  legend_b <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
+  
+  # add the legend underneath the row we made earlier. Give it 10% of the height
+  # of one plot (via rel_heights).
+  p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1,.03))
+  # p
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/RMSE_%s_sim2.png",cdist),
+            p, base_aspect_ratio = 1.3, nrow = 2, base_width = 11, base_height = 7)
+}
 
 ## ---- jacc-pearson-spearman ----
 
 DT.long2[cluster_distance == "TOM"][measure %in% c("jacc","spearman", "pearson")][alphaMean %in% c(0.5,2)][is.na(value)]
 
-
-for (m in c("jacc","pearson","spearman")) {
-
-  ylabel <- switch(m, 
-                   jacc = "Jaccard Index",
-                   spearman = "Spearman Correlation",
-                   pearson = "Pearson Correlation")
+for (cdist in c("Correlation","TOM")) {
+  for (m in c("jacc","pearson","spearman")) {
     
-  p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure==m][alphaMean==0.5],
+    ylabel <- switch(m, 
+                     jacc = "Jaccard Index",
+                     spearman = "Spearman Correlation",
+                     pearson = "Pearson Correlation")
+    
+    p1 <- ggplot(DT.long2[cluster_distance == cdist][measure==m][alphaMean==0.5],
+                 aes(x = name, y = value, fill = method)) +
+      geom_boxplot(position = pd) +
+      guides(color = guide_legend(title = "method")) +
+      xlab("") +
+      ylab(ylabel) +
+      facet_grid(SNR ~ rho, 
+                 scales="fixed", 
+                 labeller = labeller(rho = as_labeller(appender1, 
+                                                       default = label_parsed),
+                                     SNR = as_labeller(appender2,default = label_parsed))) +
+      scale_fill_manual(values = group.colors) + 
+      # scale_y_continuous(limits = c(0,1)) + 
+      theme(plot.margin = unit(c(6,0,6,0), "pt")) + 
+      panel_border()
+    
+    p2 <- ggplot(DT.long2[cluster_distance == cdist][measure==m][alphaMean==2],
+                 aes(x = name, y = value, fill = method)) +
+      geom_boxplot(position = pd) +
+      guides(color = guide_legend(title = "method")) +
+      xlab("model") +
+      ylab(ylabel) +
+      facet_grid(SNR ~ rho, 
+                 scales="fixed", 
+                 labeller = labeller(rho = as_labeller(appender1, 
+                                                       default = label_parsed),
+                                     SNR = as_labeller(appender2,default = label_parsed))) +
+      scale_fill_manual(values = group.colors) + 
+      # scale_y_continuous(limits = c(0,1)) + 
+      theme(plot.margin = unit(c(6,0,6,0), "pt")) + 
+      panel_border()
+    
+    prow <- plot_grid(p1 + theme(legend.position="none"),
+                      p2 + theme(legend.position="none"),
+                      align = 'vh',
+                      nrow = 2,
+                      labels = c("A", "B"),
+                      hjust = -1)
+    
+    grobs <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs
+    legend_b <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
+    
+    # add the legend underneath the row we made earlier. Give it 10% of the height
+    # of one plot (via rel_heights).
+    p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1, .03))
+    
+    save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/%s_%s_sim2.png",m, cdist),
+              p, base_aspect_ratio = 1.3, nrow = 2, base_width = 11, base_height = 7)
+    
+  } 
+}
+
+## ---- correct-sparsity ----
+
+# ggplot_build(th)$data[[1]]$fill %>% unique()
+# pen color is pinkinsh: "#F8766D"
+# clust color is green: "#00BA38" 
+# eclust color is blue: "#619CFF"
+
+DT.long2[,table(measure)]
+DT.long2[, table(name)]
+DT.long2[,table(cluster_distance, Ecluster_distance)]
+
+for (cdist in c("Correlation","TOM")) {
+  
+  
+  p1 <- ggplot(DT.long2[cluster_distance == cdist][measure=="CorrectSparsity"][alphaMean==0.5][name %ni% c("enet", "lasso")],
                aes(x = name, y = value, fill = method)) +
     geom_boxplot(position = pd) +
     guides(color = guide_legend(title = "method")) +
     xlab("") +
-    ylab(ylabel) +
+    ylab("Correct Sparsity") +
     facet_grid(SNR ~ rho, 
                scales="fixed", 
                labeller = labeller(rho = as_labeller(appender1, 
                                                      default = label_parsed),
                                    SNR = as_labeller(appender2,default = label_parsed))) +
     scale_fill_manual(values = group.colors) + 
-    # scale_y_continuous(limits = c(0,1)) + 
+    scale_y_continuous(limits = c(0,1)) + 
     theme(plot.margin = unit(c(6,0,6,0), "pt")) + 
     panel_border()
   
-  p2 <- ggplot(DT.long2[cluster_distance == "TOM"][measure==m][alphaMean==2],
+  p2 <- ggplot(DT.long2[cluster_distance == cdist][measure=="CorrectSparsity"][alphaMean==2][name %ni% c("enet", "lasso")],
                aes(x = name, y = value, fill = method)) +
     geom_boxplot(position = pd) +
     guides(color = guide_legend(title = "method")) +
     xlab("model") +
-    ylab(ylabel) +
+    ylab("Correct Sparsity") +
     facet_grid(SNR ~ rho, 
                scales="fixed", 
                labeller = labeller(rho = as_labeller(appender1, 
                                                      default = label_parsed),
                                    SNR = as_labeller(appender2,default = label_parsed))) +
     scale_fill_manual(values = group.colors) + 
-    # scale_y_continuous(limits = c(0,1)) + 
+    scale_y_continuous(limits = c(0,1)) + 
     theme(plot.margin = unit(c(6,0,6,0), "pt")) + 
     panel_border()
   
@@ -459,72 +612,7 @@ for (m in c("jacc","pearson","spearman")) {
   # of one plot (via rel_heights).
   p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1, .03))
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/%s_sim2.png",m),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/CorrectSparsity_%s_sim2.png",cdist),
             p, base_aspect_ratio = 1.3, nrow = 2, base_width = 11, base_height = 7)
   
-} 
-
-
-## ---- correct-sparsity ----
-
-# ggplot_build(th)$data[[1]]$fill %>% unique()
-# pen color is pinkinsh: "#F8766D"
-# clust color is green: "#00BA38" 
-# eclust color is blue: "#619CFF"
-
-DT.long2[,table(measure)]
-DT.long2[, table(name)]
-DT.long2[,table(cluster_distance, Ecluster_distance)]
-
-
-
-p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure=="CorrectSparsity"][alphaMean==0.5][name %ni% c("enet", "lasso")],
-             aes(x = name, y = value, fill = method)) +
-  geom_boxplot(position = pd) +
-  guides(color = guide_legend(title = "method")) +
-  xlab("") +
-  ylab("Correct Sparsity") +
-  facet_grid(SNR ~ rho, 
-             scales="fixed", 
-             labeller = labeller(rho = as_labeller(appender1, 
-                                                   default = label_parsed),
-                                 SNR = as_labeller(appender2,default = label_parsed))) +
-  scale_fill_manual(values = group.colors) + 
-  scale_y_continuous(limits = c(0,1)) + 
-  theme(plot.margin = unit(c(6,0,6,0), "pt")) + 
-  panel_border()
-  
-p2 <- ggplot(DT.long2[cluster_distance == "TOM"][measure=="CorrectSparsity"][alphaMean==2][name %ni% c("enet", "lasso")],
-             aes(x = name, y = value, fill = method)) +
-  geom_boxplot(position = pd) +
-  guides(color = guide_legend(title = "method")) +
-  xlab("model") +
-  ylab("Correct Sparsity") +
-  facet_grid(SNR ~ rho, 
-             scales="fixed", 
-             labeller = labeller(rho = as_labeller(appender1, 
-                                                   default = label_parsed),
-                                 SNR = as_labeller(appender2,default = label_parsed))) +
-  scale_fill_manual(values = group.colors) + 
-  scale_y_continuous(limits = c(0,1)) + 
-  theme(plot.margin = unit(c(6,0,6,0), "pt")) + 
-  panel_border()
-
-prow <- plot_grid(p1 + theme(legend.position="none"),
-                  p2 + theme(legend.position="none"),
-                  align = 'vh',
-                  nrow = 2,
-                  labels = c("A", "B"),
-                  hjust = -1)
-
-grobs <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs
-legend_b <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
-
-# add the legend underneath the row we made earlier. Give it 10% of the height
-# of one plot (via rel_heights).
-p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1, .03))
-
-save_plot("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/CorrectSparsity_sim2.png",
-          p, base_aspect_ratio = 1.3, nrow = 2, base_width = 11, base_height = 7)
-
-
+}

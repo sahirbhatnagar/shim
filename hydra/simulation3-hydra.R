@@ -23,8 +23,8 @@ options(digits = 4, scipen = 999)
 # source("/home/bhatnaga/coexpression/august2016simulation/linear/packages.R")
 # source("/home/bhatnaga/coexpression/august2016simulation/linear/functions.R")
 
-# source(paste(Sys.getenv("PBS_O_WORKDIR"),"packages.R", sep="/"))
-# source(paste(Sys.getenv("PBS_O_WORKDIR"),"functions.R", sep="/"))
+source(paste(Sys.getenv("PBS_O_WORKDIR"),"packages.R", sep="/"))
+source(paste(Sys.getenv("PBS_O_WORKDIR"),"functions.R", sep="/"))
 
 parametersDf <- expand.grid(rho = c(0.2,0.90),
                             p = c(1000),
@@ -53,7 +53,7 @@ parametersDf <- parametersDf[which(parametersDf$cluster_distance=="tom" & parame
 nSimScenarios <- nrow(parametersDf)
 parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
-parameterIndex = 5
+# parameterIndex = 5
 simulationParameters <- parametersDf[parameterIndex,, drop = F]
 
 print(simulationParameters)
@@ -196,7 +196,8 @@ result <- generate_data_mars(p = p, X = X, beta = beta,
 # sqrt(crossprod(y-yhat)/length(y))
 
 print("starting MARS with interaction")
-
+library(doMC)
+registerDoMC(cores = 7)
 mars_res <- mapply(mars_fun,
                   model = c("MARS"),
                   MoreArgs = list(x_train = result[["X_train"]],
@@ -577,43 +578,43 @@ write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
 
 
 
-# hingeprod <- function(x1, x2) {
-#   1*(x1 + 1) + 1 * x2
-#   # 10*sin(pi * x*y)
-#   # tan(pmax(x,0) * pmax(y,0))
-#   # 0.1*exp(4*x) + 4/(1+exp(-20*(y-0.5)))
-# }
-# 
-# 
-# linprod <- function(x1, x2) {
-#   1*(x1 + 1)
-#   # 10*sin(pi * x*y)
-#   # tan(pmax(x,0) * pmax(y,0))
-#   # 0.1*exp(4*x) + 4/(1+exp(-20*(y-0.5)))
-# }
-# 
-# outseq <- function(x, y, fun){
-#   x1r <- range(x)
-#   x1seq <- seq(x1r[1], x1r[2], length.out = 25)
-#   x2r <- range(y)
-#   x2seq <- seq(x2r[1], x2r[2], length.out = 25)
-#   return(list(x = x1seq, y = x2seq, z = outer(x1seq, x2seq, fun)))
-# }
-# 
-# 
-# reslin <- outseq(x_main,x_inter, linprod)
-# reshinge <- outseq(x_main,x_inter, hingeprod)
-# 
-# savepdf("~/git_repositories/eclust-simulation-aug2016/sim3-persp-Qi.pdf")
-# par(mfrow=c(1,2))
-# drape.plot(reslin[["y"]], reslin[["x"]], reslin[["z"]], col=colorRampPalette(brewer.pal(9, "Reds"))(100),
-#            horizontal = FALSE, add.legend = F, zlim = range(reshinge[["z"]]), zlim2 = range(reshinge[["z"]]),
-#            theta = 50, phi = 30, expand = 0.75, ltheta = 120,
-#            xlab = "1st PC", ylab = "Qi term", zlab = "Y")#, main = "E = 0")
-# drape.plot(reshinge[["y"]], reshinge[["x"]], reshinge[["z"]], col=colorRampPalette(brewer.pal(9, "Reds"))(100),
-#            horizontal = FALSE, add.legend = F, zlim = range(reshinge[["z"]]), zlim2 = range(reshinge[["z"]]),
-#            theta = 50, expand = 0.75, phi = 30, ltheta = 120,
-#            xlab = "1st PC", ylab = "Qi term", zlab = "Y")#, main = "E = 1")
-# dev.off()
+hingeprod <- function(x1, x2) {
+  1*(x1 + 1) + 1 * x2
+  # 10*sin(pi * x*y)
+  # tan(pmax(x,0) * pmax(y,0))
+  # 0.1*exp(4*x) + 4/(1+exp(-20*(y-0.5)))
+}
+
+
+linprod <- function(x1, x2) {
+  1*(x1 + 1)
+  # 10*sin(pi * x*y)
+  # tan(pmax(x,0) * pmax(y,0))
+  # 0.1*exp(4*x) + 4/(1+exp(-20*(y-0.5)))
+}
+
+outseq <- function(x, y, fun){
+  x1r <- range(x)
+  x1seq <- seq(x1r[1], x1r[2], length.out = 25)
+  x2r <- range(y)
+  x2seq <- seq(x2r[1], x2r[2], length.out = 25)
+  return(list(x = x1seq, y = x2seq, z = outer(x1seq, x2seq, fun)))
+}
+
+
+reslin <- outseq(x_main,x_inter, linprod)
+reshinge <- outseq(x_main,x_inter, hingeprod)
+
+savepdf("~/git_repositories/eclust-simulation-aug2016/sim3-persp-Qi.pdf")
+par(mfrow=c(1,2))
+drape.plot(reslin[["y"]], reslin[["x"]], reslin[["z"]], col=colorRampPalette(brewer.pal(9, "Reds"))(100),
+           horizontal = FALSE, add.legend = F, zlim = range(reshinge[["z"]]), zlim2 = range(reshinge[["z"]]),
+           theta = 50, phi = 30, expand = 0.75, ltheta = 120,
+           xlab = "1st PC", ylab = "f(Q)", zlab = "Y")#, main = "E = 0")
+drape.plot(reshinge[["y"]], reshinge[["x"]], reshinge[["z"]], col=colorRampPalette(brewer.pal(9, "Reds"))(100),
+           horizontal = FALSE, add.legend = F, zlim = range(reshinge[["z"]]), zlim2 = range(reshinge[["z"]]),
+           theta = 50, expand = 0.75, phi = 30, ltheta = 120,
+           xlab = "1st PC", ylab = "f(Q)", zlab = "Y")#, main = "E = 1")
+dev.off()
 
 

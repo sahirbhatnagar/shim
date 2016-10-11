@@ -36,7 +36,7 @@ DT.long$cluster_distance %>% table
 DT.long$Ecluster_distance %>% table
 
 
-DT.long[, `:=`(method = factor(method, levels = c("pen", "clust", "Eclust"), labels = c("original", "clust", "ECLUST")))]
+DT.long[, `:=`(method = factor(method, levels = c("pen", "clust", "Eclust"), labels = c("SEPARATE", "CLUST", "ECLUST")))]
 DT.long[, `:=`(cluster_distance = factor(cluster_distance, levels = c("corr","tom"), labels = c("Correlation", "TOM")))]
 
 DT.long[, table(measure)]
@@ -127,10 +127,10 @@ DT.long2[measure=="RMSE"][,boxplot(value)]
 
 #ggsave(paste(Sys.getenv("HOME"),"eclust/simulation/simulation1/plots/TPR_vs_Shat.png", sep = "/"))
 
-## ---- tpr-vs-fpr ----
+## ---- tpr-vs-fpr-corr-vs-tom ----
 
 pd <- position_dodge(width = 1)
-group.colors <- c(original = "#F8766D", clust = "#00BA38" , ECLUST = "#619CFF")
+group.colors <- c(SEPARATE = "#F8766D", CLUST = "#00BA38" , ECLUST = "#619CFF")
 appender1 <- function(string) TeX(paste("$\\rho = $", string))
 appender2 <- function(string) TeX(paste("$SNR = $", string))
 scaleFUN <- function(x) sprintf("%g", x)
@@ -236,10 +236,57 @@ save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/fi
           p, base_aspect_ratio = 1.2, ncol = 2, nrow = 2, base_height = 5)
 
 
+## ---- tpr-vs-fpr-tom-only ----
+
+pd <- position_dodge(width = 1)
+group.colors <- c(SEPARATE = "#F8766D", CLUST = "#00BA38" , ECLUST = "#619CFF")
+appender1 <- function(string) TeX(paste("$\\rho = $", string))
+appender2 <- function(string) TeX(paste("$SNR = $", string))
+scaleFUN <- function(x) sprintf("%g", x)
+
+tpr_fpr <- copy(DT.long[measure %in% c("TPR","FPR")]) 
+
+tpr_fpr <- tpr_fpr %>%
+  tidyr::spread(measure, value) %>%
+  tidyr::unite(name, summary, model)
+
+tpr_fpr[, str(method)]
+tpr_fpr[, str(name)]
+data.table::setnames(tpr_fpr, "name", "model")
+
+tpr_fpr[, `:=`(model = factor(model, levels = c("na_lasso","avg_lasso", "pc_lasso",
+                                                "na_elasticnet", "avg_elasticnet", "pc_elasticnet"),
+                              labels = c("lasso", "avg_lasso", "pc_lasso", 
+                                         "elasticnet", "avg_elasticnet", "pc_elasticnet")))]
+
+for (cdist in c("Correlation","TOM")) {
+  
+  p1 <- ggplot(tpr_fpr[cluster_distance==cdist],
+               aes(x = FPR, y = TPR, color = method)) +
+    geom_point(size = 2.5, aes(shape = model)) +
+    ylab("True positive rate") +
+    xlab("False positive rate") + 
+    facet_grid(SNR ~ rho, 
+               scales = "fixed", 
+               labeller = labeller(rho = as_labeller(appender1, 
+                                                     default = label_parsed),
+                                   SNR = as_labeller(appender2,default = label_parsed))) +
+    scale_fill_manual(values = group.colors) + 
+    theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position = "bottom") +
+    scale_x_continuous(labels=scaleFUN) + 
+    scale_y_continuous(labels=scaleFUN) +
+    panel_border()
+  
+  
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/tpr_fpr_%s_sim1.png",cdist),
+            p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
+  
+}
+
 ## ---- mse ----
 
 pd <- position_dodge(width = 1)
-group.colors <- c(original = "#F8766D", clust = "#00BA38" , ECLUST = "#619CFF")
+group.colors <- c(SEPARATE = "#F8766D", CLUST = "#00BA38" , ECLUST = "#619CFF")
 appender1 <- function(string) TeX(paste("$\\rho = $", string))
 appender2 <- function(string) TeX(paste("$SNR = $", string))
 
@@ -277,58 +324,62 @@ DT.long2[,table(method)]
 DT.long2[,table(name)]
 DT.long2[,table(cluster_distance, Ecluster_distance)]
 
-p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure=="RMSE"],
-             aes(x = name, y = value, fill = method)) +
-  geom_boxplot(position = pd) +
-  guides(color = guide_legend(title = "method")) +
-  xlab("") +
-  ylab("RMSE") +
-  facet_grid(SNR ~ rho, 
-             scales="free", 
-             labeller = labeller(rho = as_labeller(appender1, 
-                                                   default = label_parsed),
-                                 SNR = as_labeller(appender2,default = label_parsed))) +
-  scale_fill_manual(values = group.colors) + 
-  theme(plot.margin = unit(c(6,0,6,0), "pt"),legend.position="bottom") +
-  panel_border()
+for (cdist in c("Correlation","TOM")) {
+  
+  p1 <- ggplot(DT.long2[cluster_distance == cdist][measure=="RMSE"],
+               aes(x = name, y = value, fill = method)) +
+    geom_boxplot(position = pd) +
+    guides(color = guide_legend(title = "method")) +
+    xlab("") +
+    ylab("RMSE") +
+    facet_grid(SNR ~ rho, 
+               scales="free", 
+               labeller = labeller(rho = as_labeller(appender1, 
+                                                     default = label_parsed),
+                                   SNR = as_labeller(appender2,default = label_parsed))) +
+    scale_fill_manual(values = group.colors) + 
+    theme(plot.margin = unit(c(6,0,6,0), "pt"),legend.position="bottom") +
+    panel_border()
 
-save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/%s_sim1.png","RMSE"),
-          p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/RMSE_%s_sim1.png",cdist),
+            p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
 
+}
 
 ## ---- jacc-pearson-spearman ----
 
 DT.long2[cluster_distance == "TOM"][measure %in% c("jacc","spearman", "pearson")][is.na(value)]
 DT.long2[,table(alphaMean)]
 
-for (m in c("jacc","pearson","spearman")) {
-  
-  ylabel <- switch(m, 
-                   jacc = "Jaccard Index",
-                   spearman = "Spearman Correlation",
-                   pearson = "Pearson Correlation")
-  
-  p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure==m],
-               aes(x = name, y = value, fill = method)) +
-    geom_boxplot(position = pd) +
-    guides(color = guide_legend(title = "method")) +
-    xlab("") +
-    ylab(ylabel) +
-    facet_grid(SNR ~ rho, 
-               scales="fixed", 
-               labeller = labeller(rho = as_labeller(appender1, 
-                                                     default = label_parsed),
-                                   SNR = as_labeller(appender2,default = label_parsed))) +
-    scale_fill_manual(values = group.colors) + 
-    # scale_y_continuous(limits = c(0,1)) + 
-    theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
-    panel_border()
-
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/%s_sim1.png",m),
-            p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
-  
-} 
-
+for (cdist in c("Correlation","TOM")) {
+  for (m in c("jacc","pearson","spearman")) {
+    
+    ylabel <- switch(m, 
+                     jacc = "Jaccard Index",
+                     spearman = "Spearman Correlation",
+                     pearson = "Pearson Correlation")
+    
+    p1 <- ggplot(DT.long2[cluster_distance == cdist][measure==m],
+                 aes(x = name, y = value, fill = method)) +
+      geom_boxplot(position = pd) +
+      guides(color = guide_legend(title = "method")) +
+      xlab("") +
+      ylab(ylabel) +
+      facet_grid(SNR ~ rho, 
+                 scales="fixed", 
+                 labeller = labeller(rho = as_labeller(appender1, 
+                                                       default = label_parsed),
+                                     SNR = as_labeller(appender2,default = label_parsed))) +
+      scale_fill_manual(values = group.colors) + 
+      # scale_y_continuous(limits = c(0,1)) + 
+      theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
+      panel_border()
+    
+    save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/%s_%s_sim1.png",m,cdist),
+              p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
+    
+  } 
+}
 
 ## ---- correct-sparsity ----
 
@@ -342,24 +393,24 @@ DT.long2[, table(name)]
 DT.long2[,table(cluster_distance, Ecluster_distance)]
 
 
-
-p1 <- ggplot(DT.long2[cluster_distance == "TOM"][measure=="CorrectSparsity"][name %ni% c("enet", "lasso")],
-             aes(x = name, y = value, fill = method)) +
-  geom_boxplot(position = pd) +
-  guides(color = guide_legend(title = "method")) +
-  xlab("") +
-  ylab("Correct Sparsity") +
-  facet_grid(SNR ~ rho, 
-             scales="fixed", 
-             labeller = labeller(rho = as_labeller(appender1, 
-                                                   default = label_parsed),
-                                 SNR = as_labeller(appender2,default = label_parsed))) +
-  scale_fill_manual(values = group.colors) + 
-  scale_y_continuous(limits = c(0,1)) + 
-  theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
-  panel_border()
-
-save_plot("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/CorrectSparsity_sim1.png",
-          p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
-
-
+for (cdist in c("Correlation","TOM")) {
+  p1 <- ggplot(DT.long2[cluster_distance == cdist][measure=="CorrectSparsity"][name %ni% c("enet", "lasso")],
+               aes(x = name, y = value, fill = method)) +
+    geom_boxplot(position = pd) +
+    guides(color = guide_legend(title = "method")) +
+    xlab("") +
+    ylab("Correct Sparsity") +
+    facet_grid(SNR ~ rho, 
+               scales="fixed", 
+               labeller = labeller(rho = as_labeller(appender1, 
+                                                     default = label_parsed),
+                                   SNR = as_labeller(appender2,default = label_parsed))) +
+    scale_fill_manual(values = group.colors) + 
+    scale_y_continuous(limits = c(0,1)) + 
+    theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
+    panel_border()
+  
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/CorrectSparsity_%s_sim1.png",cdist),
+            p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
+  
+}

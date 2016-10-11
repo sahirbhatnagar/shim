@@ -2125,14 +2125,14 @@ mars_fun <- function(x_train,
                         fitControl <-  trainControl(method = "cv",
                                                     # number = 25,
                                                     # repeats = 3,
-                                                    verboseIter = TRUE)
+                                                    verboseIter = FALSE)
                         
                         marsGrid <- expand.grid(.degree = 1:2, .nprune = 1000)
 
                         mars_tuned <- train(as.matrix(x_train),
                                             y_train,
                                             method = "earth",
-                                            trace = 4, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                                            trace = 1, nk = 1000, keepxy = TRUE, pmethod = "backward",
                                             tuneGrid = marsGrid,
                                             trControl = fitControl)
                         
@@ -2387,14 +2387,14 @@ mars_clust_fun <- function(x_train,
                                 fitControl <-  trainControl(method = "cv",
                                                             # number = 25,
                                                             # repeats = 3,
-                                                            verboseIter = TRUE)
+                                                            verboseIter = FALSE)
                                 
                                 marsGrid <- expand.grid(.degree = 1:2, .nprune = 1000)
                                 
                                 mars_tuned <- train(X.model.formula,
                                                     y_train,
                                                     method = "earth",
-                                                    trace = 4, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                                                    trace = 1, nk = 1000, keepxy = TRUE, pmethod = "backward",
                                                     tuneGrid = marsGrid,
                                                     trControl = fitControl)
                                 
