@@ -17,12 +17,15 @@ options(digits = 2, scipen=999)
 #source(paste(Sys.getenv("HOME"),"eclust/bin/simulation/sim_functions.R", sep = "/"))
 
 # col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_nostab_nouni", header = F)$V1
-col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim2-sept8.txt", header = F)$V1
+# col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim2-sept8.txt", header = F)$V1
+col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim2-oct12.txt", header = F)$V1
 
 # DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim-hydra-results-p3000-no-stability", stringsAsFactors = FALSE) %>%
 #   setnames(col.names)
 
-DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim2-hydra-results-p5000-sept8", stringsAsFactors = FALSE) %>%
+# DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim2-hydra-results-p5000-sept8", stringsAsFactors = FALSE) %>%
+#   setnames(col.names)
+DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim2-hydra-results-p5000-oct12", stringsAsFactors = FALSE) %>%
   setnames(col.names)
 
 DT[, `:=`(simulation = 1:nrow(DT))]
@@ -30,9 +33,21 @@ DT[, `:=`(simulation = 1:nrow(DT))]
 # this still has all the raw data, but melted
 options(warning.length = 8170)
 DT.long <- DT %>%
-  reshape2::melt(id.vars = c("simulation",colnames(DT)[1:20])) %>%
+  reshape2::melt(id.vars = c("simulation",colnames(DT)[c(1:20,159,160)])) %>%
   tidyr::separate(variable, c("method", "summary", "model", "interaction", "measure"), convert = T) %>%
   as.data.table
+
+DT.long.rand <- DT[, c("simulation",col.names[c(1:20,159,160)]), with = F] %>%
+  reshape2::melt(id.vars = c("simulation",colnames(DT)[c(1:20)])) %>%
+  as.data.table 
+
+
+yarrr::pirateplot(value ~ cluster_distance+variable, DT.long.rand)
+
+ggplot(DT.long.rand,
+       aes(x = variable, y = value, fill = cluster_distance)) +
+  geom_boxplot() 
+
 
 
 DT.long$method %>% table
@@ -389,7 +404,7 @@ for (cdist in c("Correlation","TOM")) {
   # p
   # p <- prow + draw_grob(legend_b, 0.3, -0.25)
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/tpr_fpr_%s_sim2.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-oct12/tpr_fpr_%s_sim2.png",cdist),
             p, base_aspect_ratio = 1.2, ncol = 2, nrow = 2, base_height = 5)
   
 }
@@ -484,7 +499,7 @@ for (cdist in c("Correlation","TOM")) {
   # of one plot (via rel_heights).
   p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1,.03))
   # p
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/RMSE_%s_sim2.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-oct12/RMSE_%s_sim2.png",cdist),
             p, base_aspect_ratio = 1.3, nrow = 2, base_width = 11, base_height = 7)
 }
 
@@ -546,7 +561,7 @@ for (cdist in c("Correlation","TOM")) {
     # of one plot (via rel_heights).
     p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1, .03))
     
-    save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/%s_%s_sim2.png",m, cdist),
+    save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-oct12/%s_%s_sim2.png",m, cdist),
               p, base_aspect_ratio = 1.3, nrow = 2, base_width = 11, base_height = 7)
     
   } 
@@ -612,7 +627,7 @@ for (cdist in c("Correlation","TOM")) {
   # of one plot (via rel_heights).
   p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1, .03))
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-sept8/CorrectSparsity_%s_sim2.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim2-oct12/CorrectSparsity_%s_sim2.png",cdist),
             p, base_aspect_ratio = 1.3, nrow = 2, base_width = 11, base_height = 7)
   
 }

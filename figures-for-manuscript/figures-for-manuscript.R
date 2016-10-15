@@ -40,7 +40,8 @@ parametersDf <- expand.grid(rho = c(0.2,0.90),
                             clustMethod = "hclust",
                             #cutMethod = "gap",
                             cutMethod = "dynamic",
-                            agglomerationMethod = "average",
+                            # agglomerationMethod = "average",
+                            agglomerationMethod = "ward.D2",
                             K.max = 10, B = 10, stringsAsFactors = FALSE)
 
 parametersDf <- transform(parametersDf, n0 = n/2, nActive = p*0.05)
@@ -48,7 +49,7 @@ parametersDf <- parametersDf[which(parametersDf$cluster_distance=="tom" & parame
                                      parametersDf$cluster_distance=="corr" & parametersDf$Ecluster_distance=="diffcorr"),]
 # parameterIndex <- as.numeric(as.character(commandArgs(trailingOnly = T)[1]))
 
-parameterIndex = 2
+parameterIndex = 3
 simulationParameters <- parametersDf[parameterIndex,, drop = F]
 
 print(simulationParameters)
@@ -139,6 +140,37 @@ beta <- c(betaMainEffect,
           betaE,
           betaMainInteractions)
 
+
+result <- generate_data(p = p, X = X, 
+                        beta = beta, include_interaction = includeInteraction,
+                        cluster_distance = cluster_distance,
+                        n = n, n0 = n0, 
+                        eclust_distance = Ecluster_distance,
+                        signal_to_noise_ratio = SNR,
+                        distance_method = distanceMethod,
+                        cluster_method = clustMethod,
+                        cut_method = cutMethod,
+                        agglomeration_method = agglomerationMethod,
+                        K.max = K.max, B = B, nPC = 1)
+
+
+(randAll <- WGCNA::randIndex(table(result$clustersAll$cluster,truemodule1), adjust = F))
+(randDiff <- WGCNA::randIndex(table(result$clustersEclust$cluster,truemodule1), adjust = F))
+
+(randAll_adjust <- WGCNA::randIndex(table(result$clustersAll$cluster,truemodule1), adjust = T))
+(randDiff_adjust <- WGCNA::randIndex(table(result$clustersEclust$cluster,truemodule1), adjust = T))
+
+(randAllTrue <- WGCNA::randIndex(table(result$clustersAll$cluster[which(betaMainEffect!=0)],truemodule1[which(betaMainEffect!=0)]), adjust = F))
+(randDiffTrue <- WGCNA::randIndex(table(result$clustersEclust$cluster[which(betaMainEffect!=0)],truemodule1[which(betaMainEffect!=0)]), adjust = F))
+
+(randAllTrue_adjust <- WGCNA::randIndex(table(result$clustersAll$cluster[which(betaMainEffect!=0)],truemodule1[which(betaMainEffect!=0)]), adjust = T))
+(randDiffTrue_adjust <- WGCNA::randIndex(table(result$clustersEclust$cluster[which(betaMainEffect!=0)],truemodule1[which(betaMainEffect!=0)]), adjust = T))
+
+
+
+
+
+
 #plot(beta)
 X0 <- X[paste0("Subject",1:n0),]
 X1 <- X[paste0("Subject",(n0+1):n),]
@@ -202,7 +234,7 @@ fig.res <- 100
 path <- ""
 
 ## ---- heat-corr-all ----
-hc <- hclust(as.dist(1 - corrX), method = "average")
+hc <- hclust(as.dist(1 - corrX), method = agglomerationMethod)
 png(paste0(path, "figures-for-manuscript/corr_all.png"), width = fig.w, height = fig.h, res = fig.res)
 plot(corrX, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc,
      active = as.numeric(betaMainEffect!=0))
@@ -213,7 +245,7 @@ dev.off()
 # pheatmap(X1, color = viridis(100))
 
 ## ---- heat-corr-e0 ----
-hc <- hclust(as.dist(1 - corrX0), method = "average")
+hc <- hclust(as.dist(1 - corrX0), method = agglomerationMethod)
 png(paste0(path, "figures-for-manuscript/corr_e0.png"), width = fig.w, height = fig.h, res = fig.res)
 plot(corrX0, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc,
      active = as.numeric(betaMainEffect!=0))
@@ -221,7 +253,7 @@ dev.off()
 
 
 ## ---- heat-corr-e1 ----
-hc <- hclust(as.dist(1 - corrX1), method = "average")
+hc <- hclust(as.dist(1 - corrX1), method = agglomerationMethod)
 png(paste0(path, "figures-for-manuscript/corr_e1.png"), width = fig.w, height = fig.h, res = fig.res)
 plot(corrX1, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc,
      active = as.numeric(betaMainEffect!=0))
@@ -236,7 +268,7 @@ dev.off()
 ## ---- heat-corr-diff ----
 png(paste0(path, "figures-for-manuscript/corr_diff.png"), width = fig.w, height = fig.h, res = fig.res)
 plot(diffCorr, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
-     clustering_method = "average",
+     clustering_method = agglomerationMethod,
      clustering_distance_rows = dist(diffCorr),
      clustering_distance_cols = dist(diffCorr),
      active = as.numeric(betaMainEffect!=0))
@@ -244,7 +276,7 @@ dev.off()
 
 
 ## ---- heat-tom-all ----
-hc <- hclust(as.dist(1 - TOMX), method = "average")
+hc <- hclust(as.dist(1 - TOMX), method = agglomerationMethod)
 png(paste0(path, "figures-for-manuscript/tom_all.png"), width = fig.w, height = fig.h, res = fig.res)
 plot(TOMX, truemodule = truemodule1, cluster_rows = hc, cluster_cols = hc,
      active = as.numeric(betaMainEffect!=0))
@@ -266,10 +298,10 @@ dev.off()
 
 
 ## ---- heat-tom-diff ----
-hc <- hclust(as.dist(diffTOM), method = "average")
+# hc <- hclust(as.dist(diffTOM), method = agglomerationMethod)
 png(paste0(path, "figures-for-manuscript/tom_diff.png"), width = fig.w, height = fig.h, res = fig.res)
 plot(diffTOM, truemodule = truemodule1, cluster_rows = T, cluster_cols = T,
-     clustering_method = "average",
+     clustering_method = agglomerationMethod,
      clustering_distance_rows = dist(diffTOM),
      clustering_distance_cols = dist(diffTOM),
      active = as.numeric(betaMainEffect!=0))

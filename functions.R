@@ -495,9 +495,12 @@ clusterSimilarity <- function(x,
   cutMethod <- match.arg(cutMethod)
   clustMethod <- match.arg(clustMethod)
   
+  # distance <- if (missing(distanceMethod)) {
+  #   if (method=="ward.D") as.dist(1 - x)^2 else as.dist(1 - x)
+  # } else if (method=="ward.D") dist(x = x, method = distanceMethod)^2 else dist(x = x, method = distanceMethod)
+  
   distance <- if (missing(distanceMethod)) {
-    as.dist(1 - x)
-  } else dist(x = x, method = distanceMethod)
+    as.dist(1 - x) } else dist(x = x, method = distanceMethod)
   
   hc <- switch(clustMethod,
                hclust = {
@@ -673,7 +676,7 @@ clusterSimilarity <- function(x,
 
 #' @rdname simulated_data
 #' @export
-sim_data <- function(n , n0 , p , genes,
+sim_data <- function(n , n0 , p , genes, binary_outcome = FALSE,
                      E, signal_to_noise_ratio = 1,
                      include_interaction = F,
                      beta = NULL) {
@@ -687,10 +690,11 @@ sim_data <- function(n , n0 , p , genes,
   # beta <- (-1)^{1:p} * exp(-(2*1:p-1)/100)
   # beta <- (-1)^{1:p} * exp(-(2*1:p - 1 )/600)*sin(1:p)
 
-  #   genes = X
-  #   signal_to_noise_ratio = 4
-  #   n0 = n1 = 100
-  #   E = c(rep(0,n0),rep(1, n1))
+    # genes = X
+    # signal_to_noise_ratio = 4
+    # n0 = n1 = 100
+    # E = c(rep(0,n0),rep(1, n1))
+    # binary_outcome=TRUE
   #   beta = c(rnorm(1000),0, rep(0,1000));include_interaction = T
   #   beta = c(rnorm(1000));include_interaction = F
 
@@ -712,11 +716,19 @@ sim_data <- function(n , n0 , p , genes,
 
   y <- y.star + k*error
 
-  result <- if (include_interaction) as.matrix(cbind(y,DT)) else as.matrix(cbind(y,DT))
-  colnames(result)[1] <- "Y"
-  class(result) <- append(class(result), "expression")
-
-  return(result)
+  if (binary_outcome) {
+    prob <- 1/(1+exp(-y))
+    z <- rbinom(nrow(prob),1,prob)
+    result <- if (include_interaction) as.matrix(cbind(z,DT)) else as.matrix(cbind(z,DT))
+    colnames(result)[1] <- "Y"
+    class(result) <- append(class(result), "expression")
+    return(result) 
+    } else {
+    result <- if (include_interaction) as.matrix(cbind(y,DT)) else as.matrix(cbind(y,DT))
+    colnames(result)[1] <- "Y"
+    class(result) <- append(class(result), "expression")
+    return(result) 
+  }
 }
 
 
@@ -788,7 +800,7 @@ sim_data <- function(n , n0 , p , genes,
 #' @rdname simulated_data
 #' @export
 
-generate_data <- function(p, X, beta,
+generate_data <- function(p, X, beta, binary_outcome = FALSE, 
                           cluster_distance = c("corr", "corr0", "corr1", "tom",
                                                "tom0", "tom1", "diffcorr",
                                                "difftom","corScor", "tomScor",
@@ -816,8 +828,8 @@ generate_data <- function(p, X, beta,
   # cluster_method = "hclust" ; cut_method = "dynamic";agglomeration_method="complete";
   # distance_method = "euclidean"
   # eclust_distance = "diffcorr"; nPC = 1
-  
-  
+  # binary_outcome = TRUE
+
   agglomeration_method <- match.arg(agglomeration_method)
   cut_method <- match.arg(cut_method)
   cluster_method <- match.arg(cluster_method)
@@ -843,7 +855,8 @@ generate_data <- function(p, X, beta,
   
   message("Creating data and simulating response")
   
-  DT <- as.data.frame(sim_data(n = n, n0 = n0, p = p, genes = X,
+  DT <- as.data.frame(sim_data(n = n, n0 = n0, p = p, genes = X, 
+                               binary_outcome = binary_outcome,
                                include_interaction = include_interaction,
                                E = c(rep(0,n0), rep(1, n1)),
                                beta = beta,
@@ -884,19 +897,21 @@ generate_data <- function(p, X, beta,
   corr_train_diff <- abs(corr_train_e1 - corr_train_e0)
   corr_train_all <- WGCNA::cor(genes_all)
   
-  tom_train_e0 <- WGCNA::TOMsimilarityFromExpr(genes_e0)
+  tom_train_e0 <- WGCNA::TOMsimilarityFromExpr(genes_e0)#, TOMType = "signed", networkType = "signed")
   dimnames(tom_train_e0)[[1]] <- dimnames(corr_train_all)[[1]]
   dimnames(tom_train_e0)[[2]] <- dimnames(corr_train_all)[[2]]
   
-  tom_train_e1 <- WGCNA::TOMsimilarityFromExpr(genes_e1)
+  tom_train_e1 <- WGCNA::TOMsimilarityFromExpr(genes_e1)#, TOMType = "signed", networkType = "signed")
   dimnames(tom_train_e1)[[1]] <- dimnames(corr_train_all)[[1]]
   dimnames(tom_train_e1)[[2]] <- dimnames(corr_train_all)[[2]]
   
   tom_train_diff <- abs(tom_train_e1 - tom_train_e0)
+  # tom_train_diff <- tom_train_e1 - tom_train_e0
+  
   dimnames(tom_train_diff)[[1]] <- dimnames(corr_train_all)[[1]]
   dimnames(tom_train_diff)[[2]] <- dimnames(corr_train_all)[[2]]
   
-  tom_train_all <- WGCNA::TOMsimilarityFromExpr(genes_all)
+  tom_train_all <- WGCNA::TOMsimilarityFromExpr(genes_all)#, TOMType = "signed", networkType = "signed")
   dimnames(tom_train_all)[[1]] <- dimnames(corr_train_all)[[1]]
   dimnames(tom_train_all)[[2]] <- dimnames(corr_train_all)[[2]]
   
@@ -1258,6 +1273,7 @@ clust_fun <- function(x_train,
                       s0,
                       summary = c("pc","avg"),
                       model = c("lm", "lasso", "scad", "mcp", "elasticnet", "shim"),
+                      expFamily = c("gaussian","binomial"),
                       gene_groups,
                       true_beta = NULL,
                       topgenes = NULL,
@@ -1280,10 +1296,12 @@ clust_fun <- function(x_train,
   # filter = F; filter_var = F; include_E = T; include_interaction = F;
   # s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
   # model = "lasso"; summary = "pc"; topgenes = NULL; clust_type="clust"; nPC = 1
+  # expFamily="binomial"
 
   clust_type <- match.arg(clust_type)
   summary <- match.arg(summary)
   model <- match.arg(model)
+  expFamily <- match.arg(expFamily)
 
   message(sprintf("Summary measure: %s, Model: %s, Cluster Type: %s",
                   summary, model, clust_type))
@@ -1361,10 +1379,10 @@ clust_fun <- function(x_train,
   clust_train_model <- switch(model,
                               lm = lm(ml.formula , data = df),
                               lasso = {if (n.clusters != 1) {
-                                cv.glmnet(x = X.model.formula, y = y_train, alpha = 1)
+                                cv.glmnet(x = X.model.formula, y = y_train, alpha = 1, family = expFamily)
                               } else NA },
                               elasticnet = {if (n.clusters != 1) {
-                                cv.glmnet(x = X.model.formula, y = y_train, alpha = 0.5)
+                                cv.glmnet(x = X.model.formula, y = y_train, alpha = 0.5, family = expFamily)
                               } else NA },
                               scad = {
                                 cv.ncvreg(X = X.model.formula, y = y_train,
@@ -1577,6 +1595,15 @@ clust_fun <- function(x_train,
     # Mean Squared Error
     (clust.mse <- crossprod(X.model.formula_test %*% coefs$coef.est - y_test)/length(y_test))
     
+    
+    if (expFamily == "binomial") {
+      pred_response <- predict(clust_train_model, newx = X.model.formula_test[,-which(colnames(X.model.formula_test)=="(Intercept)")], 
+            type = "response", s = "lambda.min")
+    
+      clust.AUC <- pROC::roc(y_test,as.numeric(pred_response))$auc %>% as.numeric()
+      
+      }
+    
     # Root Mean Squared Error
     (clust.RMSE <- sqrt(crossprod(X.model.formula_test %*% coefs$coef.est - y_test)/length(y_test)))
     
@@ -1593,35 +1620,63 @@ clust_fun <- function(x_train,
     # clust.adj.r2 <- 1 - (1 - clust.r2)*(nrow(x_test) - 1)/(nrow(x_test) - n.non_zero_clusters - 1)
 
 
-    ls <- list(clust.mse = clust.mse,
-               clust.RMSE,
-               # clust.r2 = clust.r2,
-               # clust.adj.r2 = clust.adj.r2, 
-               clust.S.hat = length(clust.S.hat),
-               clust.TPR = clust.TPR, 
-               clust.FPR = clust.FPR, 
-               clust.correct_sparsity = clust.correct_sparsity,
-               clust.correct_zeros_main_effects, 
-               clust.correct_zeros_interaction_effects,
-               clust.incorrect_zeros_main_effects, 
-               clust.incorrect_zeros_interaction_effects,
-               n.clusters)
-
-
-    names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
-                   # paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
-                   # paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_nclusters")
-                   )
+    ls <- if (expFamily=="binomial") {
+      list(clust.mse = clust.mse,
+           clust.RMSE,
+           clust.AUC = clust.AUC,  
+           clust.S.hat = length(clust.S.hat),
+           clust.TPR = clust.TPR, 
+           clust.FPR = clust.FPR, 
+           clust.correct_sparsity = clust.correct_sparsity,
+           clust.correct_zeros_main_effects, 
+           clust.correct_zeros_interaction_effects,
+           clust.incorrect_zeros_main_effects, 
+           clust.incorrect_zeros_interaction_effects,
+           n.clusters) } else if (expFamily=="gaussian") {
+             list(clust.mse = clust.mse,
+                  clust.RMSE,
+                  clust.S.hat = length(clust.S.hat),
+                  clust.TPR = clust.TPR, 
+                  clust.FPR = clust.FPR, 
+                  clust.correct_sparsity = clust.correct_sparsity,
+                  clust.correct_zeros_main_effects, 
+                  clust.correct_zeros_interaction_effects,
+                  clust.incorrect_zeros_main_effects, 
+                  clust.incorrect_zeros_interaction_effects,
+                  n.clusters)
+           }
+    
+    if (expFamily=="binomial") {
+      
+      names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_AUC"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_nclusters")
+      )
+      
+    } else if (expFamily=="gaussian") {
+      names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"),
+                     paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_nclusters")
+      )
+    }
+    
     return(ls)
 
   }
@@ -1632,6 +1687,7 @@ pen_fun <- function(x_train,
                     x_test,
                     y_train,
                     y_test,
+                    expFamily = c("gaussian","binomial"),
                     s0,
                     model,
                     true_beta,
@@ -1667,7 +1723,8 @@ pen_fun <- function(x_train,
 
   # model: "scad", "mcp", "lasso", "elasticnet", "ridge"
   # filter: T or F based on univariate filter
-
+  expFamily <- match.arg(expFamily)
+  
   print(paste(model,"filter = ", filter, "filter_var = ",filter_var, "include_E = ", include_E, "include_interaction = ", include_interaction, sep = " "))
 
   if (include_E == F & include_interaction == T) stop("include_E needs to be
@@ -1687,11 +1744,11 @@ pen_fun <- function(x_train,
   # penalization model
   pen_model <- switch(model,
                       lasso = glmnet::cv.glmnet(x = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
-                        as.matrix(x_train), y = y_train, alpha = 1),
+                        as.matrix(x_train), y = y_train, alpha = 1, family = expFamily),
                       elasticnet = glmnet::cv.glmnet(x = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
-                        as.matrix(x_train), y = y_train, alpha = 0.5),
+                        as.matrix(x_train), y = y_train, alpha = 0.5, family = expFamily),
                       ridge = glmnet::cv.glmnet(x = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
-                        as.matrix(x_train), y = y_train, alpha = 0),
+                        as.matrix(x_train), y = y_train, alpha = 0, family = expFamily),
                       scad = ncvreg::cv.ncvreg(X = if (!include_E) as.matrix(x_train[,-grep("E", colnames(x_train))]) else
                         as.matrix(x_train), y = y_train,
                         family = "gaussian", penalty = "SCAD"),
@@ -1793,6 +1850,13 @@ pen_fun <- function(x_train,
     # mse.null
     mse_null <- crossprod(mean(y_test) - y_test)/length(y_test)
 
+    if (expFamily == "binomial") {
+      pred_response <- predict(pen_model, newx =  if (!include_E) as.matrix(x_test[,-grep("E", colnames(x_test))]) else
+        as.matrix(x_test), s = "lambda.min", type = "response")
+      
+      pen.AUC <- pROC::roc(y_test,as.numeric(pred_response))$auc %>% as.numeric()
+      
+    }
     # sqrt(mse_null)
     
     # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
@@ -1804,33 +1868,65 @@ pen_fun <- function(x_train,
     # identical(true_beta %>% rownames(),coefs[["Gene"]])
     # pen.model.error <- {(true_beta - coefs[["coef.est"]]) %>% t} %*% WGCNA::cor(x_test[,coefs[["Gene"]]]) %*% (true_beta - coefs[["coef.est"]])
 
-    ls <- list(pen.mse = as.numeric(pen.mse),
-               pen.RMSE = as.numeric(pen.RMSE),
-               # pen.r2 = as.numeric(pen.r2),
-               # pen.adj.r2 = as.numeric(pen.adj.r2), 
-               pen.S.hat = length(pen.S.hat),
-               pen.TPR = pen.TPR, 
-               pen.FPR = pen.FPR, 
-               # pen.relative.mse = pen.mse/pen.mse.oracle, 
-               # pen.model.error = pen.model.error,
-               correct_sparsity,
-               pen.correct_zeros_main_effects,
-               pen.correct_zeros_interaction_effects,
-               pen.incorrect_zeros_main_effects,
-               pen.incorrect_zeros_interaction_effects
-               )
-    names(ls) <- c(paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
-                   # paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
-                   # paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
-                   paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
+    
+    ls <- if (expFamily == "binomial") {
+      list(pen.mse = as.numeric(pen.mse),
+           pen.RMSE = as.numeric(pen.RMSE),
+           pen.AUC = pen.AUC,
+           pen.S.hat = length(pen.S.hat),
+           pen.TPR = pen.TPR, 
+           pen.FPR = pen.FPR, 
+           correct_sparsity,
+           pen.correct_zeros_main_effects,
+           pen.correct_zeros_interaction_effects,
+           pen.incorrect_zeros_main_effects,
+           pen.incorrect_zeros_interaction_effects
+      ) } else if (expFamily=="gaussian") {
+        
+        list(pen.mse = as.numeric(pen.mse),
+             pen.RMSE = as.numeric(pen.RMSE),
+             # pen.r2 = as.numeric(pen.r2),
+             # pen.adj.r2 = as.numeric(pen.adj.r2), 
+             pen.S.hat = length(pen.S.hat),
+             pen.TPR = pen.TPR, 
+             pen.FPR = pen.FPR, 
+             # pen.relative.mse = pen.mse/pen.mse.oracle, 
+             # pen.model.error = pen.model.error,
+             correct_sparsity,
+             pen.correct_zeros_main_effects,
+             pen.correct_zeros_interaction_effects,
+             pen.incorrect_zeros_main_effects,
+             pen.incorrect_zeros_interaction_effects
+        )
+      }
+    
+    names(ls) <- if (expFamily == "binomial") {
+      c(paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_AUC"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+        paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter")) 
+      } else if (expFamily=="gaussian") {
+        c(paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+          # paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
+          # paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+          paste0("pen_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
+      }
+    
     return(ls)
   }
 
@@ -2068,6 +2164,7 @@ mars_fun <- function(x_train,
                      y_test,
                      s0,
                      model = c("MARS"),
+                     expFamily = c("gaussian", "binomial"),
                      true_beta,
                      topgenes = NULL,
                      stability = F,
@@ -2101,6 +2198,8 @@ mars_fun <- function(x_train,
   
   # model: "scad", "mcp", "lasso", "elasticnet", "ridge"
   # filter: T or F based on univariate filter
+  
+  expFamily <- match.arg(expFamily)
   
   print(paste(model,"filter = ", filter, "filter_var = ",filter_var, "include_E = ", include_E, "include_interaction = ", include_interaction, sep = " "))
   
@@ -2181,6 +2280,14 @@ mars_fun <- function(x_train,
     
     mars.pred <- predict(mars_model, newdata = x_test, trace = 4)
     
+    if (expFamily == "binomial") {
+      pred_response <- predict(mars_model, newdata = x_test, trace = 4, 
+                               type = "response")
+      
+      mars.AUC <- pROC::roc(y_test,as.numeric(pred_response))$auc %>% as.numeric()
+      
+    }
+    
     # True Positive Rate
     mars.TPR <- length(intersect(mars.S.hat, s0))/length(s0)
     
@@ -2242,33 +2349,56 @@ mars_fun <- function(x_train,
     # identical(true_beta %>% rownames(),coefs[["Gene"]])
     # mars.model.error <- {(true_beta - coefs[["coef.est"]]) %>% t} %*% WGCNA::cor(x_test[,coefs[["Gene"]]]) %*% (true_beta - coefs[["coef.est"]])
     
-    ls <- list(mars.mse = as.numeric(mars.mse),
-               mars.RMSE = as.numeric(mars.RMSE),
-               # mars.r2 = as.numeric(mars.r2),
-               # mars.adj.r2 = as.numeric(mars.adj.r2), 
-               mars.S.hat = length(mars.S.hat),
-               mars.TPR = mars.TPR, 
-               mars.FPR = mars.FPR, 
-               # mars.relative.mse = mars.mse/mars.mse.oracle, 
-               # mars.model.error = mars.model.error,
-               correct_sparsity,
-               mars.correct_zeros_main_effects,
-               mars.correct_zeros_interaction_effects,
-               mars.incorrect_zeros_main_effects,
-               mars.incorrect_zeros_interaction_effects
-    )
-    names(ls) <- c(paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
-                   # paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
-                   # paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
-                   paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
+    ls <- switch(expFamily,
+                 gaussian = {list(mars.mse = as.numeric(mars.mse),
+                                  mars.RMSE = as.numeric(mars.RMSE),
+                                  mars.S.hat = length(mars.S.hat),
+                                  mars.TPR = mars.TPR, 
+                                  mars.FPR = mars.FPR, 
+                                  correct_sparsity,
+                                  mars.correct_zeros_main_effects,
+                                  mars.correct_zeros_interaction_effects,
+                                  mars.incorrect_zeros_main_effects,
+                                  mars.incorrect_zeros_interaction_effects)},
+                 binomial = {list(mars.mse = as.numeric(mars.mse),
+                                  mars.RMSE = as.numeric(mars.RMSE),
+                                  mars.AUC = mars.AUC,
+                                  mars.S.hat = length(mars.S.hat),
+                                  mars.TPR = mars.TPR, 
+                                  mars.FPR = mars.FPR, 
+                                  correct_sparsity,
+                                  mars.correct_zeros_main_effects,
+                                  mars.correct_zeros_interaction_effects,
+                                  mars.incorrect_zeros_main_effects,
+                                  mars.incorrect_zeros_interaction_effects)
+                   
+                 })
+    
+    names(ls) <- switch(expFamily,
+                        gaussian = {
+                          c(paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))},
+                        binomial = {
+                          c(paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_AUC"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
+                        })
     return(ls)
   }
 }
@@ -2281,6 +2411,7 @@ mars_clust_fun <- function(x_train,
                            s0,
                            summary = c("pc","avg"),
                            model = c("MARS"),
+                           expFamily = c("gaussian","binomial"),
                            gene_groups,
                            true_beta = NULL,
                            topgenes = NULL,
@@ -2293,20 +2424,22 @@ mars_clust_fun <- function(x_train,
                            clust_type = c("clust","Eclust","Addon"),
                            nPC = 1) {
 
-  # result[["clustersAddon"]] %>% print(nrows=Inf)
-  # result[["clustersAddon"]][, table(cluster, module)]
-  # result %>% names
-  # stability = F; gene_groups = result[["clustersAddon"]];
-  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
-  # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  # dim(x_train)
-  # filter = F; filter_var = F; include_E = T; include_interaction = F;
-  # s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
-  # model = "MARS"; summary = "pc"; topgenes = NULL; clust_type="Eclust"; nPC = 1
-
+  result[["clustersAddon"]] %>% print(nrows=Inf)
+  result[["clustersAddon"]][, table(cluster, module)]
+  result %>% names
+  stability = F; gene_groups = result[["clustersAddon"]];
+  x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+  y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+  dim(x_train)
+  filter = F; filter_var = F; include_E = T; include_interaction = F;
+  s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
+  model = "MARS"; summary = "pc"; topgenes = NULL; clust_type="Eclust"; nPC = 1
+  expFamily = "binomial"
+  
   clust_type <- match.arg(clust_type)
   summary <- match.arg(summary)
   model <- match.arg(model)
+  expFamily <- match.arg(expFamily)
 
   message(sprintf("Summary measure: %s, Model: %s, Cluster Type: %s",
                   summary, model, clust_type))
@@ -2391,20 +2524,41 @@ mars_clust_fun <- function(x_train,
                                 
                                 marsGrid <- expand.grid(.degree = 1:2, .nprune = 1000)
                                 
-                                mars_tuned <- train(X.model.formula,
-                                                    y_train,
-                                                    method = "earth",
-                                                    trace = 1, nk = 1000, keepxy = TRUE, pmethod = "backward",
-                                                    tuneGrid = marsGrid,
-                                                    trControl = fitControl)
-                                
-                                earth::earth(x = X.model.formula, 
-                                             y = y_train, 
-                                             keepxy = TRUE,
-                                             pmethod = "backward",
-                                             nk = 1000,
-                                             degree = mars_tuned$bestTune$degree, 
-                                             trace = 4, nfold = 10)
+                                switch(expFamily,
+                                       gaussian = {
+                                         mars_tuned <- train(X.model.formula,
+                                                             y_train,
+                                                             method = "earth",
+                                                             trace = 1, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                                                             tuneGrid = marsGrid,
+                                                             trControl = fitControl)
+                                         
+                                         earth::earth(x = X.model.formula, 
+                                                      y = y_train, 
+                                                      keepxy = TRUE,
+                                                      pmethod = "backward",
+                                                      nk = 1000,
+                                                      degree = mars_tuned$bestTune$degree, 
+                                                      trace = 4, nfold = 10) },
+                                       binomial = {
+
+                                         mars_tuned <- train(X.model.formula,
+                                                             as.factor(y_train),
+                                                             method = "earth",
+                                                             trace = 1, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                                                             glm=list(family=binomial),
+                                                             tuneGrid = marsGrid,
+                                                             trControl = fitControl)
+                                         
+                                         earth::earth(x = X.model.formula, 
+                                                      y = as.factor(y_train), 
+                                                      keepxy = TRUE,
+                                                      pmethod = "backward",
+                                                      nk = 1000,
+                                                      glm=list(family=binomial),
+                                                      degree = mars_tuned$bestTune$degree, 
+                                                      trace = 4, nfold = 10) 
+                                       })
                               }
   )
   
@@ -2566,41 +2720,71 @@ mars_clust_fun <- function(x_train,
     # mse.null
     (mse_null <- crossprod(mean(y_test) - y_test)/length(y_test))
     
+    if (expFamily == "binomial") {
+      pred_response <- predict(clust_train_model, newdata = X.model.formula_test, trace = 4, 
+                               type = "response")
+      
+      clust.AUC <- pROC::roc(y_test,as.numeric(pred_response))$auc %>% as.numeric()
+      
+    }
+    
+    
     # the proportional decrease in model error or R^2 for each scenario (pg. 346 ESLv10)
     # clust.r2 <- (mse_null - clust.mse)/mse_null
 
     # clust.adj.r2 <- 1 - (1 - clust.r2)*(nrow(x_test) - 1)/(nrow(x_test) - n.non_zero_clusters - 1)
 
 
-    ls <- list(clust.mse = clust.mse,
-               clust.RMSE,
-               # clust.r2 = clust.r2,
-               # clust.adj.r2 = clust.adj.r2, 
-               clust.S.hat = length(clust.S.hat),
-               clust.TPR = clust.TPR, 
-               clust.FPR = clust.FPR, 
-               clust.correct_sparsity = clust.correct_sparsity,
-               clust.correct_zeros_main_effects, 
-               clust.correct_zeros_interaction_effects,
-               clust.incorrect_zeros_main_effects, 
-               clust.incorrect_zeros_interaction_effects,
-               n.clusters)
-
-
-    names(ls) <- c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
-                   # paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_r2"),
-                   # paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_adjr2"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"),
-                   paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_nclusters")
-                   )
+    ls <- switch(expFamily,
+                 gaussian = {list(mars.mse = as.numeric(mars.mse),
+                                  mars.RMSE = as.numeric(mars.RMSE),
+                                  mars.S.hat = length(mars.S.hat),
+                                  mars.TPR = mars.TPR, 
+                                  mars.FPR = mars.FPR, 
+                                  correct_sparsity,
+                                  mars.correct_zeros_main_effects,
+                                  mars.correct_zeros_interaction_effects,
+                                  mars.incorrect_zeros_main_effects,
+                                  mars.incorrect_zeros_interaction_effects)},
+                 binomial = {list(mars.mse = as.numeric(mars.mse),
+                                  mars.RMSE = as.numeric(mars.RMSE),
+                                  mars.AUC = mars.AUC,
+                                  mars.S.hat = length(mars.S.hat),
+                                  mars.TPR = mars.TPR, 
+                                  mars.FPR = mars.FPR, 
+                                  correct_sparsity,
+                                  mars.correct_zeros_main_effects,
+                                  mars.correct_zeros_interaction_effects,
+                                  mars.incorrect_zeros_main_effects,
+                                  mars.incorrect_zeros_interaction_effects)
+                   
+                 })
+    
+    names(ls) <- switch(expFamily,
+                        gaussian = {
+                          c(paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))},
+                        binomial = {
+                          c(paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_AUC"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
+                        })
     return(ls)
 
   }
@@ -2986,7 +3170,7 @@ savepdf <- function(file, width=16, height=10){
 
 #' @rdname simulated_data
 #' @export
-sim_data_mars <- function(n , n0 , p , genes, beta, 
+sim_data_mars <- function(n , n0 , p , genes, beta, binary_outcome = FALSE,
                           E, signal_to_noise_ratio = 1,
                           truemodule, nActive) {
   
@@ -3035,16 +3219,26 @@ sim_data_mars <- function(n , n0 , p , genes, beta,
   
   y <- y.star + k*error
   
-  result <- as.matrix(cbind(y,DT))
-  colnames(result)[1] <- "Y"
-  class(result) <- append(class(result), "expression")
+  if (binary_outcome) {
+    prob <- 1/(1+exp(-y))
+    z <- rbinom(nrow(prob),1,prob)
+    
+    result <- as.matrix(cbind(z,DT))
+    colnames(result)[1] <- "Y"
+    class(result) <- append(class(result), "expression")
+    return(result) 
+  } else {
+    result <- as.matrix(cbind(y,DT))
+    colnames(result)[1] <- "Y"
+    class(result) <- append(class(result), "expression")
+    return(result)
+  }
   
-  return(result)
 }
 
 
 
-generate_data_mars <- function(p, X, beta, 
+generate_data_mars <- function(p, X, beta, binary_outcome = FALSE,
                                truemodule,
                                nActive,
                                cluster_distance = c("corr", "corr0", "corr1", "tom",
@@ -3102,6 +3296,7 @@ generate_data_mars <- function(p, X, beta,
   message("Creating data and simulating response for MARS model")
   
   DT <- as.data.frame(sim_data_mars(n = n, n0 = n0, p = p, genes = X,
+                                    binary_outcome = binary_outcome,
                                     truemodule = truemodule, beta = beta, 
                                     nActive = nActive,
                                     E = c(rep(0,n0), rep(1, n1)),

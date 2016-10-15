@@ -14,9 +14,12 @@ options(digits = 2, scipen=999)
 # the intersect and union command give NAs
 ## ---- data ----
 
-col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim3-sept27.txt", header = F)$V1
+# col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim3-sept27.txt", header = F)$V1
+col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim3-oct12.txt", header = F)$V1
 
-DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim3-hydra-results-p5000-sept27", stringsAsFactors = FALSE) %>%
+# DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim3-hydra-results-p5000-sept27", stringsAsFactors = FALSE) %>%
+  # setnames(col.names)
+DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim3-hydra-results-p5000-oct12", stringsAsFactors = FALSE) %>%
   setnames(col.names)
 
 DT[, `:=`(simulation = 1:nrow(DT))]
@@ -24,10 +27,20 @@ DT[, `:=`(simulation = 1:nrow(DT))]
 # this still has all the raw data, but melted
 options(warning.length = 8170)
 DT.long <- DT %>%
-  reshape2::melt(id.vars = c("simulation",colnames(DT)[1:20])) %>%
+  reshape2::melt(id.vars = c("simulation",colnames(DT)[c(1:20,80,81)])) %>%
   tidyr::separate(variable, c("method", "summary", "model", "interaction", "measure"), convert = T) %>%
   as.data.table
 
+DT.long.rand <- DT[, c("simulation",col.names[c(1:20,80,81)]), with = F] %>%
+  reshape2::melt(id.vars = c("simulation",colnames(DT)[c(1:20)])) %>%
+  as.data.table 
+
+
+yarrr::pirateplot(value ~ cluster_distance+variable, DT.long.rand)
+
+ggplot(DT.long.rand,
+       aes(x = variable, y = value, fill = cluster_distance)) +
+  geom_boxplot() 
 
 DT.long$method %>% table
 DT.long$model %>% table
@@ -272,7 +285,7 @@ for (cdist in c("Correlation","TOM")) {
     panel_border()
   
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept27/tpr_fpr_%s_sim3.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-oct12/tpr_fpr_%s_sim3.png",cdist),
             p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
   
 }
@@ -361,7 +374,7 @@ for (cdist in c("Correlation","TOM")) {
     panel_border()
   
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept27/RMSE_%s_sim3.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-oct12/RMSE_%s_sim3.png",cdist),
             p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
 }
 
@@ -427,7 +440,7 @@ for (cdist in c("Correlation","TOM")) {
       theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
       panel_border()
     
-    save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept27/%s_%s_sim3.png",m, cdist),
+    save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-oct12/%s_%s_sim3.png",m, cdist),
               p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
     
   } 
@@ -462,7 +475,7 @@ for (cdist in c("Correlation","TOM")) {
     theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
     panel_border()
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-sept27/CorrectSparsity_%s_sim3.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim3-oct12/CorrectSparsity_%s_sim3.png",cdist),
             p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
   
 }

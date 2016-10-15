@@ -15,19 +15,39 @@ options(digits = 2, scipen=999)
 ## ---- data ----
 
 col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim1-sept10.txt", header = F)$V1
+# col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim1-oct12.txt", header = F)$V1
+col.names <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/colnames_stab_hydra-sim1-rand-average.txt", header = F)$V1
 
 DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim1-hydra-results-p5000-sept10", stringsAsFactors = FALSE) %>%
+setnames(col.names)
+# DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim1-hydra-results-p5000-oct13", stringsAsFactors = FALSE) %>%
+  # setnames(col.names)
+DT <- fread("~/git_repositories/eclust-simulation-aug2016/hydra/results/sim1-hydra-results-p5000-rand-average", stringsAsFactors = FALSE) %>%
   setnames(col.names)
 
 DT[, `:=`(simulation = 1:nrow(DT))]
 
 # this still has all the raw data, but melted
 options(warning.length = 8170)
+# DT.long <- DT %>%
+#   reshape2::melt(id.vars = c("simulation",colnames(DT)[c(1:20,129:136)])) %>%
+#   tidyr::separate(variable, c("method", "summary", "model", "interaction", "measure"), convert = T) %>%
+#   as.data.table
+DT.long.rand <- DT[, c("simulation",col.names[c(1:20,129:136)]), with = F] %>%
+  reshape2::melt(id.vars = c("simulation",colnames(DT)[c(1:20)])) %>%
+  as.data.table
+yarrr::pirateplot(value ~ cluster_distance+variable, DT.long.rand)
+pd <- position_dodge(width = 1)
+ggplot(DT.long.rand,
+       aes(x = variable, y = value, fill = cluster_distance)) +
+  geom_boxplot(position = pd)
+boxplot.stats(DT.long.rand[variable=="randDiff"][cluster_distance=="corr"]$value)
+boxplot.stats(DT.long.rand[variable=="randDiff"][cluster_distance=="tom"]$value)
+
 DT.long <- DT %>%
-  reshape2::melt(id.vars = c("simulation",colnames(DT)[1:20])) %>%
+  reshape2::melt(id.vars = c("simulation",colnames(DT)[c(1:20)])) %>%
   tidyr::separate(variable, c("method", "summary", "model", "interaction", "measure"), convert = T) %>%
   as.data.table
-
 
 DT.long$method %>% table
 DT.long$model %>% table
@@ -236,7 +256,7 @@ save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/fi
           p, base_aspect_ratio = 1.2, ncol = 2, nrow = 2, base_height = 5)
 
 
-## ---- tpr-vs-fpr-tom-only ----
+## ---- tpr-vs-fpr-corr-tom-separately ----
 
 pd <- position_dodge(width = 1)
 group.colors <- c(SEPARATE = "#F8766D", CLUST = "#00BA38" , ECLUST = "#619CFF")
@@ -278,7 +298,7 @@ for (cdist in c("Correlation","TOM")) {
     panel_border()
   
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/tpr_fpr_%s_sim1.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-oct12/tpr_fpr_%s_sim1.png",cdist),
             p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
   
 }
@@ -341,7 +361,7 @@ for (cdist in c("Correlation","TOM")) {
     theme(plot.margin = unit(c(6,0,6,0), "pt"),legend.position="bottom") +
     panel_border()
 
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/RMSE_%s_sim1.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-oct12/RMSE_%s_sim1.png",cdist),
             p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
 
 }
@@ -375,7 +395,7 @@ for (cdist in c("Correlation","TOM")) {
       theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
       panel_border()
     
-    save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/%s_%s_sim1.png",m,cdist),
+    save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-oct12/%s_%s_sim1.png",m,cdist),
               p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
     
   } 
@@ -410,7 +430,37 @@ for (cdist in c("Correlation","TOM")) {
     theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
     panel_border()
   
-  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-sept10/CorrectSparsity_%s_sim1.png",cdist),
+  save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/hydra/results/figures/sim1-oct12/CorrectSparsity_%s_sim1.png",cdist),
             p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 11, base_height = 11)
   
 }
+
+
+
+
+## ----nclusters ----
+
+pd <- position_dodge(width = 1)
+group.colors <- c(SEPARATE = "#F8766D", CLUST = "#00BA38" , ECLUST = "#619CFF")
+appender1 <- function(string) TeX(paste("$\\rho = $", string))
+appender2 <- function(string) TeX(paste("$SNR = $", string))
+
+p1 <- ggplot(DT.long2[measure=="nclusters"],
+             aes(x = method, y = value, fill = method)) +
+  geom_boxplot(position = pd) +
+  guides(color = guide_legend(title = "method")) +
+  xlab("") +
+  ylab("Number of clusters") +
+  facet_grid(~cluster_distance , 
+             scales="fixed", 
+             labeller = labeller(rho = as_labeller(appender1, 
+                                                   default = label_parsed),
+                                 SNR = as_labeller(appender2,default = label_parsed))) +
+  scale_fill_manual(values = group.colors) + 
+  # scale_y_continuous(limits = c(0,1)) + 
+  theme(plot.margin = unit(c(6,0,6,0), "pt"), legend.position="bottom") + 
+  panel_border()
+
+save_plot(sprintf("~/git_repositories/eclust-simulation-aug2016/figures-for-manuscript/nclusters.png",05),
+          p1, base_aspect_ratio = 1.3, nrow = 1, base_width = 7)#, base_height = 11)
+
