@@ -42,7 +42,7 @@ if(!pckg) {
   require(dplyr)
 }
 
-source("http://bioconductor.org/biocLite.R")
+# source("http://bioconductor.org/biocLite.R")
 
 pckg = try(require(Biobase))
 if(!pckg) {
@@ -135,12 +135,12 @@ if(!pckg) {
   require(PMA)
 }
 
-pckg = try(require(eclust))
-if(!pckg) {
-  cat("Installing 'eclust' from CRAN\n")
-  getPckg("eclust")
-  require(eclust)
-}
+# pckg = try(require(eclust))
+# if(!pckg) {
+#   cat("Installing 'eclust' from CRAN\n")
+#   getPckg("eclust")
+#   require(eclust)
+# }
 
 pckg = try(require(doMC))
 if(!pckg) {

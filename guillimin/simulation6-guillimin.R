@@ -11,10 +11,10 @@
 # for i in 1 ; do qsub -v index=$i simulation2.sh ; done
 ##################################
 
-
-rm(list=ls())
-source("packages.R")
-source("functions.R")
+# 
+# rm(list=ls())
+# source("packages.R")
+# source("functions.R")
 
 options(digits = 4, scipen = 999)
 
@@ -27,7 +27,7 @@ source(paste(Sys.getenv("PBS_O_WORKDIR"),"packages.R", sep="/"))
 source(paste(Sys.getenv("PBS_O_WORKDIR"),"functions.R", sep="/"))
 
 parametersDf <- expand.grid(rho = c(0.2,0.90),
-                            p = c(1000),
+                            p = c(5000),
                             SNR = c(0.2,1,2),
                             n = c(400), # this is the total train + test sample size
                             # nActive = c(300), # must be even because its being split among two modules
@@ -490,7 +490,7 @@ write.table(final_results %>% t %>% as.data.frame(),
             col.names = F)
 
 write.table(final_results %>% t %>% as.data.frame() %>% colnames(),
-            file = paste(Sys.getenv("PBS_O_WORKDIR"),"colnames_stab_hydra-sim6-oct15.txt",sep="/"),
+            file = paste(Sys.getenv("PBS_O_WORKDIR"),"colnames_stab_hydra-sim6-oct21.txt",sep="/"),
             # file  = filename,
             quote = F,
             row.names = F, col.names = F)

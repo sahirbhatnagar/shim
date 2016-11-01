@@ -2219,32 +2219,51 @@ mars_fun <- function(x_train,
   
   # mars model
   mars_model <- switch(model,
-                      MARS = {
-                        
-                        fitControl <-  trainControl(method = "cv",
-                                                    # number = 25,
-                                                    # repeats = 3,
-                                                    verboseIter = FALSE)
-                        
-                        marsGrid <- expand.grid(.degree = 1:2, .nprune = 1000)
-
-                        mars_tuned <- train(as.matrix(x_train),
-                                            y_train,
-                                            method = "earth",
-                                            trace = 1, nk = 1000, keepxy = TRUE, pmethod = "backward",
-                                            tuneGrid = marsGrid,
-                                            trControl = fitControl)
-                        
-                        
-                        earth::earth(x = as.matrix(x_train), 
-                                     y = y_train, 
-                                     keepxy = TRUE,
-                                     pmethod = "backward",
-                                     # pmethod = "cv",
-                                     # nfold = 10,
-                                     nk = 1000,
-                                     degree = mars_tuned$bestTune$degree, 
-                                     trace = 4) }
+                              MARS = {
+                                
+                                fitControl <-  trainControl(method = "cv",
+                                                            # number = 25,
+                                                            # repeats = 3,
+                                                            verboseIter = FALSE)
+                                
+                                marsGrid <- expand.grid(.degree = 1:2, .nprune = 1000)
+                                
+                                switch(expFamily,
+                                       gaussian = {
+                                         mars_tuned <- train(as.matrix(x_train),
+                                                             y_train,
+                                                             method = "earth",
+                                                             trace = 1, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                                                             tuneGrid = marsGrid,
+                                                             trControl = fitControl)
+                                         
+                                         earth::earth(x = as.matrix(x_train), 
+                                                      y = y_train, 
+                                                      keepxy = TRUE,
+                                                      pmethod = "backward",
+                                                      nk = 1000,
+                                                      degree = mars_tuned$bestTune$degree, 
+                                                      trace = 4, nfold = 10) },
+                                       binomial = {
+                                         
+                                         mars_tuned <- train(as.matrix(x_train),
+                                                             as.factor(y_train),
+                                                             method = "earth",
+                                                             trace = 1, nk = 1000, keepxy = TRUE, pmethod = "backward",
+                                                             glm=list(family=binomial),
+                                                             tuneGrid = marsGrid,
+                                                             trControl = fitControl)
+                                         
+                                         earth::earth(x = as.matrix(x_train), 
+                                                      y = as.factor(y_train), 
+                                                      keepxy = TRUE,
+                                                      pmethod = "backward",
+                                                      nk = 1000,
+                                                      glm=list(family=binomial),
+                                                      degree = mars_tuned$bestTune$degree, 
+                                                      trace = 4, nfold = 10) 
+                                       })
+                              }
   )
 
   
@@ -2424,17 +2443,17 @@ mars_clust_fun <- function(x_train,
                            clust_type = c("clust","Eclust","Addon"),
                            nPC = 1) {
 
-  result[["clustersAddon"]] %>% print(nrows=Inf)
-  result[["clustersAddon"]][, table(cluster, module)]
-  result %>% names
-  stability = F; gene_groups = result[["clustersAddon"]];
-  x_train = result[["X_train"]] ; x_test = result[["X_test"]];
-  y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
-  dim(x_train)
-  filter = F; filter_var = F; include_E = T; include_interaction = F;
-  s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
-  model = "MARS"; summary = "pc"; topgenes = NULL; clust_type="Eclust"; nPC = 1
-  expFamily = "binomial"
+  # result[["clustersAddon"]] %>% print(nrows=Inf)
+  # result[["clustersAddon"]][, table(cluster, module)]
+  # result %>% names
+  # stability = F; gene_groups = result[["clustersAddon"]];
+  # x_train = result[["X_train"]] ; x_test = result[["X_test"]];
+  # y_train = result[["Y_train"]] ; y_test = result[["Y_test"]];
+  # dim(x_train)
+  # filter = F; filter_var = F; include_E = T; include_interaction = F;
+  # s0 = result[["S0"]]; p = p ;true_beta = result[["beta_truth"]]
+  # model = "MARS"; summary = "pc"; topgenes = NULL; clust_type="Eclust"; nPC = 1
+  # expFamily = "binomial"
   
   clust_type <- match.arg(clust_type)
   summary <- match.arg(summary)
@@ -2736,54 +2755,54 @@ mars_clust_fun <- function(x_train,
 
 
     ls <- switch(expFamily,
-                 gaussian = {list(mars.mse = as.numeric(mars.mse),
-                                  mars.RMSE = as.numeric(mars.RMSE),
-                                  mars.S.hat = length(mars.S.hat),
-                                  mars.TPR = mars.TPR, 
-                                  mars.FPR = mars.FPR, 
-                                  correct_sparsity,
-                                  mars.correct_zeros_main_effects,
-                                  mars.correct_zeros_interaction_effects,
-                                  mars.incorrect_zeros_main_effects,
-                                  mars.incorrect_zeros_interaction_effects)},
-                 binomial = {list(mars.mse = as.numeric(mars.mse),
-                                  mars.RMSE = as.numeric(mars.RMSE),
-                                  mars.AUC = mars.AUC,
-                                  mars.S.hat = length(mars.S.hat),
-                                  mars.TPR = mars.TPR, 
-                                  mars.FPR = mars.FPR, 
-                                  correct_sparsity,
-                                  mars.correct_zeros_main_effects,
-                                  mars.correct_zeros_interaction_effects,
-                                  mars.incorrect_zeros_main_effects,
-                                  mars.incorrect_zeros_interaction_effects)
+                 gaussian = {list(clust.mse = as.numeric(clust.mse),
+                                  clust.RMSE = as.numeric(clust.RMSE),
+                                  clust.S.hat = length(clust.S.hat),
+                                  clust.TPR = clust.TPR, 
+                                  clust.FPR = clust.FPR, 
+                                  clust.correct_sparsity,
+                                  clust.correct_zeros_main_effects,
+                                  clust.correct_zeros_interaction_effects,
+                                  clust.incorrect_zeros_main_effects,
+                                  clust.incorrect_zeros_interaction_effects)},
+                 binomial = {list(clust.mse = as.numeric(clust.mse),
+                                  clust.RMSE = as.numeric(clust.RMSE),
+                                  clust.AUC = clust.AUC,
+                                  clust.S.hat = length(clust.S.hat),
+                                  clust.TPR = clust.TPR, 
+                                  clust.FPR = clust.FPR, 
+                                  clust.correct_sparsity,
+                                  clust.correct_zeros_main_effects,
+                                  clust.correct_zeros_interaction_effects,
+                                  clust.incorrect_zeros_main_effects,
+                                  clust.incorrect_zeros_interaction_effects)
                    
                  })
     
     names(ls) <- switch(expFamily,
                         gaussian = {
-                          c(paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))},
+                          c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))},
                         binomial = {
-                          c(paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_AUC"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
-                            paste0("mars_na_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
+                          c(paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_mse"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_RMSE"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_AUC"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_Shat"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_TPR"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_FPR"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectSparsity"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroMain"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_CorrectZeroInter"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroMain"),
+                            paste0(clust_type,"_",summary,"_",model,ifelse(include_interaction,"_yes","_no"),"_IncorrectZeroInter"))
                         })
     return(ls)
 
