@@ -1,4 +1,4 @@
-# eclust
+# shim
 
 [http://sahirbhatnagar.com/shim/](http://sahirbhatnagar.com/shim/)
 
